@@ -37,6 +37,74 @@ export function haversineDistance(lat1, lng1, lat2, lng2) {
 }
 
 /**
+ * Physics-Based Dual Kinematics Calculator
+ * - Walking: Strictly 4.8 km/h (1.333 m/s, 80 m/min) + 8s per intersection crossing.
+ *   Pedestrian shortcuts enabled inside campus; 0.92x city directness factor.
+ * - Driving:
+ *   - NSUT Campus: 20 km/h (5.55 m/s) + 15s internal maneuver/gate buffer.
+ *   - Delhi City Local (<800m): 26 km/h (7.22 m/s).
+ *   - Delhi City Arterial (>=800m): 38 km/h (10.55 m/s).
+ *   - Delhi Traffic Congestion Multiplier: 1.20x.
+ *   - Signal / Turn delay: +12s per turn.
+ */
+export function calculateSegmentKinematics(distanceMeters, mode = "car", isTurn = false, isCampus = false) {
+  const dist = Math.max(1, Number(distanceMeters) || 0);
+
+  if (mode === "walk") {
+    const baseWalkSpeedMps = 1.333; // 4.8 km/h = 80 m/min
+    const crossingDelaySec = isTurn ? 8 : 0;
+    const walkSeconds = (dist / baseWalkSpeedMps) + crossingDelaySec;
+    return {
+      durationSec: walkSeconds,
+      durationMin: walkSeconds / 60,
+      speedKmh: 4.8,
+    };
+  } else {
+    let baseSpeedKmh;
+    let turnDelaySec = isTurn ? 12 : 0;
+    let trafficFactor = 1.2;
+
+    if (isCampus) {
+      baseSpeedKmh = 20;
+      trafficFactor = 1.0;
+      turnDelaySec = isTurn ? 6 : 0;
+    } else if (dist < 800) {
+      baseSpeedKmh = 26;
+    } else {
+      baseSpeedKmh = 38;
+    }
+
+    const speedMps = (baseSpeedKmh * 1000) / 3600;
+    const driveSeconds = ((dist / speedMps) * trafficFactor) + turnDelaySec;
+    return {
+      durationSec: driveSeconds,
+      durationMin: driveSeconds / 60,
+      speedKmh: baseSpeedKmh,
+    };
+  }
+}
+
+export function formatDistanceText(meters) {
+  const m = Math.max(0, Math.round(Number(meters) || 0));
+  if (m < 1000) return `${m} m`;
+  return `${(m / 1000).toFixed(1)} km`;
+}
+
+export function formatDurationText(minutes) {
+  const m = Number(minutes) || 0;
+  if (m <= 0) return "0 min";
+  if (m < 1) {
+    const s = Math.max(15, Math.round(m * 60));
+    return s < 50 ? `${s} sec` : "< 1 min";
+  }
+  const totalMins = Math.round(m);
+  if (totalMins < 60) return `${totalMins} min`;
+  const h = Math.floor(totalMins / 60);
+  const remM = totalMins % 60;
+  return remM > 0 ? `${h} hr ${remM} min` : `${h} hr`;
+}
+
+/**
  * Binary Min-Heap Priority Queue for Dijkstra's Algorithm.
  */
 export class MinPriorityQueue {
@@ -2126,23 +2194,6 @@ export function injectCustomNode(graph, customNode) {
 }
 
 /**
- * Format helpers for instructions and telemetry.
- */
-export function formatDistanceText(meters) {
-  const m = Math.max(0, Math.round(Number(meters) || 0));
-  if (m < 1000) return `${m} m`;
-  return `${(m / 1000).toFixed(1)} km`;
-}
-
-export function formatDurationText(minutes) {
-  const mins = Math.max(1, Math.round(Number(minutes) || 0));
-  if (mins < 60) return `${mins} min`;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
-}
-
-/**
  * Internal NSUT Campus Dijkstra:
  * Guaranteed 100% inside NSUT campus, respects Car (perimeter/wide roads) vs Walk (lawns/footpaths).
  */
@@ -2163,8 +2214,8 @@ export function runCampusDijkstra(startId, endId, mode = "car", customNodes = nu
 
   for (const e of campusEdges) {
     if (mode === "car" && e.pedestrianOnly) continue;
-    const speed = mode === "walk" ? 5.0 : Number(e.speedKmh || 20);
-    const durationMin = (e.distance / (speed * 1000)) * 60;
+    const k = calculateSegmentKinematics(e.distance, mode, false, true);
+    const durationMin = k.durationMin;
     const forwardWp = Array.isArray(e.waypoints) && e.waypoints.length >= 2
       ? e.waypoints
       : [[nodesMap[e.from].lat, nodesMap[e.from].lng], [nodesMap[e.to].lat, nodesMap[e.to].lng]];
@@ -2275,12 +2326,19 @@ export function runCampusDijkstra(startId, endId, mode = "car", customNodes = nu
     const verb = mode === "walk" ? "Walk along" : "Drive along";
     let maneuverType = isFirst ? "depart" : "straight";
     let instruction = isFirst
-      ? `Depart on ${e.roadName} toward ${targetNode.shortName}`
+      ? (mode === "walk"
+          ? `Depart walking on ${e.roadName} toward ${targetNode.shortName}`
+          : `Depart on ${e.roadName} toward ${targetNode.shortName}`)
       : `${verb} ${e.roadName} toward ${targetNode.shortName}`;
     if (isLast) {
-      instruction = `Continue on ${e.roadName} and arrive at ${targetNode.shortName}`;
+      instruction = mode === "walk"
+        ? `Walk on ${e.roadName} and arrive at ${targetNode.shortName}`
+        : `Continue on ${e.roadName} and arrive at ${targetNode.shortName}`;
       maneuverType = "arrive";
     }
+
+    const isTurn = !isFirst && !isLast;
+    const k = calculateSegmentKinematics(e.distance, mode, isTurn, true);
 
     return {
       step: idx + 1,
@@ -2289,7 +2347,7 @@ export function runCampusDijkstra(startId, endId, mode = "car", customNodes = nu
       roadName: e.roadName,
       distanceMeters: e.distance,
       distanceText: formatDistanceText(e.distance),
-      durationText: formatDurationText(e.durationMin),
+      durationText: formatDurationText(k.durationMin),
       coordinate: e.waypoints[0],
     };
   });
@@ -2320,42 +2378,76 @@ export async function fetchOSRMRoute(startNode, endNode, mode = "car") {
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
 
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
-      return data.routes;
+    if (res.ok) {
+      const data = await res.json();
+      if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
+        return data.routes;
+      }
     }
   } catch {
     // Offline / fallback handled below
   }
+
+  // Fallback to driving profile for geometry if foot endpoint had issues
+  if (mode === "walk") {
+    try {
+      const fallbackUrl = `https://router.project-osrm.org/route/v1/driving/${startNode.lng},${startNode.lat};${endNode.lng},${endNode.lat}?alternatives=true&steps=true&geometries=geojson&overview=full`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2800);
+      const res = await fetch(fallbackUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.code === "Ok" && Array.isArray(data.routes) && data.routes.length > 0) {
+          return data.routes;
+        }
+      }
+    } catch {
+      // offline
+    }
+  }
+
   return null;
 }
 
 /**
- * Parse OSRM Step into structured Turn-by-Turn Maneuver.
+ * Parse OSRM Step into structured Turn-by-Turn Maneuver with physics-based kinematics.
  */
-function parseOSRMStepToManeuver(step, idx, totalSteps, nextStep) {
+export function parseOSRMStepToManeuver(step, idx, totalSteps, nextStep, mode = "car") {
   const type = step?.maneuver?.type || "turn";
   const mod = step?.maneuver?.modifier || "";
-  const road = step?.name ? step.name.trim() : "Connecting Road";
-  const dist = step?.distance || 100;
-  const durMin = Math.max(0.5, (step?.duration || 20) / 60);
+  const road = step?.name ? step.name.trim() : (mode === "walk" ? "Pedestrian Walkway" : "Connecting Road");
+  const dist = Math.max(10, step?.distance || 100);
+  const isTurn = Boolean(mod || (type && type !== "depart" && type !== "continue"));
+  
+  const kinematics = calculateSegmentKinematics(dist, mode, isTurn, false);
+  const durMin = kinematics.durationMin;
 
   let maneuverType = "straight";
   let instruction = "";
 
+  const contVerb = mode === "walk" ? "Walk along" : "Continue on";
+
   if (idx === 0 || type === "depart") {
     maneuverType = "depart";
-    instruction = `Head ${mod ? mod + " " : ""}on ${road}`;
+    instruction = mode === "walk"
+      ? `Walk ${mod ? mod + " " : ""}on ${road}`
+      : `Head ${mod ? mod + " " : ""}on ${road}`;
   } else if (idx === totalSteps - 1 || type === "arrive") {
     maneuverType = "arrive";
-    instruction = `Arrive at destination on ${road}`;
+    instruction = mode === "walk"
+      ? `Arrive at destination via ${road}`
+      : `Arrive at destination on ${road}`;
   } else if (type === "roundabout" || type === "rotary") {
     maneuverType = "roundabout";
-    instruction = `At the roundabout, take exit ${step.maneuver.exit || 1} onto ${road}`;
+    instruction = mode === "walk"
+      ? `Cross roundabout toward ${road}`
+      : `At the roundabout, take exit ${step.maneuver.exit || 1} onto ${road}`;
   } else if (mod.includes("uturn")) {
     maneuverType = "uturn";
-    instruction = `Make a U-turn onto ${road}`;
+    instruction = mode === "walk"
+      ? `Turn around onto ${road}`
+      : `Make a U-turn onto ${road}`;
   } else if (mod.includes("left")) {
     maneuverType = mod.includes("slight") ? "slight-left" : "turn-left";
     instruction = `Turn ${mod.includes("slight") ? "slight left" : "left"} onto ${road}`;
@@ -2364,10 +2456,10 @@ function parseOSRMStepToManeuver(step, idx, totalSteps, nextStep) {
     instruction = `Turn ${mod.includes("slight") ? "slight right" : "right"} onto ${road}`;
   } else if (type === "new name" || type === "continue") {
     maneuverType = "straight";
-    instruction = `Continue onto ${road}`;
+    instruction = `${contVerb} ${road}`;
   } else {
     maneuverType = "straight";
-    instruction = `Continue on ${road}`;
+    instruction = `${contVerb} ${road}`;
   }
 
   const coord = step?.maneuver?.location
@@ -2440,14 +2532,15 @@ export function runStreetIntersectionDijkstra(osrmRoutes, mode = "car", startNod
 
       const stepGeom = step.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
       const dist = step.distance || haversineDistance(startCoord[0], startCoord[1], endCoord[0], endCoord[1]);
-      const durSec = step.duration || (dist / ((mode === "walk" ? 5 : 35) * 1000 / 3600));
+      const isTurn = Boolean(step?.maneuver?.modifier || (step?.maneuver?.type && step.maneuver.type !== "depart" && step.maneuver.type !== "continue"));
+      const kinematics = calculateSegmentKinematics(dist, mode, isTurn, false);
 
       const edgeObj = {
         from: uKey,
         to: vKey,
-        roadName: step.name || "Street Link",
+        roadName: step.name || (mode === "walk" ? "Pedestrian Walkway" : "Street Link"),
         distance: dist,
-        durationMin: durSec / 60,
+        durationMin: kinematics.durationMin,
         stepObj: step,
         waypoints: stepGeom,
       };
@@ -2457,16 +2550,29 @@ export function runStreetIntersectionDijkstra(osrmRoutes, mode = "car", startNod
   }
 
   if (!globalStartKey || !globalEndKey || !nodeMap[globalStartKey] || !nodeMap[globalEndKey]) {
-    // If exact keys missing, fallback to primary route geometry
+    // If exact keys missing, fallback to primary route geometry with physics kinematics
     const primary = osrmRoutes[0];
     const geom = primary.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
-    const steps = (primary.legs?.[0]?.steps || []).map((s, idx, arr) =>
-      parseOSRMStepToManeuver(s, idx, arr.length, arr[idx + 1])
-    );
+    let totalMeters = 0;
+    let totalMinutes = 0;
+    const rawSteps = primary.legs?.[0]?.steps || [];
+    const steps = rawSteps.map((s, idx, arr) => {
+      const isTurn = Boolean(s.maneuver?.modifier || s.maneuver?.type === "turn");
+      const k = calculateSegmentKinematics(s.distance || 100, mode, isTurn, false);
+      totalMeters += s.distance || 100;
+      totalMinutes += k.durationMin;
+      return parseOSRMStepToManeuver(s, idx, arr.length, arr[idx + 1], mode);
+    });
+
+    if (totalMeters === 0) {
+      totalMeters = Math.round(primary.distance || 1000);
+      totalMinutes = calculateSegmentKinematics(totalMeters, mode, false, false).durationMin;
+    }
+
     return {
       roadGeometry: geom,
-      totalDistance: Math.round(primary.distance),
-      totalDurationMin: Number((primary.duration / 60).toFixed(1)),
+      totalDistance: Math.round(totalMeters),
+      totalDurationMin: Number(totalMinutes.toFixed(1)),
       turnByTurnSteps: steps,
       visitedOrder: [],
     };
@@ -2532,13 +2638,26 @@ export function runStreetIntersectionDijkstra(osrmRoutes, mode = "car", startNod
   if (pathEdges.length === 0) {
     const primary = osrmRoutes[0];
     const geom = primary.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
-    const steps = (primary.legs?.[0]?.steps || []).map((s, idx, arr) =>
-      parseOSRMStepToManeuver(s, idx, arr.length, arr[idx + 1])
-    );
+    let totalMeters = 0;
+    let totalMinutes = 0;
+    const rawSteps = primary.legs?.[0]?.steps || [];
+    const steps = rawSteps.map((s, idx, arr) => {
+      const isTurn = Boolean(s.maneuver?.modifier || s.maneuver?.type === "turn");
+      const k = calculateSegmentKinematics(s.distance || 100, mode, isTurn, false);
+      totalMeters += s.distance || 100;
+      totalMinutes += k.durationMin;
+      return parseOSRMStepToManeuver(s, idx, arr.length, arr[idx + 1], mode);
+    });
+
+    if (totalMeters === 0) {
+      totalMeters = Math.round(primary.distance || 1000);
+      totalMinutes = calculateSegmentKinematics(totalMeters, mode, false, false).durationMin;
+    }
+
     return {
       roadGeometry: geom,
-      totalDistance: Math.round(primary.distance),
-      totalDurationMin: Number((primary.duration / 60).toFixed(1)),
+      totalDistance: Math.round(totalMeters),
+      totalDurationMin: Number(totalMinutes.toFixed(1)),
       turnByTurnSteps: steps,
       visitedOrder,
     };
@@ -2561,7 +2680,7 @@ export function runStreetIntersectionDijkstra(osrmRoutes, mode = "car", startNod
     totalMeters += pe.distance;
     totalMinutes += pe.durationMin;
     turnByTurnSteps.push(
-      parseOSRMStepToManeuver(pe.stepObj, idx, pathEdges.length, pathEdges[idx + 1]?.stepObj)
+      parseOSRMStepToManeuver(pe.stepObj, idx, pathEdges.length, pathEdges[idx + 1]?.stepObj, mode)
     );
   }
 
@@ -2579,12 +2698,14 @@ export function runStreetIntersectionDijkstra(osrmRoutes, mode = "car", startNod
  */
 function buildFallbackCityRoute(startNode, endNode, mode = "car") {
   const dist = haversineDistance(startNode.lat, startNode.lng, endNode.lat, endNode.lng);
-  const speed = mode === "walk" ? 5.0 : 40.0;
-  const durMin = (dist / (speed * 1000)) * 60;
+  const kinematics = calculateSegmentKinematics(dist, mode, false, false);
+  const durMin = kinematics.durationMin;
   const geom = [
     [startNode.lat, startNode.lng],
     [endNode.lat, endNode.lng],
   ];
+
+  const verb = mode === "walk" ? "Walk" : "Drive";
 
   return {
     roadGeometry: geom,
@@ -2593,9 +2714,9 @@ function buildFallbackCityRoute(startNode, endNode, mode = "car") {
     turnByTurnSteps: [
       {
         step: 1,
-        instruction: `Depart from ${startNode.shortName || startNode.name}`,
+        instruction: `${verb} from ${startNode.shortName || startNode.name}`,
         maneuverType: "depart",
-        roadName: "Arterial Road",
+        roadName: mode === "walk" ? "Pedestrian Walkway" : "Arterial Road",
         distanceMeters: dist,
         distanceText: formatDistanceText(dist),
         durationText: formatDurationText(durMin),
@@ -2886,11 +3007,13 @@ export async function executeDijkstraAsync({
       distanceMeters: carData?.totalDistance || 0,
       distanceKm: carData?.totalDistanceKm || 0,
       durationMin: carData?.estimatedTime || 0,
+      durationText: formatDurationText(carData?.estimatedTime || 0),
     },
     walkComparison: {
       distanceMeters: walkData?.totalDistance || 0,
       distanceKm: walkData?.totalDistanceKm || 0,
       durationMin: walkData?.estimatedTime || 0,
+      durationText: formatDurationText(walkData?.estimatedTime || 0),
     },
     executionTimeMs,
     timestamp: new Date().toISOString(),

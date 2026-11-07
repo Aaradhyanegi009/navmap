@@ -35,11 +35,17 @@ import MapCanvas from './components/MapCanvas.jsx';
 import SearchCombobox from './components/SearchCombobox.jsx';
 
 function formatDuration(minutes) {
-  const mins = Math.max(1, Math.round(Number(minutes) || 0));
-  if (mins < 60) return `${mins} min`;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  const m = Number(minutes) || 0;
+  if (m <= 0) return '0 min';
+  if (m < 1) {
+    const s = Math.max(15, Math.round(m * 60));
+    return s < 50 ? `${s} sec` : '< 1 min';
+  }
+  const totalMins = Math.round(m);
+  if (totalMins < 60) return `${totalMins} min`;
+  const h = Math.floor(totalMins / 60);
+  const remM = totalMins % 60;
+  return remM > 0 ? `${h} hr ${remM} min` : `${h} hr`;
 }
 
 function getManeuverIcon(maneuverType) {
@@ -399,7 +405,7 @@ export default function App() {
                       }`}
                     />
                     <span>
-                      🚗 Car ·{' '}
+                      Car ·{' '}
                       {carComp ? formatDuration(carComp.durationMin) : '--'}
                     </span>
                   </button>
@@ -418,7 +424,7 @@ export default function App() {
                       }`}
                     />
                     <span>
-                      🚶 Walk ·{' '}
+                      Walk ·{' '}
                       {walkComp ? formatDuration(walkComp.durationMin) : '--'}
                     </span>
                   </button>
@@ -432,7 +438,11 @@ export default function App() {
                         ? `Walk ${formatDuration(
                             walkComp.durationMin
                           )} → Drive ${formatDuration(carComp.durationMin)}`
-                        : `Drive ${carComp.distanceKm}km → Walk ${walkComp.distanceKm}km`}
+                        : `Drive ${formatDuration(
+                            carComp.durationMin
+                          )} (${carComp.distanceKm}km) → Walk ${formatDuration(
+                            walkComp.durationMin
+                          )}`}
                     </span>
                     <span className="text-[#4ADE80] font-semibold">
                       {mode === 'car'
