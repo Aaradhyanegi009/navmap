@@ -12,11 +12,15 @@ import {
   SkipBack,
   SkipForward,
   Layers,
-  Plus,
   X,
   ArrowUp,
   ArrowDown,
   CornerDownRight,
+  CornerUpRight,
+  CornerUpLeft,
+  ArrowUpRight,
+  ArrowUpLeft,
+  Flag,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
@@ -36,6 +40,29 @@ function formatDuration(minutes) {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+function getManeuverIcon(maneuverType) {
+  switch (maneuverType) {
+    case 'turn-left':
+      return CornerUpLeft;
+    case 'turn-right':
+      return CornerUpRight;
+    case 'slight-left':
+      return ArrowUpLeft;
+    case 'slight-right':
+      return ArrowUpRight;
+    case 'uturn':
+      return RotateCcw;
+    case 'roundabout':
+      return RotateCw;
+    case 'arrive':
+      return Flag;
+    case 'depart':
+      return Navigation;
+    default:
+      return ArrowUp;
+  }
 }
 
 export default function App() {
@@ -76,6 +103,10 @@ export default function App() {
   });
   const [fitTrigger, setFitTrigger] = useState(0);
 
+  // Turn-by-Turn Focus State
+  const [focusedTurn, setFocusedTurn] = useState(null);
+  const [showAllTurns, setShowAllTurns] = useState(false);
+
   // Layer Toggles
   const [showGraphMesh, setShowGraphMesh] = useState(false);
   const [showWalkwaysOnly, setShowWalkwaysOnly] = useState(false);
@@ -85,7 +116,6 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
 
   // UI State
-  const [showTurnSteps, setShowTurnSteps] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState(true);
 
   const nodes = graph?.nodes || [];
@@ -107,10 +137,11 @@ export default function App() {
     });
   }, []);
 
-  // Execute Chained Dijkstra + OSRM via /api/navigate
+  // Execute Chained Dijkstra + Real Street Intersections via /api/navigate
   const executeNavigation = useCallback(async () => {
     if (!sourceId || !targetId || sourceId === targetId) {
       setRouteResult(null);
+      setFocusedTurn(null);
       return;
     }
 
@@ -126,6 +157,16 @@ export default function App() {
 
     setRouteResult(res);
     setPlaybackStep(res?.visitedOrder?.length || 0);
+
+    // Auto-select first turn if available
+    if (res?.turnByTurnSteps?.length > 0) {
+      const nextManeuver =
+        res.turnByTurnSteps.find((s) => s.maneuverType !== 'depart') ||
+        res.turnByTurnSteps[0];
+      setFocusedTurn(nextManeuver);
+    } else {
+      setFocusedTurn(null);
+    }
   }, [sourceId, targetId, viaNodeIds, mode, graph]);
 
   useEffect(() => {
@@ -219,118 +260,94 @@ export default function App() {
 
   // Playback timer loop
   useEffect(() => {
-    let timer;
-    if (isPlaying && routeResult?.visitedOrder?.length) {
-      timer = setInterval(() => {
-        setPlaybackStep((prev) => {
-          if (prev >= routeResult.visitedOrder.length) {
-            setIsPlaying(false);
-            return routeResult.visitedOrder.length;
-          }
-          return prev + 1;
-        });
-      }, 120);
-    }
-    return () => clearInterval(timer);
+    if (!isPlaying) return;
+    const maxSteps = routeResult?.visitedOrder?.length || 0;
+    if (maxSteps === 0) return;
+
+    const interval = setInterval(() => {
+      setPlaybackStep((curr) => {
+        if (curr >= maxSteps) {
+          setIsPlaying(false);
+          return maxSteps;
+        }
+        return curr + 1;
+      });
+    }, 450);
+
+    return () => clearInterval(interval);
   }, [isPlaying, routeResult]);
 
-  const hasRoute =
-    Boolean(routeResult) &&
-    Array.isArray(routeResult.shortestPath) &&
-    routeResult.shortestPath.length >= 2;
-
-  const carComp = routeResult?.comparison?.car;
-  const walkComp = routeResult?.comparison?.walk;
-  const timeSavedByCar = routeResult?.comparison?.timeSavedByCarMin || 0;
+  const hasRoute = Boolean(routeResult && routeResult.shortestPath?.length > 0);
+  const carComp = routeResult?.carComparison;
+  const walkComp = routeResult?.walkComparison;
+  const timeSavedByCar =
+    carComp && walkComp
+      ? Math.max(0, walkComp.durationMin - carComp.durationMin)
+      : 0;
 
   const turnSteps = routeResult?.turnByTurnSteps || [];
-  const visibleTurnSteps = showTurnSteps ? turnSteps : turnSteps.slice(0, 4);
+  const nextImmediateTurn =
+    turnSteps.find((s) => s.maneuverType !== 'depart') || turnSteps[0] || null;
 
   return (
-    <div className="w-screen h-screen bg-[#09090B] text-white flex flex-col-reverse md:flex-row overflow-hidden select-none">
+    <div className="flex flex-col md:flex-row w-screen h-screen bg-[#09090B] text-zinc-100 font-sans antialiased overflow-hidden">
       {/* =====================================================================
-          SINGLE-SOURCE MINIMALIST CONTROL PANEL (NO DUPLICATE JSX)
+          LEFT CONTROL PANEL (Single-Source JSX, Android 16 Obsidian Cards)
          ===================================================================== */}
-      <aside
-        className={`w-full md:w-[420px] xl:w-[440px] shrink-0 obsidian-ambient-bg border-t md:border-t-0 md:border-r border-white/[0.07] flex flex-col z-20 transition-all duration-300 ${
-          mobileExpanded ? 'h-[58vh] md:h-full' : 'h-[175px] md:h-full'
-        }`}
-      >
-        {/* HEADER BLOCK */}
-        <header className="px-6 pt-5 pb-3 shrink-0">
-          <div className="flex items-center justify-between">
-            <span className="text-xs sm:text-sm text-zinc-400 font-medium">
-              New Delhi · Campus &amp; City Network
-            </span>
-
-            <button
-              onClick={() => setMobileExpanded((v) => !v)}
-              className="md:hidden px-2.5 py-1 rounded-full bg-[#1C1C20] border border-white/10 text-xs text-zinc-300 flex items-center gap-1"
-            >
-              <span>{mobileExpanded ? 'More Map' : 'Expand'}</span>
-              {mobileExpanded ? (
-                <ChevronDown className="w-3.5 h-3.5" />
-              ) : (
-                <ChevronUp className="w-3.5 h-3.5" />
-              )}
-            </button>
-          </div>
-
-          <div className="mt-0.5 flex items-baseline justify-between">
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+      <aside className="w-full md:w-[420px] lg:w-[440px] shrink-0 h-[58vh] md:h-full flex flex-col bg-[#09090B] border-r border-white/[0.07] z-20 shadow-2xl overflow-hidden">
+        {/* HEADER BAR */}
+        <header className="px-5 pt-5 pb-3 flex items-center justify-between border-b border-white/[0.06] shrink-0">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold tracking-wider uppercase text-zinc-500">
+                New Delhi · Campus &amp; City Network
+              </span>
+            </div>
+            <h1 className="text-2xl font-black tracking-tight text-white mt-0.5">
               NavMap
             </h1>
-            <span className="text-[11px] font-mono text-zinc-500">
-              CAMPUS + DELHI
-            </span>
           </div>
 
-          {/* Quick Filter Pills Row (NO STAR ICONS) */}
-          <div className="mt-2.5 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleFlyToCampus}
-                className="px-3 py-1 rounded-full bg-[#282249] text-[#A594F9] border border-[#A594F9]/40 text-xs font-semibold hover:brightness-110 transition"
-              >
-                NSUT Campus
-              </button>
-              <button
-                onClick={handleFlyToDelhi}
-                className="px-3 py-1 rounded-full bg-[#1C1C20] text-zinc-300 border border-white/5 text-xs font-semibold hover:text-white transition"
-              >
-                All Delhi
-              </button>
-            </div>
-
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleFlyToCampus}
+              className="px-2.5 py-1 rounded-full bg-[#282249] text-[#A594F9] text-xs font-bold border border-[#A594F9]/30 hover:border-[#A594F9]/60 transition"
+            >
+              NSUT Campus
+            </button>
+            <button
+              onClick={handleFlyToDelhi}
+              className="px-2.5 py-1 rounded-full bg-[#1C1C20] text-zinc-400 text-xs font-medium border border-white/10 hover:text-white transition"
+            >
+              All Delhi
+            </button>
             <button
               onClick={handleReset}
-              title="Reset to default route"
-              className="w-8 h-8 rounded-full bg-[#1C1C20] hover:bg-white/10 border border-white/[0.08] flex items-center justify-center text-zinc-300 hover:text-white shrink-0 transition"
+              title="Reset Route"
+              className="w-8 h-8 rounded-full bg-[#1C1C20] hover:bg-white/10 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition"
             >
-              <RotateCw
-                className={`w-3.5 h-3.5 ${
-                  isRouting ? 'animate-spin text-[#A594F9]' : ''
-                }`}
-              />
+              <RotateCw className="w-3.5 h-3.5" />
             </button>
           </div>
         </header>
 
-        {/* SCROLLABLE MAIN CARD STACK */}
-        <main className="flex-1 overflow-y-auto px-5 pt-1 pb-4 space-y-4">
+        {/* SCROLLABLE MAIN CONTENT AREA */}
+        <main className="flex-1 overflow-y-auto px-4 py-4 space-y-3.5 scrollbar-thin scrollbar-thumb-zinc-800">
+          {/* TAB 1 & 2: NAVIGATE & ROUTE SUMMARY */}
           {activeTab === 'navigate' && (
             <>
-              {/* CARD 1: TYPE-TO-SEARCH INPUTS & ROUTE TELEMETRY (#141417) */}
-              <div className="bg-[#141417] border border-white/[0.07] rounded-3xl p-4 sm:p-5 shadow-xl space-y-3.5">
-                {/* Search Omnibox: Origin (A) & Destination (B) */}
-                <div className="relative space-y-2">
+              {/* CARD 1: ORIGIN & DESTINATION AUTOCOMPLETE OMNIBOX (#141417) */}
+              <div className="bg-[#141417] border border-white/[0.07] rounded-3xl p-4 sm:p-5 space-y-3.5 shadow-xl">
+                <div className="space-y-2 relative">
+                  {/* Origin Combobox */}
                   <SearchCombobox
-                    label="Origin Location"
+                    label="ORIGIN LOCATION"
                     badgeText="A"
                     badgeBg="bg-[#4ADE80]"
+                    badgeTextColor="text-[#09090B]"
                     selectedNode={sourceNode}
                     allNodes={nodes}
-                    placeholder="Search campus landmark or Delhi place..."
+                    placeholder="Search origin in Campus or Delhi..."
                     onSelectNodeId={(id) => setSourceId(id)}
                     onSelectCustomLocation={(loc) =>
                       handleSelectCustomLocation(loc, 'source')
@@ -338,25 +355,26 @@ export default function App() {
                     onClear={() => setSourceId('')}
                   />
 
-                  {/* Swap Button */}
-                  <div className="relative py-0.5 flex items-center justify-center">
-                    <div className="w-full h-[1px] bg-white/[0.05]" />
+                  {/* Swap Origin / Destination Button */}
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10">
                     <button
                       onClick={handleSwap}
-                      title="Swap Origin & Destination"
-                      className="absolute w-7 h-7 rounded-full bg-[#282249] hover:bg-[#A594F9] text-[#A594F9] hover:text-[#09090B] border border-[#A594F9]/30 flex items-center justify-center shadow-md transition"
+                      title="Swap Origin and Destination"
+                      className="w-8 h-8 rounded-full bg-[#24242A] border border-white/10 text-zinc-300 hover:text-white flex items-center justify-center shadow-lg transition active:scale-95"
                     >
                       <ArrowUpDown className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
+                  {/* Destination Combobox */}
                   <SearchCombobox
-                    label="Destination Location"
+                    label="DESTINATION LOCATION"
                     badgeText="B"
                     badgeBg="bg-[#F28B66]"
+                    badgeTextColor="text-[#09090B]"
                     selectedNode={targetNode}
                     allNodes={nodes}
-                    placeholder="Search campus landmark or Delhi place..."
+                    placeholder="Search destination in Campus or Delhi..."
                     onSelectNodeId={(id) => setTargetId(id)}
                     onSelectCustomLocation={(loc) =>
                       handleSelectCustomLocation(loc, 'target')
@@ -426,7 +444,7 @@ export default function App() {
               </div>
 
               {/* CARD 2: FOREST GREEN ACTIVE ROUTE SUMMARY CARD (#14331C) */}
-              <div className="bg-[#14331C] border border-[#4ADE80]/20 rounded-3xl p-5 shadow-xl">
+              <div className="bg-[#14331C] border border-[#4ADE80]/20 rounded-3xl p-5 shadow-xl space-y-3.5">
                 {!hasRoute ? (
                   <div>
                     <h3 className="text-xl font-bold tracking-tight text-white">
@@ -461,6 +479,44 @@ export default function App() {
                       real road geometry
                     </p>
 
+                    {/* NEXT IMMEDIATE TURN BANNER */}
+                    {nextImmediateTurn && (
+                      <div className="mt-3.5 bg-black/35 rounded-2xl p-3 border border-white/10 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-[#4ADE80] text-[#09090B] flex items-center justify-center shrink-0">
+                            {React.createElement(
+                              getManeuverIcon(nextImmediateTurn.maneuverType),
+                              { className: 'w-4 h-4 stroke-[2.5]' }
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[10px] uppercase font-bold text-[#9BC4A5] tracking-wider">
+                              Next turn · in {nextImmediateTurn.distanceText}
+                            </div>
+                            <div className="text-xs sm:text-sm font-bold text-white truncate">
+                              {nextImmediateTurn.instruction}
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            setFocusedTurn(nextImmediateTurn);
+                            if (nextImmediateTurn.coordinate) {
+                              setCameraTarget({
+                                center: nextImmediateTurn.coordinate,
+                                zoom: 17,
+                                tick: Date.now(),
+                              });
+                            }
+                          }}
+                          className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-[11px] font-semibold text-white shrink-0 transition"
+                        >
+                          Focus
+                        </button>
+                      </div>
+                    )}
+
                     {/* Step-by-Step Path Breadcrumbs */}
                     <div className="mt-3 flex flex-wrap items-center gap-1.5">
                       {routeResult.shortestPath.map((node, index) => (
@@ -487,42 +543,89 @@ export default function App() {
                       ))}
                     </div>
 
-                    {/* Turn-by-Turn Street Maneuvers */}
+                    {/* Turn-by-Turn Maneuvers List */}
                     {turnSteps.length > 0 && (
                       <div className="mt-3.5 pt-3 border-t border-white/10">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-[10px] font-semibold uppercase tracking-wider text-[#9BC4A5]">
-                            TURN-BY-TURN MANEUVERS
+                            TURN-BY-TURN STREET MANEUVERS
                           </span>
-                          {turnSteps.length > 4 && (
+                          {turnSteps.length > 3 && (
                             <button
-                              onClick={() => setShowTurnSteps((s) => !s)}
-                              className="text-xs text-white underline underline-offset-2"
+                              onClick={() => setShowAllTurns((s) => !s)}
+                              className="text-xs text-white underline underline-offset-2 flex items-center gap-1"
                             >
-                              {showTurnSteps
-                                ? 'Show less'
-                                : `All ${turnSteps.length} steps`}
+                              <span>
+                                {showAllTurns
+                                  ? 'Show less'
+                                  : `All ${turnSteps.length} steps`}
+                              </span>
+                              {showAllTurns ? (
+                                <ChevronUp className="w-3 h-3" />
+                              ) : (
+                                <ChevronDown className="w-3 h-3" />
+                              )}
                             </button>
                           )}
                         </div>
 
                         <div className="space-y-1.5">
-                          {visibleTurnSteps.map((st, idx) => (
-                            <div
-                              key={idx}
-                              className="bg-black/25 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2 text-xs"
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <CornerDownRight className="w-3.5 h-3.5 text-[#4ADE80] shrink-0" />
-                                <span className="text-white font-medium truncate">
-                                  {st.instruction}
-                                </span>
-                              </div>
-                              <span className="text-[#9BC4A5] font-mono shrink-0">
-                                {st.distanceMeters}m
-                              </span>
-                            </div>
-                          ))}
+                          {(showAllTurns ? turnSteps : turnSteps.slice(0, 3)).map(
+                            (st, idx) => {
+                              const StepIcon = getManeuverIcon(st.maneuverType);
+                              const isFocused =
+                                focusedTurn?.step === st.step;
+                              return (
+                                <div
+                                  key={`turn-step-${idx}`}
+                                  onClick={() => {
+                                    setFocusedTurn(st);
+                                    if (st.coordinate) {
+                                      setCameraTarget({
+                                        center: st.coordinate,
+                                        zoom: 17,
+                                        tick: Date.now(),
+                                      });
+                                    }
+                                  }}
+                                  className={`rounded-xl px-3 py-2 flex items-center justify-between gap-2 text-xs cursor-pointer transition ${
+                                    isFocused
+                                      ? 'bg-black/60 border border-[#4ADE80]/50'
+                                      : 'bg-black/25 hover:bg-black/40 border border-transparent'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div
+                                      className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+                                        isFocused
+                                          ? 'bg-[#4ADE80] text-[#09090B]'
+                                          : 'bg-white/10 text-white'
+                                      }`}
+                                    >
+                                      <StepIcon className="w-3.5 h-3.5 stroke-[2.2]" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <div className="text-white font-medium truncate">
+                                        {st.instruction}
+                                      </div>
+                                      <div className="text-[10px] text-[#9BC4A5] truncate">
+                                        {st.roadName}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="text-right shrink-0">
+                                    <div className="text-[#9BC4A5] font-mono text-[11px]">
+                                      {st.distanceText}
+                                    </div>
+                                    <div className="text-zinc-400 text-[10px]">
+                                      {st.durationText}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+                          )}
                         </div>
                       </div>
                     )}
@@ -531,10 +634,10 @@ export default function App() {
               </div>
 
               {/* CARD 3: INTERMEDIATE STOPS ("VIA" WAYPOINTS) (#141417) */}
-              <div className="bg-[#141417] border border-white/[0.07] rounded-3xl p-4 sm:p-5 space-y-3">
+              <div className="bg-[#141417] border border-white/[0.07] rounded-3xl p-4 sm:p-5 space-y-3 shadow-xl">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm sm:text-base font-bold text-white">
-                    Intermediate stops
+                    Intermediate stops (Via)
                   </h3>
                   {viaNodeIds.length > 0 && (
                     <button
@@ -559,7 +662,7 @@ export default function App() {
                       n.id !== targetId &&
                       !viaNodeIds.includes(n.id)
                   )}
-                  placeholder="Type to insert a must-visit middle stop..."
+                  placeholder="Type to insert a middle stop..."
                   onSelectNodeId={(id) => setViaNodeIds((prev) => [...prev, id])}
                   onSelectCustomLocation={(loc) =>
                     handleSelectCustomLocation(loc, 'via')
@@ -621,7 +724,7 @@ export default function App() {
 
           {/* TAB 3: DIJKSTRA PLAYBACK ANIMATION */}
           {activeTab === 'playback' && (
-            <div className="bg-[#141417] border border-white/[0.07] rounded-3xl p-5 space-y-4">
+            <div className="bg-[#141417] border border-white/[0.07] rounded-3xl p-5 space-y-4 shadow-xl">
               <div>
                 <h2 className="text-base font-bold text-white">
                   Dijkstra Algorithm Playback
@@ -663,16 +766,12 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setIsPlaying((p) => !p)}
-                  className="px-5 py-2 rounded-full bg-[#A594F9] text-[#09090B] font-bold text-xs flex items-center gap-1.5 hover:brightness-110"
+                  className="w-11 h-11 rounded-full bg-[#A594F9] hover:brightness-110 text-[#09090B] flex items-center justify-center font-bold"
                 >
                   {isPlaying ? (
-                    <>
-                      <Pause className="w-3.5 h-3.5" /> Pause
-                    </>
+                    <Pause className="w-5 h-5 fill-current" />
                   ) : (
-                    <>
-                      <Play className="w-3.5 h-3.5" /> Animate
-                    </>
+                    <Play className="w-5 h-5 fill-current ml-0.5" />
                   )}
                 </button>
                 <button
@@ -687,36 +786,39 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Step info */}
+              {/* Active Step Details */}
               {routeResult?.visitedOrder?.[playbackStep - 1] && (
-                <div className="bg-[#1C1C20] rounded-2xl p-3 border border-white/5 text-xs">
-                  <div className="font-semibold text-white">
-                    Popped Node:{' '}
+                <div className="bg-[#1C1C20] rounded-2xl p-3 border border-white/5 space-y-1 text-xs">
+                  <div className="text-zinc-400">Current Relaxed Node</div>
+                  <div className="text-white font-bold text-sm">
                     {
                       routeResult.visitedOrder[playbackStep - 1]
                         .currentNodeName
                     }
                   </div>
-                  <div className="text-zinc-400 mt-1">
-                    Settled Distance:{' '}
-                    {
-                      routeResult.visitedOrder[playbackStep - 1]
-                        .distanceMetersSoFar
-                    }
-                    m
+                  <div className="flex items-center justify-between text-zinc-400 pt-1 font-mono">
+                    <span>
+                      Cost:{' '}
+                      {routeResult.visitedOrder[playbackStep - 1].costSoFar}
+                    </span>
+                    <span>
+                      {
+                        routeResult.visitedOrder[playbackStep - 1]
+                          .distanceMetersSoFar
+                      }
+                      m so far
+                    </span>
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* TAB 4: MAP LAYERS */}
+          {/* TAB 4: LAYERS */}
           {activeTab === 'layers' && (
-            <div className="bg-[#141417] border border-white/[0.07] rounded-3xl p-5 space-y-4">
+            <div className="bg-[#141417] border border-white/[0.07] rounded-3xl p-5 space-y-4 shadow-xl">
               <div>
-                <h2 className="text-base font-bold text-white">
-                  Map &amp; Graph Layers
-                </h2>
+                <h2 className="text-base font-bold text-white">Map Layers</h2>
                 <p className="text-xs text-zinc-400">
                   Toggle graph geometry and campus footpath shortcuts
                 </p>
@@ -734,7 +836,7 @@ export default function App() {
                   <div>
                     <div>Full Road Graph Mesh</div>
                     <div className="text-[10px] text-zinc-400 font-normal">
-                      Shows all 95 road connections across Delhi &amp; Campus
+                      Shows all road connections across Delhi &amp; Campus
                     </div>
                   </div>
                   <span
@@ -770,63 +872,49 @@ export default function App() {
           )}
         </main>
 
-        {/* BOTTOM FLOATING DOCK (4 Clean Tabs, NO API Tab) + DETACHED LAVENDER FAB */}
-        <footer className="px-5 py-3 bg-gradient-to-t from-[#09090B] via-[#09090B]/95 to-transparent shrink-0">
-          <div className="flex items-center justify-between gap-2.5">
-            <nav className="flex-1 bg-[#18181C]/95 backdrop-blur-2xl border border-white/[0.09] rounded-full px-2 py-1.5 flex items-center justify-around shadow-2xl">
-              {[
-                { id: 'navigate', label: 'Navigate', icon: Home },
-                {
-                  id: 'campus',
-                  label: 'Campus Zoom',
-                  icon: Navigation,
-                  onClick: handleFlyToCampus,
-                },
-                { id: 'playback', label: 'Playback', icon: Play },
-                { id: 'layers', label: 'Layers', icon: Layers },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const active = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      if (tab.onClick) {
-                        tab.onClick();
-                      } else {
-                        setActiveTab(tab.id);
-                      }
-                    }}
-                    className={`h-9 px-3 rounded-full flex items-center gap-1.5 text-xs font-bold transition-all ${
-                      active
-                        ? 'bg-white text-[#09090B] shadow-md'
-                        : 'text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{tab.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-
-            {/* Detached Lavender Circular + FAB (#A594F9) */}
-            <button
-              onClick={() => {
-                setActiveTab('navigate');
-                // Scroll down or focus
-              }}
-              title="Add Waypoint"
-              className="w-11 h-11 rounded-full bg-[#A594F9] hover:brightness-110 text-[#09090B] flex items-center justify-center shrink-0 shadow-[0_8px_24px_rgba(165,148,249,0.35)] transition-all active:scale-95"
-            >
-              <Plus className="w-5 h-5" strokeWidth={2.5} />
-            </button>
-          </div>
+        {/* BOTTOM FLOATING DOCK (CENTERED, CLEAN 4 TABS, NO '+' FAB) */}
+        <footer className="px-5 py-3.5 bg-gradient-to-t from-[#09090B] via-[#09090B]/95 to-transparent shrink-0">
+          <nav className="w-full max-w-sm mx-auto bg-[#18181C]/95 backdrop-blur-2xl border border-white/[0.09] rounded-full px-2.5 py-1.5 flex items-center justify-around shadow-2xl">
+            {[
+              { id: 'navigate', label: 'Navigate', icon: Home },
+              {
+                id: 'campus',
+                label: 'Campus Zoom',
+                icon: Navigation,
+                onClick: handleFlyToCampus,
+              },
+              { id: 'playback', label: 'Playback', icon: Play },
+              { id: 'layers', label: 'Layers', icon: Layers },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    if (tab.onClick) {
+                      tab.onClick();
+                    } else {
+                      setActiveTab(tab.id);
+                    }
+                  }}
+                  className={`h-9 px-3.5 rounded-full flex items-center gap-1.5 text-xs font-bold transition-all ${
+                    active
+                      ? 'bg-white text-[#09090B] shadow-md'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
         </footer>
       </aside>
 
       {/* =====================================================================
-          RIGHT / TOP FULL-BLEED LEAFLET MAP CANVAS
+          RIGHT FULL-BLEED LEAFLET MAP CANVAS
          ===================================================================== */}
       <section className="flex-1 h-[42vh] md:h-full relative z-10">
         <MapCanvas
@@ -843,6 +931,17 @@ export default function App() {
           fitTrigger={fitTrigger}
           onTriggerFitRoute={() => setFitTrigger((c) => c + 1)}
           onFlyToCampus={handleFlyToCampus}
+          focusedTurn={focusedTurn}
+          onSelectTurnStep={(step) => {
+            setFocusedTurn(step);
+            if (step.coordinate) {
+              setCameraTarget({
+                center: step.coordinate,
+                zoom: 17,
+                tick: Date.now(),
+              });
+            }
+          }}
         />
       </section>
     </div>

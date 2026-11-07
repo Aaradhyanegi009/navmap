@@ -12,18 +12,25 @@ import { LocateFixed, Navigation } from 'lucide-react';
 import { NSUT_CAMPUS_CONFIG } from '../lib/dijkstra.js';
 
 /**
- * Smooth camera controller for campus zoom and route bounds fitting.
+ * Smooth camera controller for campus zoom, route bounds, and turn focus.
  */
-function CameraController({ cameraTarget, routeBounds, fitTrigger }) {
+function CameraController({ cameraTarget, routeBounds, fitTrigger, focusedTurn }) {
   const map = useMap();
 
   useEffect(() => {
+    if (focusedTurn && focusedTurn.coordinate && focusedTurn.coordinate.length === 2) {
+      map.flyTo(focusedTurn.coordinate, 17, {
+        duration: 0.8,
+      });
+      return;
+    }
+
     if (cameraTarget && cameraTarget.center) {
       map.flyTo(cameraTarget.center, cameraTarget.zoom || 15, {
         duration: 0.9,
       });
     }
-  }, [cameraTarget, map]);
+  }, [cameraTarget, focusedTurn, map]);
 
   useEffect(() => {
     if (routeBounds && routeBounds.length >= 2) {
@@ -58,6 +65,8 @@ export default function MapCanvas({
   fitTrigger,
   onTriggerFitRoute,
   onFlyToCampus,
+  focusedTurn,
+  onSelectTurnStep,
 }) {
   const nodes = graph?.nodes || [];
   const edges = graph?.edges || [];
@@ -91,7 +100,7 @@ export default function MapCanvas({
     <div className="relative w-full h-full bg-[#09090B] select-none overflow-hidden">
       <MapContainer
         center={NSUT_CAMPUS_CONFIG.center}
-        zoom={14}
+        zoom={15}
         zoomControl={false}
         className="w-full h-full cursor-grab active:cursor-grabbing"
       >
@@ -106,6 +115,7 @@ export default function MapCanvas({
           cameraTarget={cameraTarget}
           routeBounds={snappedRoutePositions}
           fitTrigger={fitTrigger}
+          focusedTurn={focusedTurn}
         />
 
         {/* 1. NSUT Dwarka Campus Boundary Ring (Clean typography, NO star icon) */}
@@ -197,7 +207,62 @@ export default function MapCanvas({
           </>
         )}
 
-        {/* 4. Interactive Nodes */}
+        {/* 4. Turn Maneuver Dots along Polyline */}
+        {(routeResult?.turnByTurnSteps || []).map((step, idx) => {
+          if (!step.coordinate || step.coordinate.length < 2) return null;
+          const isFocused = focusedTurn?.step === step.step;
+          return (
+            <CircleMarker
+              key={`turn-dot-${idx}`}
+              center={step.coordinate}
+              radius={isFocused ? 6.5 : 3.5}
+              pathOptions={{
+                color: isFocused ? '#FFFFFF' : primaryColor,
+                fillColor: isFocused ? '#4ADE80' : '#FFFFFF',
+                fillOpacity: 1,
+                weight: isFocused ? 2.5 : 1.5,
+              }}
+              eventHandlers={{
+                click: (e) => {
+                  e.originalEvent.stopPropagation();
+                  if (onSelectTurnStep) onSelectTurnStep(step);
+                },
+              }}
+            >
+              <Tooltip direction="top" className="navmap-node-tooltip">
+                <span className="font-semibold">{step.instruction}</span>
+              </Tooltip>
+            </CircleMarker>
+          );
+        })}
+
+        {/* 5. Focused Turn Pulse Highlight */}
+        {focusedTurn && focusedTurn.coordinate && (
+          <>
+            <CircleMarker
+              center={focusedTurn.coordinate}
+              radius={20}
+              pathOptions={{
+                color: '#4ADE80',
+                fillColor: '#4ADE80',
+                fillOpacity: 0.2,
+                weight: 2,
+              }}
+            />
+            <CircleMarker
+              center={focusedTurn.coordinate}
+              radius={7.5}
+              pathOptions={{
+                color: '#FFFFFF',
+                fillColor: '#4ADE80',
+                fillOpacity: 1,
+                weight: 2.5,
+              }}
+            />
+          </>
+        )}
+
+        {/* 6. Interactive Graph Nodes */}
         {nodes.map((node) => {
           const isOrigin = node.id === sourceId;
           const isTarget = node.id === targetId;
