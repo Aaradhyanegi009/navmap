@@ -2,11 +2,11 @@ import { DEFAULT_GRAPH, GRAPH_PRESETS } from '../src/lib/dijkstra.js';
 
 /**
  * Vercel Serverless Function: GET /api/graph
- * Project 14 Deliverable: Standalone REST API endpoint returning topological graph dataset
- * (nodes with lat/lng coordinates, names, categories, and weighted bidirectional edges).
+ * Project 14 Deliverable: Returns road-snapped topological graph dataset
+ * including intersection coordinates, categories, pedestrianOnly flags,
+ * traffic multipliers, and multi-point street curve waypoints.
  */
 export default async function handler(req, res) {
-  // Set CORS headers for standalone API accessibility
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -40,8 +40,8 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     status: 'ok',
-    deliverable: 'Project 14 — Map Navigator Standalone Graph Topology API',
-    engine: 'Dijkstra Engine · v1.0',
+    deliverable: 'Experiment 14 — Road-Snapped Graph Topology REST API',
+    engine: 'Dijkstra Engine · v2.0 (OSRM Street Geometry)',
     preset: selectedGraph.id,
     presets: presetsMeta,
     graph: selectedGraph,

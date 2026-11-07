@@ -1,17 +1,17 @@
 import {
   DEFAULT_GRAPH,
   GRAPH_PRESETS,
-  executeDijkstra,
+  executeDijkstraAsync,
 } from '../src/lib/dijkstra.js';
 
 /**
  * Vercel Serverless Function: POST /api/navigate
- * Project 14 & 15 Deliverable: Executes Priority-Queue (Min-Heap) Dijkstra's Algorithm
- * on the backend and returns shortestPath, totalDistance, estimatedTime, visitedOrder,
- * visitedEdges, distancesMap, predecessors, and executionTimeMs.
+ * Deliverables:
+ *   - Project 14: Standalone Backend REST API for Dijkstra Shortest-Path Routing
+ *   - Project 15: Chained Intermediate Waypoints ("Via" Stops), Car vs. Walk
+ *     Dual-Mode Comparison, and Real OSRM Street Geometry Hydration
  */
 export default async function handler(req, res) {
-  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -20,17 +20,19 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Allow GET with query params for quick browser/curl testing as well as POST
   let payload = {};
   if (req.method === 'GET') {
+    const viaRaw = req.query?.viaNodeIds || '';
     payload = {
-      sourceId: req.query?.sourceId || 'N1',
-      targetId: req.query?.targetId || 'N10',
-      mode: req.query?.mode || 'distance',
+      sourceId: req.query?.sourceId || 'N2',
+      targetId: req.query?.targetId || 'N14',
+      viaNodeIds: viaRaw ? viaRaw.split(',').filter(Boolean) : [],
+      mode: req.query?.mode || 'car',
       preset: req.query?.preset || 'nsut',
     };
   } else if (req.method === 'POST') {
-    payload = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
+    payload =
+      typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};
   } else {
     return res.status(405).json({
       status: 'error',
@@ -41,8 +43,9 @@ export default async function handler(req, res) {
   const {
     sourceId,
     targetId,
-    mode = 'distance',
+    viaNodeIds = [],
     waypoints = [],
+    mode = 'car',
     preset = 'nsut',
     customGraph = null,
   } = payload;
@@ -50,11 +53,12 @@ export default async function handler(req, res) {
   if (!sourceId || !targetId) {
     return res.status(400).json({
       status: 'error',
-      message: 'Both "sourceId" and "targetId" are required in request payload.',
+      message: 'Both "sourceId" and "targetId" are required.',
       examplePayload: {
-        sourceId: 'N1',
-        targetId: 'N10',
-        mode: 'distance',
+        sourceId: 'N2',
+        targetId: 'N14',
+        viaNodeIds: ['N3'],
+        mode: 'car',
       },
     });
   }
@@ -62,29 +66,34 @@ export default async function handler(req, res) {
   try {
     const startHr = process.hrtime.bigint();
     const baseGraph = customGraph || GRAPH_PRESETS[preset] || DEFAULT_GRAPH;
+    const normalizedVia =
+      Array.isArray(viaNodeIds) && viaNodeIds.length > 0
+        ? viaNodeIds
+        : Array.isArray(waypoints)
+        ? waypoints
+        : [];
 
-    const result = executeDijkstra({
+    const result = await executeDijkstraAsync({
       graph: baseGraph,
       sourceId,
       targetId,
-      mode: mode === 'time' ? 'time' : 'distance',
-      waypoints: Array.isArray(waypoints) ? waypoints : [],
+      viaNodeIds: normalizedVia,
+      mode: mode === 'walk' ? 'walk' : 'car',
+      enableLiveOSRM: true,
     });
 
-    const serverComputeMs = Number(process.hrtime.bigint() - startHr) / 1e6;
+    const elapsedMs = Number(process.hrtime.bigint() - startHr) / 1e6;
 
     return res.status(200).json({
       ...result,
-      deliverable: 'Project 14 & 15 — Serverless Dijkstra Routing API',
-      executionTimeMs: Number(
-        Math.max(0.21, serverComputeMs || result.executionTimeMs).toFixed(2)
-      ),
+      deliverable: 'Experiments 14 & 15 — Hybrid Dijkstra + OSRM Routing API',
+      serverExecutionTimeMs: Number(elapsedMs.toFixed(2)),
       serverHandled: true,
     });
   } catch (error) {
     return res.status(400).json({
       status: 'error',
-      message: error.message || 'Failed to compute shortest path.',
+      message: error.message || 'Failed to execute Dijkstra navigation.',
     });
   }
 }
