@@ -20,15 +20,15 @@ body {
   overflow: hidden;
 }
 
-/* Android 16 / Minimalist Obsidian Surface Glow */
+/* Android 16 / Obsidian Ambient Glow */
 .obsidian-ambient-bg {
   background-color: #09090B;
   background-image:
-    radial-gradient(circle at 85% 8%, rgba(20, 51, 28, 0.38), rgba(9, 9, 11, 0) 55%),
-    radial-gradient(circle at 10% 18%, rgba(40, 34, 73, 0.30), rgba(9, 9, 11, 0) 48%);
+    radial-gradient(circle at 85% 8%, rgba(20, 51, 28, 0.35), rgba(9, 9, 11, 0) 55%),
+    radial-gradient(circle at 10% 18%, rgba(40, 34, 73, 0.25), rgba(9, 9, 11, 0) 48%);
 }
 
-/* Custom Ultra-Minimal Scrollbars */
+/* Custom Minimal Scrollbar */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -47,19 +47,22 @@ body {
   background: rgba(165, 148, 249, 0.35);
 }
 
-/* Leaflet Dark Canvas Overrides */
+/* Leaflet Dark Canvas Overrides & Clean Dark Map Tiles (NO WATERMARKS / NO API KEY REQUIRED) */
 .leaflet-container {
   background-color: #09090B !important;
   font-family: 'Plus Jakarta Sans', sans-serif !important;
 }
 
+/* Dark theme filter applied to OpenStreetMap tiles */
+.leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(90%);
+}
+
 .leaflet-control-attribution {
-  background: rgba(20, 20, 23, 0.75) !important;
+  background: rgba(20, 20, 23, 0.8) !important;
   color: #71717A !important;
   backdrop-filter: blur(8px);
-  border-top-left-radius: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  border-top-left-radius: 8px;
   font-size: 10px !important;
   padding: 2px 8px !important;
 }
@@ -69,84 +72,57 @@ body {
   text-decoration: none;
 }
 
-/* Custom Edge Weight Pill Tooltips on Map */
-.leaflet-tooltip.edge-weight-pill {
-  background-color: rgba(20, 20, 23, 0.92) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 9999px !important;
-  color: #A1A1AA !important;
-  font-size: 10px !important;
-  font-weight: 600 !important;
-  padding: 2px 7px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
-  white-space: nowrap;
-}
-
-.leaflet-tooltip.edge-weight-pill.active-edge-pill {
-  background-color: #14331C !important;
-  border-color: rgba(74, 222, 128, 0.45) !important;
-  color: #4ADE80 !important;
-}
-
-.leaflet-tooltip.edge-weight-pill::before {
-  display: none !important;
-}
-
-/* Custom Node Label Tooltips */
-.leaflet-tooltip.node-label-pill {
-  background-color: rgba(20, 20, 23, 0.92) !important;
-  border: 1px solid rgba(255, 255, 255, 0.09) !important;
-  border-radius: 10px !important;
-  color: #E4E4E7 !important;
+/* Custom Node Tooltip Pills */
+.leaflet-tooltip.navmap-node-tooltip {
+  background-color: rgba(20, 20, 23, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 8px !important;
+  color: #FFFFFF !important;
   font-size: 11px !important;
   font-weight: 600 !important;
   padding: 3px 8px !important;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.65) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6) !important;
 }
 
-.leaflet-tooltip.node-label-pill.node-origin {
+.leaflet-tooltip.navmap-node-tooltip.origin {
   background-color: #282249 !important;
   border-color: #A594F9 !important;
   color: #FFFFFF !important;
 }
 
-.leaflet-tooltip.node-label-pill.node-target {
+.leaflet-tooltip.navmap-node-tooltip.destination {
   background-color: #14331C !important;
   border-color: #4ADE80 !important;
   color: #FFFFFF !important;
 }
 
-.leaflet-tooltip.node-label-pill::before {
+.leaflet-tooltip.navmap-node-tooltip::before {
   display: none !important;
 }
 
-/* Animated SVG Shortest Path Dash Flow */
-@keyframes routeFlow {
+/* Edge Weight Pills */
+.leaflet-tooltip.navmap-edge-tooltip {
+  background-color: rgba(15, 15, 18, 0.88) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 9999px !important;
+  color: #A1A1AA !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  padding: 2px 7px !important;
+}
+
+.leaflet-tooltip.navmap-edge-tooltip::before {
+  display: none !important;
+}
+
+/* Directional Path Animation */
+@keyframes flowDash {
   to {
     stroke-dashoffset: -28;
   }
 }
 
-.shortest-path-flow {
+.route-dash-flow {
   stroke-dasharray: 8 6;
-  animation: routeFlow 0.9s linear infinite;
-}
-
-@keyframes pulseRing {
-  0% {
-    transform: scale(0.85);
-    opacity: 0.85;
-  }
-  70% {
-    transform: scale(2.1);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(2.1);
-    opacity: 0;
-  }
-}
-
-.node-pulse-ring {
-  animation: pulseRing 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+  animation: flowDash 0.9s linear infinite;
 }
