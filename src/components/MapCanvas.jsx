@@ -12,13 +12,47 @@ import { LocateFixed, Navigation } from 'lucide-react';
 import { NSUT_CAMPUS_CONFIG } from '../lib/dijkstra.js';
 
 /**
- * Smooth camera controller for campus zoom, route bounds, and turn focus.
+ * Smooth camera controller + ResizeObserver projection lock.
+ * Ensures Leaflet's pixel origin never drifts when flex layouts resize or zoom.
  */
 function CameraController({ cameraTarget, routeBounds, fitTrigger, focusedTurn }) {
   const map = useMap();
 
+  // Lock Leaflet container size on mount & resize to prevent marker/SVG projection drift
+  useEffect(() => {
+    const container = map.getContainer();
+    const syncSize = () => {
+      try {
+        map.invalidateSize({ animate: false, pan: false });
+      } catch {
+        // Ignore
+      }
+    };
+
+    syncSize();
+    const rafId = requestAnimationFrame(syncSize);
+    const timerId = setTimeout(syncSize, 250);
+
+    let observer = null;
+    if (typeof ResizeObserver !== 'undefined' && container) {
+      observer = new ResizeObserver(() => {
+        syncSize();
+      });
+      observer.observe(container);
+    }
+
+    window.addEventListener('resize', syncSize);
+    return () => {
+      cancelAnimationFrame(rafId);
+      clearTimeout(timerId);
+      if (observer) observer.disconnect();
+      window.removeEventListener('resize', syncSize);
+    };
+  }, [map]);
+
   useEffect(() => {
     if (focusedTurn && focusedTurn.coordinate && focusedTurn.coordinate.length === 2) {
+      map.invalidateSize({ animate: false, pan: false });
       map.flyTo(focusedTurn.coordinate, 17, {
         duration: 0.8,
       });
@@ -26,7 +60,8 @@ function CameraController({ cameraTarget, routeBounds, fitTrigger, focusedTurn }
     }
 
     if (cameraTarget && cameraTarget.center) {
-      map.flyTo(cameraTarget.center, cameraTarget.zoom || 15, {
+      map.invalidateSize({ animate: false, pan: false });
+      map.flyTo(cameraTarget.center, cameraTarget.zoom || 16, {
         duration: 0.9,
       });
     }
@@ -35,10 +70,11 @@ function CameraController({ cameraTarget, routeBounds, fitTrigger, focusedTurn }
   useEffect(() => {
     if (routeBounds && routeBounds.length >= 2) {
       try {
+        map.invalidateSize({ animate: false, pan: false });
         map.fitBounds(routeBounds, {
           paddingTopLeft: [70, 70],
           paddingBottomRight: [70, 90],
-          maxZoom: 16,
+          maxZoom: 17,
           animate: true,
           duration: 0.8,
         });
@@ -100,7 +136,7 @@ export default function MapCanvas({
     <div className="relative w-full h-full bg-[#09090B] select-none overflow-hidden">
       <MapContainer
         center={NSUT_CAMPUS_CONFIG.center}
-        zoom={15}
+        zoom={16}
         zoomControl={false}
         className="w-full h-full cursor-grab active:cursor-grabbing"
       >
@@ -118,23 +154,20 @@ export default function MapCanvas({
           focusedTurn={focusedTurn}
         />
 
-        {/* 1. NSUT Dwarka Campus Boundary Ring (Clean typography, NO star icon) */}
+        {/* 1. NSUT Dwarka Campus Boundary Ring (Non-interactive so it never blocks markers) */}
         <Circle
           center={NSUT_CAMPUS_CONFIG.center}
           radius={NSUT_CAMPUS_CONFIG.radiusMeters}
+          interactive={false}
           pathOptions={{
             color: '#A594F9',
             weight: 1.5,
-            opacity: 0.55,
+            opacity: 0.45,
             dashArray: '5 7',
             fillColor: '#14331C',
-            fillOpacity: 0.1,
+            fillOpacity: 0.08,
           }}
-        >
-          <Tooltip direction="top" className="navmap-node-tooltip">
-            <span>NSUT Dwarka Campus Boundary</span>
-          </Tooltip>
-        </Circle>
+        />
 
         {/* 2. Optional Graph Mesh / Walkway Overlay */}
         {(showGraphMesh || showWalkwaysOnly) &&
@@ -156,10 +189,11 @@ export default function MapCanvas({
               <Polyline
                 key={edge.id}
                 positions={edgePositions}
+                interactive={false}
                 pathOptions={{
                   color: edge.pedestrianOnly
-                    ? 'rgba(165, 148, 249, 0.45)'
-                    : 'rgba(255, 255, 255, 0.14)',
+                    ? 'rgba(165, 148, 249, 0.5)'
+                    : 'rgba(255, 255, 255, 0.16)',
                   weight: edge.pedestrianOnly ? 2.5 : 2,
                   dashArray: edge.pedestrianOnly ? '4 6' : undefined,
                   lineCap: 'round',
@@ -169,14 +203,15 @@ export default function MapCanvas({
             );
           })}
 
-        {/* 3. Snapped Route Polyline (Zero straight lines) */}
+        {/* 3. Snapped Route Polyline (Follows exact OpenStreetMap road & footway geometry) */}
         {snappedRoutePositions.length >= 2 && (
           <>
             <Polyline
               positions={snappedRoutePositions}
+              interactive={false}
               pathOptions={{
                 color: primaryColor,
-                weight: 13,
+                weight: 12,
                 opacity: 0.24,
                 lineCap: 'round',
                 lineJoin: 'round',
@@ -184,6 +219,7 @@ export default function MapCanvas({
             />
             <Polyline
               positions={snappedRoutePositions}
+              interactive={false}
               pathOptions={{
                 color: primaryColor,
                 weight: 5,
@@ -196,6 +232,7 @@ export default function MapCanvas({
             {!isWalkMode && (
               <Polyline
                 positions={snappedRoutePositions}
+                interactive={false}
                 pathOptions={{
                   color: '#FFFFFF',
                   weight: 2,
@@ -241,7 +278,8 @@ export default function MapCanvas({
           <>
             <CircleMarker
               center={focusedTurn.coordinate}
-              radius={20}
+              radius={18}
+              interactive={false}
               pathOptions={{
                 color: '#4ADE80',
                 fillColor: '#4ADE80',
@@ -251,7 +289,8 @@ export default function MapCanvas({
             />
             <CircleMarker
               center={focusedTurn.coordinate}
-              radius={7.5}
+              radius={7}
+              interactive={false}
               pathOptions={{
                 color: '#FFFFFF',
                 fillColor: '#4ADE80',
@@ -262,7 +301,7 @@ export default function MapCanvas({
           </>
         )}
 
-        {/* 6. Interactive Graph Nodes */}
+        {/* 6. Interactive Graph Nodes (Exact OpenStreetMap Building Coordinates) */}
         {nodes.map((node) => {
           const isOrigin = node.id === sourceId;
           const isTarget = node.id === targetId;
@@ -304,6 +343,7 @@ export default function MapCanvas({
                 <CircleMarker
                   center={[node.lat, node.lng]}
                   radius={18}
+                  interactive={false}
                   pathOptions={{
                     color: isOrigin
                       ? '#4ADE80'

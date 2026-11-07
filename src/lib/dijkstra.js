@@ -12,8 +12,8 @@ export const NSUT_CAMPUS_CONFIG = {
   id: "nsut_campus",
   name: "NSUT Dwarka Campus",
   shortLabel: "NSUT Campus",
-  center: [28.6105, 77.0378],
-  radiusMeters: 650,
+  center: [28.610056, 77.037968],
+  radiusMeters: 620,
   zoom: 17,
 };
 
@@ -110,8 +110,8 @@ export const NSUT_CAMPUS_NODES = [
     id: "nsut_main_gate",
     name: "NSUT Main Gate (Azad Hind Fauj Marg)",
     shortName: "Main Gate",
-    lat: 28.6084,
-    lng: 77.0326,
+    lat: 28.608484,
+    lng: 77.035251,
     zone: "NSUT Campus",
     isCampus: true,
     isCampusGate: true,
@@ -119,20 +119,20 @@ export const NSUT_CAMPUS_NODES = [
   },
   {
     id: "nsut_gate_road",
-    name: "NSUT Main Avenue (Entrance Corridor)",
+    name: "NSUT Main Avenue & Auditorium Roundabout",
     shortName: "Main Avenue",
-    lat: 28.6090,
-    lng: 77.0342,
+    lat: 28.609510,
+    lng: 77.036590,
     zone: "NSUT Campus",
     isCampus: true,
-    aliases: ["Gate Road", "Entrance Avenue", "Main Road"],
+    aliases: ["Gate Road", "Entrance Avenue", "Main Road", "Nescii Lawn"],
   },
   {
     id: "nsut_admin",
-    name: "Admin Block & Main Auditorium",
+    name: "Admin Block, Main Auditorium & SBI",
     shortName: "Admin Block",
-    lat: 28.6096,
-    lng: 77.0357,
+    lat: 28.609847,
+    lng: 77.037082,
     zone: "NSUT Campus",
     isCampus: true,
     aliases: ["VC Office", "SBI ATM", "Main Audi", "Administration", "Auditorium"],
@@ -141,18 +141,18 @@ export const NSUT_CAMPUS_NODES = [
     id: "nsut_moksha",
     name: "Moksha Ground (Central Fest Lawn)",
     shortName: "Moksha Ground",
-    lat: 28.6088,
-    lng: 77.0368,
+    lat: 28.610845,
+    lng: 77.036582,
     zone: "NSUT Campus",
     isCampus: true,
     aliases: ["Moksha Stage", "Central Lawn", "Fest Ground", "Open Theatre"],
   },
   {
     id: "nsut_apj",
-    name: "APJ Lecture Complex (APJ 1–11)",
+    name: "APJ Abdul Kalam Lecture Complex (APJ 1–11)",
     shortName: "APJ Complex",
-    lat: 28.6105,
-    lng: 77.0372,
+    lat: 28.611974,
+    lng: 77.037063,
     zone: "NSUT Campus",
     isCampus: true,
     aliases: ["Lecture Theatres", "Smart Block", "APJ 1", "APJ Hall", "Classrooms"],
@@ -161,28 +161,28 @@ export const NSUT_CAMPUS_NODES = [
     id: "nsut_block4",
     name: "Block 4 (ECE, EE & Biotech Dept)",
     shortName: "Block 4 (ECE/EE)",
-    lat: 28.6102,
-    lng: 77.0381,
+    lat: 28.609465,
+    lng: 77.037668,
     zone: "NSUT Campus",
     isCampus: true,
     aliases: ["Electrical Engineering", "ECE Block", "Biotech Block", "Block IV"],
   },
   {
     id: "nsut_connecting",
-    name: "Connecting Block (Mini Audi & Room 110)",
+    name: "Connecting Block & Mini Auditorium",
     shortName: "Connecting Block",
-    lat: 28.6106,
-    lng: 77.0386,
+    lat: 28.609684,
+    lng: 77.038089,
     zone: "NSUT Campus",
     isCampus: true,
-    aliases: ["Mini Audi", "Room 110", "TRP Lab", "Dean Office"],
+    aliases: ["Mini Audi", "Central Fountain", "Room 110", "Dean Office"],
   },
   {
     id: "nsut_block5",
     name: "Block 5 (COE & IT Dept)",
     shortName: "Block 5 (CS/IT)",
-    lat: 28.6110,
-    lng: 77.0391,
+    lat: 28.609719,
+    lng: 77.038585,
     zone: "NSUT Campus",
     isCampus: true,
     aliases: ["Computer Engineering", "IT Dept", "Block V", "AI Lab"],
@@ -191,8 +191,8 @@ export const NSUT_CAMPUS_NODES = [
     id: "nsut_block6",
     name: "Block 6 (ICE & MPAE Dept)",
     shortName: "Block 6 (ICE/MPAE)",
-    lat: 28.6098,
-    lng: 77.0390,
+    lat: 28.610526,
+    lng: 77.037807,
     zone: "NSUT Campus",
     isCampus: true,
     aliases: ["Instrumentation", "Mechanical", "Block VI", "Robotics Lab"],
@@ -201,18 +201,18 @@ export const NSUT_CAMPUS_NODES = [
     id: "nsut_library",
     name: "Central Library Block",
     shortName: "Central Library",
-    lat: 28.6116,
-    lng: 77.0395,
+    lat: 28.610395,
+    lng: 77.038969,
     zone: "NSUT Campus",
     isCampus: true,
     aliases: ["Library", "Reading Room", "Digital Library", "Reference Section"],
   },
   {
     id: "nsut_sc_amul",
-    name: "Student Centre (Amul, Nescafe & JC Canteen)",
+    name: "Students' Centre (Amul, Nescafe & Canteen)",
     shortName: "Student Centre (Amul)",
-    lat: 28.6113,
-    lng: 77.0376,
+    lat: 28.611663,
+    lng: 77.036911,
     zone: "NSUT Campus",
     isCampus: true,
     aliases: ["Amul", "Nescafe", "JC Canteen", "Kiosk", "Student Centre"],
@@ -221,8 +221,8 @@ export const NSUT_CAMPUS_NODES = [
     id: "nsut_sac",
     name: "SAC (Student Activity Centre & Gym)",
     shortName: "SAC & Gym",
-    lat: 28.6122,
-    lng: 77.0384,
+    lat: 28.610386,
+    lng: 77.039310,
     zone: "NSUT Campus",
     isCampus: true,
     aliases: ["Gymnasium", "Indoor Badminton", "Societies Hub", "SAC Building"],
@@ -231,38 +231,38 @@ export const NSUT_CAMPUS_NODES = [
     id: "nsut_sports",
     name: "Sports Complex & Cricket/Football Ground",
     shortName: "Sports Complex",
-    lat: 28.6125,
-    lng: 77.0405,
+    lat: 28.610394,
+    lng: 77.041365,
     zone: "NSUT Campus",
     isCampus: true,
-    aliases: ["Cricket Ground", "Football Field", "Athletics Track", "Basketball Court"],
+    aliases: ["Cricket Ground", "Football Field", "Athletics Track", "Kabaddi Ground"],
   },
   {
     id: "nsut_bh",
-    name: "Boys Hostels (BH 1–4 Complex)",
+    name: "Boys Hostels (BH 1–4 · Bhaskara & Ramanujan)",
     shortName: "Boys Hostels (BH)",
-    lat: 28.6135,
-    lng: 77.0378,
+    lat: 28.612652,
+    lng: 77.035825,
     zone: "NSUT Campus",
     isCampus: true,
-    aliases: ["BH1", "BH2", "BH3", "BH4", "Hostel Mess", "Ramanujan Hostel"],
+    aliases: ["BH1", "BH2", "BH3", "BH4", "Bhaskara Hostel", "Ramanujan Hostel", "Aryabhata Hostel"],
   },
   {
     id: "nsut_gh",
-    name: "Girls Hostels (GH 1–2 Complex)",
+    name: "Girls Hostels (Alaknanda & Sarasvati)",
     shortName: "Girls Hostels (GH)",
-    lat: 28.6082,
-    lng: 77.0348,
+    lat: 28.608039,
+    lng: 77.039571,
     zone: "NSUT Campus",
     isCampus: true,
-    aliases: ["GH1", "GH2", "Kaveri Hostel", "Kalpana Chawla Hostel"],
+    aliases: ["GH1", "GH2", "Alaknanda Hostel", "Sarasvati Hostel", "Kaveri Hostel"],
   },
   {
     id: "nsut_north_gate",
-    name: "NSUT North Gate (Hostel & Mor Gate)",
+    name: "NSUT North Gate (Azad Hind Fauj Marg North)",
     shortName: "North Gate",
-    lat: 28.6138,
-    lng: 77.0360,
+    lat: 28.613175,
+    lng: 77.033627,
     zone: "NSUT Campus",
     isCampus: true,
     isCampusGate: true,
@@ -274,332 +274,1452 @@ export const NSUT_CAMPUS_NODES = [
  * Internal NSUT Campus Roads & Walkways (with accurate curving intermediate waypoints).
  */
 export const NSUT_CAMPUS_EDGES = [
-  // Perimeter & Academic Paved Roads (Drive & Walk)
   {
-    id: "CE1",
-    from: "nsut_main_gate",
-    to: "nsut_gate_road",
-    roadName: "NSUT Main Entrance Avenue",
-    distance: 180,
-    speedKmh: 20,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6084, 77.0326],
-      [28.6087, 77.0334],
-      [28.6090, 77.0342],
-    ],
+    "id": "CE1",
+    "from": "nsut_main_gate",
+    "to": "nsut_gate_road",
+    "roadName": "NSUT Main Entrance Avenue",
+    "speedKmh": 20,
+    "pedestrianOnly": false,
+    "distance": 245,
+    "waypoints": [
+      [
+        28.608484,
+        77.035251
+      ],
+      [
+        28.608603,
+        77.035399
+      ],
+      [
+        28.60922,
+        77.035199
+      ],
+      [
+        28.609323,
+        77.03525
+      ],
+      [
+        28.609575,
+        77.03621
+      ],
+      [
+        28.609566,
+        77.03626
+      ],
+      [
+        28.609531,
+        77.036428
+      ],
+      [
+        28.609572,
+        77.036568
+      ],
+      [
+        28.60951,
+        77.03659
+      ]
+    ]
   },
   {
-    id: "CE2",
-    from: "nsut_gate_road",
-    to: "nsut_admin",
-    roadName: "Main Avenue East",
-    distance: 165,
-    speedKmh: 20,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6090, 77.0342],
-      [28.6093, 77.0350],
-      [28.6096, 77.0357],
-    ],
+    "id": "CE2",
+    "from": "nsut_gate_road",
+    "to": "nsut_admin",
+    "roadName": "Admin & Auditorium Approach",
+    "speedKmh": 20,
+    "pedestrianOnly": false,
+    "distance": 128,
+    "waypoints": [
+      [
+        28.60951,
+        77.03659
+      ],
+      [
+        28.609572,
+        77.036568
+      ],
+      [
+        28.609811,
+        77.036494
+      ],
+      [
+        28.60996,
+        77.036445
+      ],
+      [
+        28.610071,
+        77.036891
+      ],
+      [
+        28.609847,
+        77.037082
+      ]
+    ]
   },
   {
-    id: "CE3",
-    from: "nsut_gate_road",
-    to: "nsut_gh",
-    roadName: "Girls Hostel Access Avenue",
-    distance: 110,
-    speedKmh: 15,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6090, 77.0342],
-      [28.6086, 77.0345],
-      [28.6082, 77.0348],
-    ],
+    "id": "CE3",
+    "from": "nsut_gate_road",
+    "to": "nsut_moksha",
+    "roadName": "Moksha West Avenue",
+    "speedKmh": 20,
+    "pedestrianOnly": false,
+    "distance": 193,
+    "waypoints": [
+      [
+        28.60951,
+        77.03659
+      ],
+      [
+        28.609572,
+        77.036568
+      ],
+      [
+        28.609811,
+        77.036494
+      ],
+      [
+        28.60996,
+        77.036445
+      ],
+      [
+        28.610103,
+        77.0364
+      ],
+      [
+        28.610287,
+        77.036342
+      ],
+      [
+        28.610833,
+        77.03617
+      ],
+      [
+        28.610845,
+        77.036582
+      ]
+    ]
   },
   {
-    id: "CE4",
-    from: "nsut_admin",
-    to: "nsut_apj",
-    roadName: "Central Academic Spine",
-    distance: 175,
-    speedKmh: 20,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6096, 77.0357],
-      [28.6101, 77.0365],
-      [28.6105, 77.0372],
-    ],
+    "id": "CE4",
+    "from": "nsut_moksha",
+    "to": "nsut_sc_amul",
+    "roadName": "Students Centre Road",
+    "speedKmh": 20,
+    "pedestrianOnly": false,
+    "distance": 176,
+    "waypoints": [
+      [
+        28.610845,
+        77.036582
+      ],
+      [
+        28.610833,
+        77.03617
+      ],
+      [
+        28.61089,
+        77.036158
+      ],
+      [
+        28.611047,
+        77.036167
+      ],
+      [
+        28.611174,
+        77.036227
+      ],
+      [
+        28.611276,
+        77.036323
+      ],
+      [
+        28.611338,
+        77.03645
+      ],
+      [
+        28.611357,
+        77.036516
+      ],
+      [
+        28.611397,
+        77.036676
+      ],
+      [
+        28.611446,
+        77.03687
+      ],
+      [
+        28.611663,
+        77.036911
+      ]
+    ]
   },
   {
-    id: "CE5",
-    from: "nsut_admin",
-    to: "nsut_moksha",
-    roadName: "Admin–Moksha South Road",
-    distance: 140,
-    speedKmh: 15,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6096, 77.0357],
-      [28.6092, 77.0363],
-      [28.6088, 77.0368],
-    ],
+    "id": "CE5",
+    "from": "nsut_sc_amul",
+    "to": "nsut_apj",
+    "roadName": "APJ Lecture Complex Link",
+    "speedKmh": 15,
+    "pedestrianOnly": false,
+    "distance": 286,
+    "waypoints": [
+      [
+        28.611663,
+        77.036911
+      ],
+      [
+        28.611446,
+        77.03687
+      ],
+      [
+        28.611397,
+        77.036676
+      ],
+      [
+        28.611567,
+        77.03662
+      ],
+      [
+        28.612065,
+        77.036456
+      ],
+      [
+        28.612256,
+        77.036393
+      ],
+      [
+        28.612287,
+        77.036518
+      ],
+      [
+        28.612454,
+        77.037194
+      ],
+      [
+        28.612373,
+        77.037278
+      ],
+      [
+        28.611974,
+        77.037063
+      ]
+    ]
   },
   {
-    id: "CE6",
-    from: "nsut_admin",
-    to: "nsut_north_gate",
-    roadName: "West Campus Perimeter Drive",
-    distance: 540,
-    speedKmh: 25,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6096, 77.0357],
-      [28.6110, 77.0354],
-      [28.6125, 77.0356],
-      [28.6138, 77.0360],
-    ],
+    "id": "CE6",
+    "from": "nsut_sc_amul",
+    "to": "nsut_bh",
+    "roadName": "Boys Hostel Avenue",
+    "speedKmh": 20,
+    "pedestrianOnly": false,
+    "distance": 708,
+    "waypoints": [
+      [
+        28.611663,
+        77.036911
+      ],
+      [
+        28.611446,
+        77.03687
+      ],
+      [
+        28.611397,
+        77.036676
+      ],
+      [
+        28.611567,
+        77.03662
+      ],
+      [
+        28.612065,
+        77.036456
+      ],
+      [
+        28.612256,
+        77.036393
+      ],
+      [
+        28.612287,
+        77.036518
+      ],
+      [
+        28.612454,
+        77.037194
+      ],
+      [
+        28.61257,
+        77.037158
+      ],
+      [
+        28.613557,
+        77.03685
+      ],
+      [
+        28.613674,
+        77.036813
+      ],
+      [
+        28.61373,
+        77.036638
+      ],
+      [
+        28.613718,
+        77.036354
+      ],
+      [
+        28.613715,
+        77.036203
+      ],
+      [
+        28.613716,
+        77.035644
+      ],
+      [
+        28.613681,
+        77.035472
+      ],
+      [
+        28.613554,
+        77.034959
+      ],
+      [
+        28.612908,
+        77.035172
+      ],
+      [
+        28.612878,
+        77.035314
+      ],
+      [
+        28.612953,
+        77.035592
+      ],
+      [
+        28.612652,
+        77.035825
+      ]
+    ]
   },
   {
-    id: "CE7",
-    from: "nsut_apj",
-    to: "nsut_block4",
-    roadName: "Academic Corridor East",
-    distance: 95,
-    speedKmh: 15,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6105, 77.0372],
-      [28.6103, 77.0377],
-      [28.6102, 77.0381],
-    ],
+    "id": "CE7",
+    "from": "nsut_bh",
+    "to": "nsut_north_gate",
+    "roadName": "Hostel to North Gate Road",
+    "speedKmh": 20,
+    "pedestrianOnly": false,
+    "distance": 295,
+    "waypoints": [
+      [
+        28.612652,
+        77.035825
+      ],
+      [
+        28.612953,
+        77.035592
+      ],
+      [
+        28.612878,
+        77.035314
+      ],
+      [
+        28.612908,
+        77.035172
+      ],
+      [
+        28.613554,
+        77.034959
+      ],
+      [
+        28.613433,
+        77.034468
+      ],
+      [
+        28.61329,
+        77.033897
+      ],
+      [
+        28.61327,
+        77.033873
+      ],
+      [
+        28.613194,
+        77.0337
+      ],
+      [
+        28.613175,
+        77.033627
+      ]
+    ]
   },
   {
-    id: "CE8",
-    from: "nsut_block4",
-    to: "nsut_connecting",
-    roadName: "Connecting Block Concourse",
-    distance: 65,
-    speedKmh: 15,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6102, 77.0381],
-      [28.6104, 77.0384],
-      [28.6106, 77.0386],
-    ],
+    "id": "CE8",
+    "from": "nsut_gate_road",
+    "to": "nsut_north_gate",
+    "roadName": "West Campus Perimeter Drive",
+    "speedKmh": 25,
+    "pedestrianOnly": false,
+    "distance": 624,
+    "waypoints": [
+      [
+        28.60951,
+        77.03659
+      ],
+      [
+        28.609572,
+        77.036568
+      ],
+      [
+        28.609531,
+        77.036428
+      ],
+      [
+        28.609566,
+        77.03626
+      ],
+      [
+        28.609575,
+        77.03621
+      ],
+      [
+        28.609323,
+        77.03525
+      ],
+      [
+        28.609454,
+        77.035123
+      ],
+      [
+        28.611555,
+        77.03444
+      ],
+      [
+        28.611752,
+        77.034368
+      ],
+      [
+        28.611958,
+        77.0343
+      ],
+      [
+        28.612096,
+        77.034255
+      ],
+      [
+        28.612182,
+        77.034226
+      ],
+      [
+        28.613097,
+        77.033922
+      ],
+      [
+        28.613239,
+        77.033875
+      ],
+      [
+        28.61319,
+        77.033684
+      ],
+      [
+        28.613175,
+        77.033627
+      ]
+    ]
   },
   {
-    id: "CE9",
-    from: "nsut_block4",
-    to: "nsut_block6",
-    roadName: "Block 4–6 Interlink",
-    distance: 100,
-    speedKmh: 15,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6102, 77.0381],
-      [28.6100, 77.0386],
-      [28.6098, 77.0390],
-    ],
+    "id": "CE9",
+    "from": "nsut_gate_road",
+    "to": "nsut_block4",
+    "roadName": "Academic South Drive",
+    "speedKmh": 20,
+    "pedestrianOnly": false,
+    "distance": 760,
+    "waypoints": [
+      [
+        28.60951,
+        77.03659
+      ],
+      [
+        28.609572,
+        77.036568
+      ],
+      [
+        28.609531,
+        77.036428
+      ],
+      [
+        28.609566,
+        77.03626
+      ],
+      [
+        28.609575,
+        77.03621
+      ],
+      [
+        28.609323,
+        77.03525
+      ],
+      [
+        28.60922,
+        77.035199
+      ],
+      [
+        28.608603,
+        77.035399
+      ],
+      [
+        28.608464,
+        77.035443
+      ],
+      [
+        28.608029,
+        77.035582
+      ],
+      [
+        28.607833,
+        77.035644
+      ],
+      [
+        28.6079,
+        77.035912
+      ],
+      [
+        28.607907,
+        77.035941
+      ],
+      [
+        28.608033,
+        77.036449
+      ],
+      [
+        28.608059,
+        77.036553
+      ],
+      [
+        28.608087,
+        77.036661
+      ],
+      [
+        28.608175,
+        77.037012
+      ],
+      [
+        28.608324,
+        77.037602
+      ],
+      [
+        28.608437,
+        77.03805
+      ],
+      [
+        28.608503,
+        77.03831
+      ],
+      [
+        28.608552,
+        77.038501
+      ],
+      [
+        28.609451,
+        77.038203
+      ],
+      [
+        28.609465,
+        77.037668
+      ]
+    ]
   },
   {
-    id: "CE10",
-    from: "nsut_connecting",
-    to: "nsut_block5",
-    roadName: "CS/IT Block Corridor",
-    distance: 70,
-    speedKmh: 15,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6106, 77.0386],
-      [28.6108, 77.0389],
-      [28.6110, 77.0391],
-    ],
+    "id": "CE10",
+    "from": "nsut_block4",
+    "to": "nsut_connecting",
+    "roadName": "Connecting Block Drive",
+    "speedKmh": 15,
+    "pedestrianOnly": false,
+    "distance": 80,
+    "waypoints": [
+      [
+        28.609465,
+        77.037668
+      ],
+      [
+        28.609451,
+        77.038203
+      ],
+      [
+        28.609684,
+        77.038089
+      ]
+    ]
   },
   {
-    id: "CE11",
-    from: "nsut_block5",
-    to: "nsut_library",
-    roadName: "Library Walkway Approach",
-    distance: 80,
-    speedKmh: 15,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6110, 77.0391],
-      [28.6113, 77.0393],
-      [28.6116, 77.0395],
-    ],
+    "id": "CE11",
+    "from": "nsut_connecting",
+    "to": "nsut_block5",
+    "roadName": "Block 5 Academic Drive",
+    "speedKmh": 15,
+    "pedestrianOnly": false,
+    "distance": 76,
+    "waypoints": [
+      [
+        28.609684,
+        77.038089
+      ],
+      [
+        28.609451,
+        77.038203
+      ],
+      [
+        28.609719,
+        77.038585
+      ]
+    ]
   },
   {
-    id: "CE12",
-    from: "nsut_library",
-    to: "nsut_sports",
-    roadName: "Library–Sports Complex Avenue",
-    distance: 140,
-    speedKmh: 20,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6116, 77.0395],
-      [28.6120, 77.0400],
-      [28.6125, 77.0405],
-    ],
+    "id": "CE12",
+    "from": "nsut_block5",
+    "to": "nsut_gh",
+    "roadName": "Alaknanda Girls Hostel Road",
+    "speedKmh": 20,
+    "pedestrianOnly": false,
+    "distance": 744,
+    "waypoints": [
+      [
+        28.609719,
+        77.038585
+      ],
+      [
+        28.609451,
+        77.038203
+      ],
+      [
+        28.608552,
+        77.038501
+      ],
+      [
+        28.608918,
+        77.039935
+      ],
+      [
+        28.608992,
+        77.040225
+      ],
+      [
+        28.608744,
+        77.040307
+      ],
+      [
+        28.608564,
+        77.040367
+      ],
+      [
+        28.607524,
+        77.040712
+      ],
+      [
+        28.607301,
+        77.040786
+      ],
+      [
+        28.607238,
+        77.040535
+      ],
+      [
+        28.607129,
+        77.040099
+      ],
+      [
+        28.608215,
+        77.039744
+      ],
+      [
+        28.608039,
+        77.039571
+      ]
+    ]
   },
   {
-    id: "CE13",
-    from: "nsut_sc_amul",
-    to: "nsut_library",
-    roadName: "Student Centre–Library Spine",
-    distance: 195,
-    speedKmh: 20,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6113, 77.0376],
-      [28.6114, 77.0385],
-      [28.6116, 77.0395],
-    ],
+    "id": "CE13",
+    "from": "nsut_block5",
+    "to": "nsut_sac",
+    "roadName": "East Academic Ring Road",
+    "speedKmh": 20,
+    "pedestrianOnly": false,
+    "distance": 528,
+    "waypoints": [
+      [
+        28.609719,
+        77.038585
+      ],
+      [
+        28.609451,
+        77.038203
+      ],
+      [
+        28.608552,
+        77.038501
+      ],
+      [
+        28.608918,
+        77.039935
+      ],
+      [
+        28.608992,
+        77.040225
+      ],
+      [
+        28.609238,
+        77.040145
+      ],
+      [
+        28.61025,
+        77.039818
+      ],
+      [
+        28.610207,
+        77.039639
+      ],
+      [
+        28.610386,
+        77.03931
+      ]
+    ]
   },
   {
-    id: "CE14",
-    from: "nsut_sc_amul",
-    to: "nsut_sac",
-    roadName: "Student Centre to SAC North Road",
-    distance: 130,
-    speedKmh: 15,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6113, 77.0376],
-      [28.6117, 77.0380],
-      [28.6122, 77.0384],
-    ],
+    "id": "CE14",
+    "from": "nsut_sac",
+    "to": "nsut_library",
+    "roadName": "Central Library & SAC Link",
+    "speedKmh": 15,
+    "pedestrianOnly": false,
+    "distance": 155,
+    "waypoints": [
+      [
+        28.610386,
+        77.03931
+      ],
+      [
+        28.610207,
+        77.039639
+      ],
+      [
+        28.610702,
+        77.039476
+      ],
+      [
+        28.610395,
+        77.038969
+      ]
+    ]
   },
   {
-    id: "CE15",
-    from: "nsut_sac",
-    to: "nsut_sports",
-    roadName: "SAC to Sports Complex Road",
-    distance: 215,
-    speedKmh: 20,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6122, 77.0384],
-      [28.6123, 77.0395],
-      [28.6125, 77.0405],
-    ],
+    "id": "CE15",
+    "from": "nsut_sac",
+    "to": "nsut_sports",
+    "roadName": "Sports Complex East Avenue",
+    "speedKmh": 20,
+    "pedestrianOnly": false,
+    "distance": 322,
+    "waypoints": [
+      [
+        28.610386,
+        77.03931
+      ],
+      [
+        28.610207,
+        77.039639
+      ],
+      [
+        28.61025,
+        77.039818
+      ],
+      [
+        28.610345,
+        77.039788
+      ],
+      [
+        28.610421,
+        77.040336
+      ],
+      [
+        28.610492,
+        77.040482
+      ],
+      [
+        28.610605,
+        77.04055
+      ],
+      [
+        28.61073,
+        77.040651
+      ],
+      [
+        28.610821,
+        77.040764
+      ],
+      [
+        28.610859,
+        77.040827
+      ],
+      [
+        28.610929,
+        77.040975
+      ],
+      [
+        28.610971,
+        77.041127
+      ],
+      [
+        28.610985,
+        77.041211
+      ],
+      [
+        28.610993,
+        77.041384
+      ],
+      [
+        28.610985,
+        77.041463
+      ],
+      [
+        28.610394,
+        77.041365
+      ]
+    ]
   },
   {
-    id: "CE16",
-    from: "nsut_sac",
-    to: "nsut_bh",
-    roadName: "SAC to Boys Hostels Avenue",
-    distance: 150,
-    speedKmh: 20,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6122, 77.0384],
-      [28.6128, 77.0381],
-      [28.6135, 77.0378],
-    ],
+    "id": "CE16",
+    "from": "nsut_apj",
+    "to": "nsut_library",
+    "roadName": "North Academic Ring Road",
+    "speedKmh": 20,
+    "pedestrianOnly": false,
+    "distance": 515,
+    "waypoints": [
+      [
+        28.611974,
+        77.037063
+      ],
+      [
+        28.612373,
+        77.037278
+      ],
+      [
+        28.612366,
+        77.03748
+      ],
+      [
+        28.612399,
+        77.037581
+      ],
+      [
+        28.612515,
+        77.037703
+      ],
+      [
+        28.612591,
+        77.037746
+      ],
+      [
+        28.612645,
+        77.037967
+      ],
+      [
+        28.612483,
+        77.038021
+      ],
+      [
+        28.611969,
+        77.038195
+      ],
+      [
+        28.611797,
+        77.038253
+      ],
+      [
+        28.611843,
+        77.038469
+      ],
+      [
+        28.611859,
+        77.038541
+      ],
+      [
+        28.611856,
+        77.038702
+      ],
+      [
+        28.611769,
+        77.038869
+      ],
+      [
+        28.611711,
+        77.038973
+      ],
+      [
+        28.6116,
+        77.03917
+      ],
+      [
+        28.611507,
+        77.039335
+      ],
+      [
+        28.611407,
+        77.039447
+      ],
+      [
+        28.611256,
+        77.039495
+      ],
+      [
+        28.610836,
+        77.039629
+      ],
+      [
+        28.610746,
+        77.039657
+      ],
+      [
+        28.610702,
+        77.039476
+      ],
+      [
+        28.610395,
+        77.038969
+      ]
+    ]
   },
   {
-    id: "CE17",
-    from: "nsut_bh",
-    to: "nsut_north_gate",
-    roadName: "Hostel to North Gate Road",
-    distance: 185,
-    speedKmh: 20,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6135, 77.0378],
-      [28.6137, 77.0369],
-      [28.6138, 77.0360],
-    ],
+    "id": "CW1",
+    "from": "nsut_admin",
+    "to": "nsut_block4",
+    "roadName": "Auditorium to Block 4 Walkway",
+    "speedKmh": 5,
+    "pedestrianOnly": true,
+    "distance": 102,
+    "waypoints": [
+      [
+        28.609847,
+        77.037082
+      ],
+      [
+        28.609854,
+        77.037164
+      ],
+      [
+        28.609902,
+        77.037353
+      ],
+      [
+        28.60995,
+        77.037542
+      ],
+      [
+        28.609759,
+        77.037607
+      ],
+      [
+        28.609465,
+        77.037668
+      ]
+    ]
   },
   {
-    id: "CE18",
-    from: "nsut_sports",
-    to: "nsut_north_gate",
-    roadName: "North Perimeter Campus Drive",
-    distance: 460,
-    speedKmh: 25,
-    pedestrianOnly: false,
-    waypoints: [
-      [28.6125, 77.0405],
-      [28.6132, 77.0385],
-      [28.6138, 77.0360],
-    ],
-  },
-
-  // Pedestrian-Only Walkways (Lawn crossways & Academic Plazas)
-  {
-    id: "CW1",
-    from: "nsut_admin",
-    to: "nsut_sc_amul",
-    roadName: "Central Academic Plaza Walkway",
-    distance: 260,
-    speedKmh: 5,
-    pedestrianOnly: true,
-    waypoints: [
-      [28.6096, 77.0357],
-      [28.6105, 77.0366],
-      [28.6113, 77.0376],
-    ],
-  },
-  {
-    id: "CW2",
-    from: "nsut_apj",
-    to: "nsut_sc_amul",
-    roadName: "APJ to Amul Courtyard Path",
-    distance: 110,
-    speedKmh: 5,
-    pedestrianOnly: true,
-    waypoints: [
-      [28.6105, 77.0372],
-      [28.6109, 77.0374],
-      [28.6113, 77.0376],
-    ],
-  },
-  {
-    id: "CW3",
-    from: "nsut_moksha",
-    to: "nsut_block4",
-    roadName: "Moksha Lawn Diagonal Path",
-    distance: 210,
-    speedKmh: 5,
-    pedestrianOnly: true,
-    waypoints: [
-      [28.6088, 77.0368],
-      [28.6095, 77.0375],
-      [28.6102, 77.0381],
-    ],
+    "id": "CW2",
+    "from": "nsut_admin",
+    "to": "nsut_block6",
+    "roadName": "Admin to Block 6 Central Footpath",
+    "speedKmh": 5,
+    "pedestrianOnly": true,
+    "distance": 138,
+    "waypoints": [
+      [
+        28.609847,
+        77.037082
+      ],
+      [
+        28.609854,
+        77.037164
+      ],
+      [
+        28.609902,
+        77.037353
+      ],
+      [
+        28.60995,
+        77.037542
+      ],
+      [
+        28.610042,
+        77.037903
+      ],
+      [
+        28.610077,
+        77.037903
+      ],
+      [
+        28.610264,
+        77.0379
+      ],
+      [
+        28.610526,
+        77.037807
+      ]
+    ]
   },
   {
-    id: "CW4",
-    from: "nsut_moksha",
-    to: "nsut_block6",
-    roadName: "Moksha South Grassway",
-    distance: 230,
-    speedKmh: 5,
-    pedestrianOnly: true,
-    waypoints: [
-      [28.6088, 77.0368],
-      [28.6093, 77.0379],
-      [28.6098, 77.0390],
-    ],
+    "id": "CW3",
+    "from": "nsut_block4",
+    "to": "nsut_block6",
+    "roadName": "Central Fountain Quad Walkway",
+    "speedKmh": 5,
+    "pedestrianOnly": true,
+    "distance": 147,
+    "waypoints": [
+      [
+        28.609465,
+        77.037668
+      ],
+      [
+        28.609759,
+        77.037607
+      ],
+      [
+        28.60995,
+        77.037542
+      ],
+      [
+        28.610042,
+        77.037903
+      ],
+      [
+        28.610077,
+        77.037903
+      ],
+      [
+        28.610264,
+        77.0379
+      ],
+      [
+        28.610526,
+        77.037807
+      ]
+    ]
   },
   {
-    id: "CW5",
-    from: "nsut_gh",
-    to: "nsut_moksha",
-    roadName: "Girls Hostel to Moksha Walkway",
-    distance: 200,
-    speedKmh: 5,
-    pedestrianOnly: true,
-    waypoints: [
-      [28.6082, 77.0348],
-      [28.6085, 77.0358],
-      [28.6088, 77.0368],
-    ],
+    "id": "CW4",
+    "from": "nsut_connecting",
+    "to": "nsut_block6",
+    "roadName": "Central Fountain North Path",
+    "speedKmh": 5,
+    "pedestrianOnly": true,
+    "distance": 98,
+    "waypoints": [
+      [
+        28.609684,
+        77.038089
+      ],
+      [
+        28.609747,
+        77.038069
+      ],
+      [
+        28.61,
+        77.037988
+      ],
+      [
+        28.610116,
+        77.03795
+      ],
+      [
+        28.610264,
+        77.0379
+      ],
+      [
+        28.610526,
+        77.037807
+      ]
+    ]
   },
+  {
+    "id": "CW5",
+    "from": "nsut_block6",
+    "to": "nsut_library",
+    "roadName": "Block 6 to Central Library Footpath",
+    "speedKmh": 5,
+    "pedestrianOnly": true,
+    "distance": 155,
+    "waypoints": [
+      [
+        28.610526,
+        77.037807
+      ],
+      [
+        28.610264,
+        77.0379
+      ],
+      [
+        28.610103,
+        77.038015
+      ],
+      [
+        28.610077,
+        77.038033
+      ],
+      [
+        28.610168,
+        77.038394
+      ],
+      [
+        28.610217,
+        77.038589
+      ],
+      [
+        28.610264,
+        77.038778
+      ],
+      [
+        28.610291,
+        77.038879
+      ],
+      [
+        28.610395,
+        77.038969
+      ]
+    ]
+  },
+  {
+    "id": "CW6",
+    "from": "nsut_block5",
+    "to": "nsut_library",
+    "roadName": "Block 5 to Library Steps",
+    "speedKmh": 5,
+    "pedestrianOnly": true,
+    "distance": 117,
+    "waypoints": [
+      [
+        28.609719,
+        77.038585
+      ],
+      [
+        28.609971,
+        77.038458
+      ],
+      [
+        28.610168,
+        77.038394
+      ],
+      [
+        28.610217,
+        77.038589
+      ],
+      [
+        28.610264,
+        77.038778
+      ],
+      [
+        28.610291,
+        77.038879
+      ],
+      [
+        28.610395,
+        77.038969
+      ]
+    ]
+  },
+  {
+    "id": "CW7",
+    "from": "nsut_moksha",
+    "to": "nsut_block6",
+    "roadName": "Moksha Ground East Footpath",
+    "speedKmh": 5,
+    "pedestrianOnly": true,
+    "distance": 524,
+    "waypoints": [
+      [
+        28.610845,
+        77.036582
+      ],
+      [
+        28.610833,
+        77.03617
+      ],
+      [
+        28.61089,
+        77.036158
+      ],
+      [
+        28.611047,
+        77.036167
+      ],
+      [
+        28.611174,
+        77.036227
+      ],
+      [
+        28.611229,
+        77.036268
+      ],
+      [
+        28.611338,
+        77.03645
+      ],
+      [
+        28.611357,
+        77.036516
+      ],
+      [
+        28.611397,
+        77.036676
+      ],
+      [
+        28.611446,
+        77.03687
+      ],
+      [
+        28.611586,
+        77.037425
+      ],
+      [
+        28.611608,
+        77.037509
+      ],
+      [
+        28.611284,
+        77.037613
+      ],
+      [
+        28.61114,
+        77.037724
+      ],
+      [
+        28.611104,
+        77.037857
+      ],
+      [
+        28.610974,
+        77.037937
+      ],
+      [
+        28.610912,
+        77.037989
+      ],
+      [
+        28.610518,
+        77.038504
+      ],
+      [
+        28.61043,
+        77.038518
+      ],
+      [
+        28.610217,
+        77.038589
+      ],
+      [
+        28.610168,
+        77.038394
+      ],
+      [
+        28.610077,
+        77.038033
+      ],
+      [
+        28.610103,
+        77.038015
+      ],
+      [
+        28.610264,
+        77.0379
+      ],
+      [
+        28.610526,
+        77.037807
+      ]
+    ]
+  },
+  {
+    "id": "CW8",
+    "from": "nsut_block6",
+    "to": "nsut_sc_amul",
+    "roadName": "Block 6 to Amul Student Centre Path",
+    "speedKmh": 5,
+    "pedestrianOnly": true,
+    "distance": 397,
+    "waypoints": [
+      [
+        28.610526,
+        77.037807
+      ],
+      [
+        28.610264,
+        77.0379
+      ],
+      [
+        28.610103,
+        77.038015
+      ],
+      [
+        28.610077,
+        77.038033
+      ],
+      [
+        28.610168,
+        77.038394
+      ],
+      [
+        28.610217,
+        77.038589
+      ],
+      [
+        28.61043,
+        77.038518
+      ],
+      [
+        28.610518,
+        77.038504
+      ],
+      [
+        28.610912,
+        77.037989
+      ],
+      [
+        28.610974,
+        77.037937
+      ],
+      [
+        28.611104,
+        77.037857
+      ],
+      [
+        28.61114,
+        77.037724
+      ],
+      [
+        28.611284,
+        77.037613
+      ],
+      [
+        28.611608,
+        77.037509
+      ],
+      [
+        28.611586,
+        77.037425
+      ],
+      [
+        28.611446,
+        77.03687
+      ],
+      [
+        28.611663,
+        77.036911
+      ]
+    ]
+  },
+  {
+    "id": "CW9",
+    "from": "nsut_admin",
+    "to": "nsut_library",
+    "roadName": "Central Fountain Spine Walkway",
+    "speedKmh": 5,
+    "pedestrianOnly": true,
+    "distance": 197,
+    "waypoints": [
+      [
+        28.609847,
+        77.037082
+      ],
+      [
+        28.609854,
+        77.037164
+      ],
+      [
+        28.609902,
+        77.037353
+      ],
+      [
+        28.60995,
+        77.037542
+      ],
+      [
+        28.610042,
+        77.037903
+      ],
+      [
+        28.610077,
+        77.038033
+      ],
+      [
+        28.610168,
+        77.038394
+      ],
+      [
+        28.610217,
+        77.038589
+      ],
+      [
+        28.610264,
+        77.038778
+      ],
+      [
+        28.610291,
+        77.038879
+      ],
+      [
+        28.610395,
+        77.038969
+      ]
+    ]
+  },
+  {
+    "id": "CW10",
+    "from": "nsut_connecting",
+    "to": "nsut_library",
+    "roadName": "Connecting Block to Library Walkway",
+    "speedKmh": 5,
+    "pedestrianOnly": true,
+    "distance": 147,
+    "waypoints": [
+      [
+        28.609684,
+        77.038089
+      ],
+      [
+        28.609747,
+        77.038069
+      ],
+      [
+        28.61,
+        77.037988
+      ],
+      [
+        28.610077,
+        77.038033
+      ],
+      [
+        28.610168,
+        77.038394
+      ],
+      [
+        28.610217,
+        77.038589
+      ],
+      [
+        28.610264,
+        77.038778
+      ],
+      [
+        28.610291,
+        77.038879
+      ],
+      [
+        28.610395,
+        77.038969
+      ]
+    ]
+  }
 ];
 
 /**
@@ -901,14 +2021,14 @@ export const DELHI_CITY_NODES = [
  */
 export const DELHI_CITY_EDGES = [
   // Dwarka cluster
-  { id: "E1", from: "nsut_main_gate", to: "vegas_mall", roadName: "Azad Hind Fauj Marg", distance: 1100, speedKmh: 40, waypoints: [[28.6084, 77.0326], [28.6035, 77.0345], [28.6001, 77.0375]] },
-  { id: "E2", from: "nsut_north_gate", to: "dwarka_mor", roadName: "Old Palam & Dwarka Mor Link", distance: 750, speedKmh: 35, waypoints: [[28.6138, 77.0360], [28.6165, 77.0345], [28.6194, 77.0332]] },
+  { id: "E1", from: "nsut_main_gate", to: "vegas_mall", roadName: "Azad Hind Fauj Marg", distance: 1050, speedKmh: 40, waypoints: [[28.608484, 77.035251], [28.6042, 77.0362], [28.6001, 77.0375]] },
+  { id: "E2", from: "nsut_north_gate", to: "dwarka_mor", roadName: "Azad Hind Fauj Marg North", distance: 720, speedKmh: 35, waypoints: [[28.613175, 77.033627], [28.6165, 77.0334], [28.6194, 77.0332]] },
   { id: "E3", from: "dwarka_mor", to: "uttam_nagar", roadName: "Najafgarh Road / Shivaji Marg", distance: 2900, speedKmh: 40, waypoints: [[28.6194, 77.0332], [28.6205, 77.0450], [28.6219, 77.0601]] },
   { id: "E4", from: "uttam_nagar", to: "janakpuri_west", roadName: "Shivaji Marg Flyover", distance: 1950, speedKmh: 45, waypoints: [[28.6219, 77.0601], [28.6255, 77.0690], [28.6294, 77.0778]] },
   { id: "E5", from: "vegas_mall", to: "dwarka_sec10", roadName: "Dwarka Sector 10–14 Avenue", distance: 2850, speedKmh: 45, waypoints: [[28.6001, 77.0375], [28.5910, 77.0450], [28.5815, 77.0573]] },
   { id: "E6", from: "dwarka_sec10", to: "dwarka_sec21", roadName: "Sector 21 Road (Pacific Mall Link)", distance: 3400, speedKmh: 50, waypoints: [[28.5815, 77.0573], [28.5665, 77.0580], [28.5521, 77.0583]] },
   { id: "E7", from: "dwarka_sec21", to: "igi_t3", roadName: "Northern Access Road to IGI Airport", distance: 4800, speedKmh: 60, waypoints: [[28.5521, 77.0583], [28.5535, 77.0780], [28.5562, 77.0999]] },
-  { id: "E8", from: "nsut_main_gate", to: "dabri_more", roadName: "Dabri–Dwarka Sector 3 Road", distance: 5800, speedKmh: 40, waypoints: [[28.6084, 77.0326], [28.6105, 77.0580], [28.6152, 77.0853]] },
+  { id: "E8", from: "nsut_main_gate", to: "dabri_more", roadName: "Dabri–Dwarka Sector 3 Road", distance: 5600, speedKmh: 40, waypoints: [[28.608484, 77.035251], [28.6105, 77.0580], [28.6152, 77.0853]] },
   { id: "E9", from: "dabri_more", to: "janakpuri_west", roadName: "Pankha Road", distance: 1850, speedKmh: 40, waypoints: [[28.6152, 77.0853], [28.6220, 77.0815], [28.6294, 77.0778]] },
   { id: "E10", from: "janakpuri_west", to: "rajouri_garden", roadName: "Najafgarh Road / Ring Road", distance: 4800, speedKmh: 45, waypoints: [[28.6294, 77.0778], [28.6385, 77.1005], [28.6492, 77.1228]] },
   { id: "E11", from: "rajouri_garden", to: "punjabi_bagh", roadName: "Mahatma Gandhi Ring Road", distance: 2450, speedKmh: 50, waypoints: [[28.6492, 77.1228], [28.6585, 77.1275], [28.6692, 77.1322]] },

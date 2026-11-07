@@ -70,9 +70,9 @@ export default function App() {
   useEffect(() => {
     try {
       const v = localStorage.getItem('navmap_v4_cache');
-      if (v !== 'v4_clean') {
+      if (v !== 'v4_3_osm_exact') {
         localStorage.clear();
-        localStorage.setItem('navmap_v4_cache', 'v4_clean');
+        localStorage.setItem('navmap_v4_cache', 'v4_3_osm_exact');
       }
     } catch {
       // Ignore
