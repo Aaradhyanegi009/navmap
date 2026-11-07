@@ -1,16 +1,14 @@
 import {
   DEFAULT_GRAPH,
-  DELHI_REGIONS,
-  PRIORITY_HUB_CONFIG,
   executeDijkstraAsync,
 } from './dijkstra.js';
 
 /**
- * Fetch the 34-Node Pan-New Delhi + NSUT Priority Hub graph from `GET /api/graph`.
+ * Fetch two-tier graph from `GET /api/graph`.
  */
 export async function fetchGraphTopology() {
   const t0 = performance.now();
-  const endpoint = '/api/graph?v=navmap_v3_graph';
+  const endpoint = '/api/graph';
 
   try {
     const response = await fetch(endpoint, {
@@ -22,7 +20,7 @@ export async function fetchGraphTopology() {
 
     if (response.ok) {
       const data = await response.json();
-      if (data?.graph?.version === 'navmap_v3_graph') {
+      if (data?.graph?.nodes?.length) {
         return {
           ...data,
           httpStatus: `${response.status} ${response.statusText || 'OK'}`,
@@ -31,17 +29,14 @@ export async function fetchGraphTopology() {
         };
       }
     }
-    throw new Error('Fallback to bundled v3 graph');
+    throw new Error('Using bundled default graph');
   } catch {
     const roundTripMs = Math.max(1, Math.round(performance.now() - t0));
     return {
       status: 'ok',
-      version: 'navmap_v3_graph',
-      engine: 'Dijkstra Engine · v3.0',
-      priorityHub: PRIORITY_HUB_CONFIG,
-      regions: DELHI_REGIONS,
+      version: 'navmap_v4_graph',
       graph: DEFAULT_GRAPH,
-      executionTimeMs: 0.24,
+      executionTimeMs: 0.2,
       httpStatus: '200 OK',
       roundTripMs,
       endpoint: 'GET /api/graph',
@@ -51,7 +46,7 @@ export async function fetchGraphTopology() {
 }
 
 /**
- * Execute Chained Dijkstra + OSRM Road Geometry via `POST /api/navigate`
+ * Execute Chained Dijkstra + OSRM via `POST /api/navigate`
  * with automatic client-side fallback.
  */
 export async function requestDijkstraRoute({
@@ -59,6 +54,7 @@ export async function requestDijkstraRoute({
   targetId,
   viaNodeIds = [],
   mode = 'car',
+  customGraph = null,
 }) {
   const t0 = performance.now();
   const endpoint = '/api/navigate';
@@ -67,6 +63,7 @@ export async function requestDijkstraRoute({
     targetId,
     viaNodeIds,
     mode: mode === 'walk' ? 'walk' : 'car',
+    customGraph,
   };
 
   try {
@@ -94,7 +91,7 @@ export async function requestDijkstraRoute({
     throw new Error(`HTTP ${response.status}`);
   } catch {
     const result = await executeDijkstraAsync({
-      graph: DEFAULT_GRAPH,
+      graph: customGraph || DEFAULT_GRAPH,
       sourceId,
       targetId,
       viaNodeIds,
@@ -110,5 +107,42 @@ export async function requestDijkstraRoute({
       endpoint: 'POST /api/navigate',
       requestPayload,
     };
+  }
+}
+
+/**
+ * OpenStreetMap Nominatim Live Geocoding bounded to Delhi NCR
+ */
+export async function searchDelhiNominatim(query, signal) {
+  if (!query || query.trim().length < 3) return [];
+  const cleanQ = encodeURIComponent(query.trim());
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${cleanQ}+Delhi&viewbox=76.84,28.88,77.35,28.40&bounded=1&limit=5`;
+
+  try {
+    const res = await fetch(url, {
+      signal,
+      headers: {
+        'User-Agent': 'NavMap-Delhi-Navigator/4.0 (educational-project)',
+      },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.map((item) => {
+      const parts = item.display_name.split(',').map((s) => s.trim());
+      const shortTitle = parts.slice(0, 2).join(', ');
+      return {
+        id: `geo_${item.place_id || Date.now()}`,
+        name: shortTitle,
+        shortName: parts[0] || 'Delhi Location',
+        fullName: item.display_name,
+        lat: Number(item.lat),
+        lng: Number(item.lon),
+        zone: 'Live Map Result',
+        isCampus: false,
+        isCustom: true,
+      };
+    });
+  } catch {
+    return [];
   }
 }

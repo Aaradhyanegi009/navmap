@@ -1,46 +1,33 @@
 /**
  * ============================================================================
- * NavMap v3.0 — Pan-New Delhi GIS & Dijkstra Shortest-Path Engine
- * Deliverables:
- *   - Project 14: Standalone REST API Backend & 34-Node New Delhi Graph Dataset
- *   - Project 15: NSUT Dwarka "Circle of Importance" Priority Hub, Hybrid
- *     Dijkstra + OSRM Street Hydration, Car vs. Walk Dual-Mode Comparison,
- *     and Chained Intermediate Waypoints ("Via" Stops)
+ * NavMap v4.0 — Unified Two-Tier GIS & Dijkstra Engine
+ * - Tier A: Internal NSUT Dwarka Campus (15 Landmarks & Walkways)
+ * - Tier B: Pan-New Delhi City Network (32 Hubs & Arterials)
  * ============================================================================
  */
 
-export const PRIORITY_HUB_CONFIG = {
-  id: "nsut_circle_of_importance",
-  name: "Circle of Importance · NSUT Dwarka Hub",
-  shortLabel: "NSUT Priority Hub",
-  center: [28.6091, 77.0370],
-  radiusMeters: 3500,
-  zoom: 14,
+export const NSUT_CAMPUS_CONFIG = {
+  id: "nsut_campus",
+  name: "NSUT Dwarka Campus",
+  shortLabel: "NSUT Campus",
+  center: [28.6105, 77.0378],
+  radiusMeters: 650,
+  zoom: 17,
 };
 
-export const DELHI_REGIONS = [
-  { id: "NSUT Hub", label: "⭐ NSUT Hub", center: [28.6091, 77.0370], zoom: 14 },
-  { id: "All", label: "All Delhi (34)", center: [28.6139, 77.1650], zoom: 11 },
-  { id: "Central", label: "Central", center: [28.6280, 77.2180], zoom: 13 },
-  { id: "South", label: "South", center: [28.5490, 77.2050], zoom: 13 },
-  { id: "West", label: "West", center: [28.6350, 77.0950], zoom: 12 },
-  { id: "North", label: "North", center: [28.6950, 77.1950], zoom: 12 },
-  { id: "East", label: "East", center: [28.6280, 77.2900], zoom: 13 },
-];
+export const DELHI_VIEW_CONFIG = {
+  center: [28.6139, 77.1650],
+  zoom: 11,
+};
 
-/**
- * Binary Min-Heap Priority Queue for O((V + E) log V) Dijkstra execution.
- */
 export class MinPriorityQueue {
   constructor() {
     this.heap = [];
   }
-
   enqueue(nodeId, priority, meta = {}) {
     this.heap.push({ nodeId, priority, ...meta });
     this._bubbleUp(this.heap.length - 1);
   }
-
   dequeue() {
     if (this.heap.length === 0) return null;
     if (this.heap.length === 1) return this.heap.pop();
@@ -49,15 +36,8 @@ export class MinPriorityQueue {
     this._sinkDown(0);
     return min;
   }
-
-  isEmpty() {
-    return this.heap.length === 0;
-  }
-
-  size() {
-    return this.heap.length;
-  }
-
+  isEmpty() { return this.heap.length === 0; }
+  size() { return this.heap.length; }
   toArray() {
     return [...this.heap]
       .sort((a, b) => a.priority - b.priority)
@@ -66,7 +46,6 @@ export class MinPriorityQueue {
         priority: Number(item.priority.toFixed(2)),
       }));
   }
-
   _bubbleUp(index) {
     while (index > 0) {
       const parentIdx = Math.floor((index - 1) / 2);
@@ -75,7 +54,6 @@ export class MinPriorityQueue {
       index = parentIdx;
     }
   }
-
   _sinkDown(index) {
     const length = this.heap.length;
     while (true) {
@@ -95,9 +73,6 @@ export class MinPriorityQueue {
   }
 }
 
-/**
- * Great-Circle Haversine distance in meters between two lat/lng coordinates.
- */
 export function haversineDistance(lat1, lng1, lat2, lng2) {
   const R = 6371000;
   const toRad = (deg) => (deg * Math.PI) / 180;
@@ -106,47 +81,260 @@ export function haversineDistance(lat1, lng1, lat2, lng2) {
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return Math.max(20, Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))));
+  return Math.max(15, Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))));
 }
 
-export const NEW_DELHI_GRAPH = {
-  "id": "delhi",
-  "version": "navmap_v3_graph",
-  "name": "Pan-New Delhi + NSUT Dwarka Hub",
-  "subtitle": "34 Major Delhi Intersections · 75 Snapped Road Corridors · NSUT Priority Circle",
+export const UNIFIED_GRAPH = {
+  "id": "delhi_nsut_v4",
+  "name": "Unified NSUT Campus & Pan-New Delhi Graph",
   "center": [
-    28.6139,
-    77.145
+    28.6105,
+    77.0378
   ],
-  "zoom": 12,
-  "priorityHub": {
+  "zoom": 14,
+  "campusConfig": {
     "center": [
-      28.6091,
-      77.037
+      28.6105,
+      77.0378
     ],
-    "radiusMeters": 3500,
-    "label": "Circle of Importance · NSUT Dwarka Hub"
+    "radiusMeters": 650,
+    "label": "NSUT Dwarka Campus"
   },
   "nodes": [
     {
-      "id": "nsut_main",
-      "name": "NSUT Main Gate (Dwarka Sec-3)",
+      "id": "nsut_main_gate",
+      "name": "NSUT Main Gate (Azad Hind Fauj Marg)",
       "shortName": "NSUT Main Gate",
       "lat": 28.6083,
-      "lng": 77.0355,
-      "region": "NSUT Hub",
-      "category": "Priority Hub",
-      "isPriorityHub": true
+      "lng": 77.0325,
+      "zone": "NSUT Campus",
+      "isCampus": true,
+      "aliases": [
+        "Main Gate",
+        "Southwest Gate",
+        "Gate 1",
+        "Azad Hind Fauj Marg"
+      ]
     },
     {
       "id": "nsut_admin",
-      "name": "NSUT Admin & Academic Block",
-      "shortName": "NSUT Admin Block",
+      "name": "Admin Block & Main Auditorium",
+      "shortName": "Admin Block",
+      "lat": 28.6096,
+      "lng": 77.0357,
+      "zone": "NSUT Campus",
+      "isCampus": true,
+      "aliases": [
+        "VC Office",
+        "SBI ATM",
+        "Main Audi",
+        "Administration",
+        "Auditorium"
+      ]
+    },
+    {
+      "id": "nsut_moksha",
+      "name": "Moksha Ground (Main Fest Lawn)",
+      "shortName": "Moksha Ground",
+      "lat": 28.6088,
+      "lng": 77.0368,
+      "zone": "NSUT Campus",
+      "isCampus": true,
+      "aliases": [
+        "Moksha Stage",
+        "Central Lawn",
+        "Fest Ground",
+        "Open Theatre"
+      ]
+    },
+    {
+      "id": "nsut_apj",
+      "name": "APJ Lecture Complex (APJ 1–11)",
+      "shortName": "APJ Complex",
+      "lat": 28.6105,
+      "lng": 77.0372,
+      "zone": "NSUT Campus",
+      "isCampus": true,
+      "aliases": [
+        "Lecture Theatres",
+        "Smart Block",
+        "APJ 1",
+        "APJ Hall",
+        "Classrooms"
+      ]
+    },
+    {
+      "id": "nsut_block4",
+      "name": "Block 4 (ECE, EE & Biotech Dept)",
+      "shortName": "Block 4 (ECE/EE)",
       "lat": 28.6102,
+      "lng": 77.0381,
+      "zone": "NSUT Campus",
+      "isCampus": true,
+      "aliases": [
+        "Electrical Engineering",
+        "ECE Block",
+        "Biotech Block",
+        "Block IV"
+      ]
+    },
+    {
+      "id": "nsut_connecting",
+      "name": "Connecting Block (Mini Audi & Room 110)",
+      "shortName": "Connecting Block",
+      "lat": 28.6106,
+      "lng": 77.0386,
+      "zone": "NSUT Campus",
+      "isCampus": true,
+      "aliases": [
+        "Mini Audi",
+        "Room 110",
+        "TRP Lab",
+        "Dean Office"
+      ]
+    },
+    {
+      "id": "nsut_block5",
+      "name": "Block 5 (COE & IT Dept)",
+      "shortName": "Block 5 (CS/IT)",
+      "lat": 28.611,
+      "lng": 77.0391,
+      "zone": "NSUT Campus",
+      "isCampus": true,
+      "aliases": [
+        "Computer Science",
+        "CS Block",
+        "IT Dept",
+        "Block V",
+        "CC Lab"
+      ]
+    },
+    {
+      "id": "nsut_block6",
+      "name": "Block 6 (ICE, MPAE & Workshop)",
+      "shortName": "Block 6 (ICE/Mech)",
+      "lat": 28.6098,
+      "lng": 77.039,
+      "zone": "NSUT Campus",
+      "isCampus": true,
+      "aliases": [
+        "Mechanical",
+        "ICE Block",
+        "Central Workshop",
+        "MPAE",
+        "Block VI"
+      ]
+    },
+    {
+      "id": "nsut_library",
+      "name": "Central Library Block",
+      "shortName": "Central Library",
+      "lat": 28.6116,
+      "lng": 77.0395,
+      "zone": "NSUT Campus",
+      "isCampus": true,
+      "aliases": [
+        "Library",
+        "Reading Hall",
+        "Digital Library",
+        "Reference Section"
+      ]
+    },
+    {
+      "id": "nsut_sc_amul",
+      "name": "Student Centre (Amul, Nescafe & JC Canteen)",
+      "shortName": "Student Centre (Amul)",
+      "lat": 28.6113,
+      "lng": 77.0376,
+      "zone": "NSUT Campus",
+      "isCampus": true,
+      "aliases": [
+        "Just Cafe",
+        "Amul Parlour",
+        "Canteen",
+        "Nescafe",
+        "SC Canteen"
+      ]
+    },
+    {
+      "id": "nsut_sac",
+      "name": "SAC (Student Activity Centre & Gym)",
+      "shortName": "SAC Gym & Hub",
+      "lat": 28.6122,
+      "lng": 77.0384,
+      "zone": "NSUT Campus",
+      "isCampus": true,
+      "aliases": [
+        "Gymnasium",
+        "Indoor Sports",
+        "Society Rooms",
+        "SAC Building"
+      ]
+    },
+    {
+      "id": "nsut_sports",
+      "name": "Sports Complex & Cricket/Football Ground",
+      "shortName": "Sports Complex",
+      "lat": 28.6125,
+      "lng": 77.0405,
+      "zone": "NSUT Campus",
+      "isCampus": true,
+      "aliases": [
+        "Cricket Ground",
+        "Football Ground",
+        "Running Track",
+        "Tennis Court",
+        "Basketball Court"
+      ]
+    },
+    {
+      "id": "nsut_bh",
+      "name": "Boys Hostels (BH 1–4 · Ramanujan / Bose)",
+      "shortName": "Boys Hostels (BH 1–4)",
+      "lat": 28.6135,
       "lng": 77.0378,
-      "region": "NSUT Hub",
-      "category": "Priority Hub",
-      "isPriorityHub": true
+      "zone": "NSUT Campus",
+      "isCampus": true,
+      "aliases": [
+        "BH1",
+        "BH2",
+        "BH3",
+        "BH4",
+        "Hostel Mess",
+        "Ramanujan Hostel",
+        "Bose Hostel"
+      ]
+    },
+    {
+      "id": "nsut_gh",
+      "name": "Girls Hostels (Alaknanda GH-1 & Kaveri GH-2)",
+      "shortName": "Girls Hostels (GH 1–2)",
+      "lat": 28.6082,
+      "lng": 77.0348,
+      "zone": "NSUT Campus",
+      "isCampus": true,
+      "aliases": [
+        "GH1",
+        "GH2",
+        "Alaknanda",
+        "Kaveri",
+        "Girls Hostel"
+      ]
+    },
+    {
+      "id": "nsut_north_gate",
+      "name": "NSUT North / Hostel Gate (Dwarka Mor Side)",
+      "shortName": "NSUT North Gate",
+      "lat": 28.6138,
+      "lng": 77.036,
+      "zone": "NSUT Campus",
+      "isCampus": true,
+      "aliases": [
+        "North Gate",
+        "Dwarka Mor Gate",
+        "Gate 2",
+        "Hostel Gate"
+      ]
     },
     {
       "id": "dwarka_mor",
@@ -156,7 +344,13 @@ export const NEW_DELHI_GRAPH = {
       "lng": 77.0332,
       "region": "NSUT Hub",
       "category": "Priority Hub",
-      "isPriorityHub": true
+      "isPriorityHub": true,
+      "isCampus": false,
+      "zone": "NSUT Hub Delhi",
+      "aliases": [
+        "Dwarka Mor Metro Junction",
+        "Dwarka Mor"
+      ]
     },
     {
       "id": "vegas_mall",
@@ -166,7 +360,13 @@ export const NEW_DELHI_GRAPH = {
       "lng": 77.0294,
       "region": "NSUT Hub",
       "category": "Priority Hub",
-      "isPriorityHub": true
+      "isPriorityHub": true,
+      "isCampus": false,
+      "zone": "NSUT Hub Delhi",
+      "aliases": [
+        "Vegas Mall (Dwarka Sec-14)",
+        "Vegas Mall"
+      ]
     },
     {
       "id": "dwarka_sec10",
@@ -176,7 +376,13 @@ export const NEW_DELHI_GRAPH = {
       "lng": 77.0592,
       "region": "NSUT Hub",
       "category": "Priority Hub",
-      "isPriorityHub": true
+      "isPriorityHub": true,
+      "isCampus": false,
+      "zone": "NSUT Hub Delhi",
+      "aliases": [
+        "Dwarka Sector 10 District Center",
+        "Dwarka Sec-10"
+      ]
     },
     {
       "id": "dwarka_sec21",
@@ -186,7 +392,13 @@ export const NEW_DELHI_GRAPH = {
       "lng": 77.0583,
       "region": "NSUT Hub",
       "category": "Priority Hub",
-      "isPriorityHub": true
+      "isPriorityHub": true,
+      "isCampus": false,
+      "zone": "NSUT Hub Delhi",
+      "aliases": [
+        "Dwarka Sector 21 Metro / IGI Link",
+        "Dwarka Sec-21"
+      ]
     },
     {
       "id": "dabri_more",
@@ -196,7 +408,13 @@ export const NEW_DELHI_GRAPH = {
       "lng": 77.0825,
       "region": "NSUT Hub",
       "category": "Priority Hub",
-      "isPriorityHub": true
+      "isPriorityHub": true,
+      "isCampus": false,
+      "zone": "NSUT Hub Delhi",
+      "aliases": [
+        "Dabri More / Pankha Road Flyover",
+        "Dabri More"
+      ]
     },
     {
       "id": "janakpuri_west",
@@ -205,7 +423,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.6289,
       "lng": 77.0777,
       "region": "West",
-      "category": "Transit"
+      "category": "Transit",
+      "isCampus": false,
+      "zone": "West Delhi",
+      "aliases": [
+        "Janakpuri West (District Center)",
+        "Janakpuri West"
+      ]
     },
     {
       "id": "uttam_nagar",
@@ -214,7 +438,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.6219,
       "lng": 77.0652,
       "region": "West",
-      "category": "Transit"
+      "category": "Transit",
+      "isCampus": false,
+      "zone": "West Delhi",
+      "aliases": [
+        "Uttam Nagar East Junction",
+        "Uttam Nagar"
+      ]
     },
     {
       "id": "rajouri_garden",
@@ -223,7 +453,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.6492,
       "lng": 77.1225,
       "region": "West",
-      "category": "Commercial"
+      "category": "Commercial",
+      "isCampus": false,
+      "zone": "West Delhi",
+      "aliases": [
+        "Rajouri Garden Ring Road",
+        "Rajouri Garden"
+      ]
     },
     {
       "id": "punjabi_bagh",
@@ -232,7 +468,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.669,
       "lng": 77.1332,
       "region": "West",
-      "category": "Arterial"
+      "category": "Arterial",
+      "isCampus": false,
+      "zone": "West Delhi",
+      "aliases": [
+        "Punjabi Bagh Chowk",
+        "Punjabi Bagh"
+      ]
     },
     {
       "id": "peeragarhi",
@@ -241,7 +483,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.6796,
       "lng": 77.0928,
       "region": "West",
-      "category": "Gateway"
+      "category": "Gateway",
+      "isCampus": false,
+      "zone": "West Delhi",
+      "aliases": [
+        "Peeragarhi Chowk (Rohtak Rd)",
+        "Peeragarhi"
+      ]
     },
     {
       "id": "igi_t3",
@@ -250,7 +498,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.5562,
       "lng": 77.1,
       "region": "West",
-      "category": "Airport"
+      "category": "Airport",
+      "isCampus": false,
+      "zone": "West Delhi",
+      "aliases": [
+        "IGI Airport Terminal 3",
+        "IGI Airport T3"
+      ]
     },
     {
       "id": "dhaula_kuan",
@@ -259,7 +513,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.5919,
       "lng": 77.1615,
       "region": "Central",
-      "category": "Arterial"
+      "category": "Arterial",
+      "isCampus": false,
+      "zone": "Central Delhi",
+      "aliases": [
+        "Dhaula Kuan Intersection (NH-48)",
+        "Dhaula Kuan"
+      ]
     },
     {
       "id": "karol_bagh",
@@ -268,7 +528,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.6441,
       "lng": 77.1885,
       "region": "Central",
-      "category": "Commercial"
+      "category": "Commercial",
+      "isCampus": false,
+      "zone": "Central Delhi",
+      "aliases": [
+        "Karol Bagh (Pusa Road)",
+        "Karol Bagh"
+      ]
     },
     {
       "id": "connaught_place",
@@ -277,7 +543,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.6328,
       "lng": 77.2197,
       "region": "Central",
-      "category": "Landmark"
+      "category": "Landmark",
+      "isCampus": false,
+      "zone": "Central Delhi",
+      "aliases": [
+        "Connaught Place (Rajiv Chowk)",
+        "Connaught Place"
+      ]
     },
     {
       "id": "india_gate",
@@ -286,7 +558,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.6129,
       "lng": 77.2295,
       "region": "Central",
-      "category": "Landmark"
+      "category": "Landmark",
+      "isCampus": false,
+      "zone": "Central Delhi",
+      "aliases": [
+        "India Gate Hexagon (Kartavya Path)",
+        "India Gate"
+      ]
     },
     {
       "id": "ndls",
@@ -295,7 +573,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.6425,
       "lng": 77.222,
       "region": "Central",
-      "category": "Transit"
+      "category": "Transit",
+      "isCampus": false,
+      "zone": "Central Delhi",
+      "aliases": [
+        "New Delhi Railway Station",
+        "New Delhi Stn"
+      ]
     },
     {
       "id": "ito_junction",
@@ -304,7 +588,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.6285,
       "lng": 77.2415,
       "region": "Central",
-      "category": "Arterial"
+      "category": "Arterial",
+      "isCampus": false,
+      "zone": "Central Delhi",
+      "aliases": [
+        "ITO Crossing",
+        "ITO Junction"
+      ]
     },
     {
       "id": "aiims_chowk",
@@ -313,7 +603,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.5672,
       "lng": 77.21,
       "region": "South",
-      "category": "Medical"
+      "category": "Medical",
+      "isCampus": false,
+      "zone": "South Delhi",
+      "aliases": [
+        "AIIMS / Safdarjung Ring Road",
+        "AIIMS Chowk"
+      ]
     },
     {
       "id": "iit_hauz_khas",
@@ -322,7 +618,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.5457,
       "lng": 77.1928,
       "region": "South",
-      "category": "Academic"
+      "category": "Academic",
+      "isCampus": false,
+      "zone": "South Delhi",
+      "aliases": [
+        "IIT Delhi / Hauz Khas",
+        "IIT Delhi"
+      ]
     },
     {
       "id": "vasant_kunj",
@@ -331,7 +633,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.5402,
       "lng": 77.1535,
       "region": "South",
-      "category": "Commercial"
+      "category": "Commercial",
+      "isCampus": false,
+      "zone": "South Delhi",
+      "aliases": [
+        "Vasant Kunj (Nelson Mandela Marg)",
+        "Vasant Kunj"
+      ]
     },
     {
       "id": "qutub_minar",
@@ -340,7 +648,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.5245,
       "lng": 77.1855,
       "region": "South",
-      "category": "Landmark"
+      "category": "Landmark",
+      "isCampus": false,
+      "zone": "South Delhi",
+      "aliases": [
+        "Qutub Minar (Mehrauli)",
+        "Qutub Minar"
+      ]
     },
     {
       "id": "saket_citywalk",
@@ -349,7 +663,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.5286,
       "lng": 77.2194,
       "region": "South",
-      "category": "Commercial"
+      "category": "Commercial",
+      "isCampus": false,
+      "zone": "South Delhi",
+      "aliases": [
+        "Saket (Press Enclave Road)",
+        "Saket Hub"
+      ]
     },
     {
       "id": "nehru_place",
@@ -358,7 +678,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.5494,
       "lng": 77.2519,
       "region": "South",
-      "category": "Commercial"
+      "category": "Commercial",
+      "isCampus": false,
+      "zone": "South Delhi",
+      "aliases": [
+        "Nehru Place Outer Ring Road",
+        "Nehru Place"
+      ]
     },
     {
       "id": "lajpat_nagar",
@@ -367,7 +693,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.5677,
       "lng": 77.2356,
       "region": "South",
-      "category": "Commercial"
+      "category": "Commercial",
+      "isCampus": false,
+      "zone": "South Delhi",
+      "aliases": [
+        "Lajpat Nagar (Moolchand Flyover)",
+        "Lajpat Nagar"
+      ]
     },
     {
       "id": "nsp_pitampura",
@@ -376,7 +708,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.6961,
       "lng": 77.1526,
       "region": "North",
-      "category": "Commercial"
+      "category": "Commercial",
+      "isCampus": false,
+      "zone": "North Delhi",
+      "aliases": [
+        "Netaji Subhash Place (NSP)",
+        "NSP Pitampura"
+      ]
     },
     {
       "id": "rohini_sec18",
@@ -385,7 +723,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.7383,
       "lng": 77.1398,
       "region": "North",
-      "category": "Residential"
+      "category": "Residential",
+      "isCampus": false,
+      "zone": "North Delhi",
+      "aliases": [
+        "Rohini Sector 18",
+        "Rohini Sec-18"
+      ]
     },
     {
       "id": "du_north_campus",
@@ -394,7 +738,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.688,
       "lng": 77.21,
       "region": "North",
-      "category": "Academic"
+      "category": "Academic",
+      "isCampus": false,
+      "zone": "North Delhi",
+      "aliases": [
+        "Delhi University (North Campus)",
+        "DU North Campus"
+      ]
     },
     {
       "id": "kashmere_gate",
@@ -403,7 +753,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.6675,
       "lng": 77.2282,
       "region": "North",
-      "category": "Transit"
+      "category": "Transit",
+      "isCampus": false,
+      "zone": "North Delhi",
+      "aliases": [
+        "Kashmere Gate ISBT",
+        "Kashmere Gate"
+      ]
     },
     {
       "id": "red_fort",
@@ -412,7 +768,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.6562,
       "lng": 77.241,
       "region": "North",
-      "category": "Landmark"
+      "category": "Landmark",
+      "isCampus": false,
+      "zone": "North Delhi",
+      "aliases": [
+        "Red Fort / Chandni Chowk",
+        "Red Fort"
+      ]
     },
     {
       "id": "akshardham",
@@ -421,7 +783,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.6127,
       "lng": 77.2773,
       "region": "East",
-      "category": "Landmark"
+      "category": "Landmark",
+      "isCampus": false,
+      "zone": "East Delhi",
+      "aliases": [
+        "Akshardham Setu (NH-9)",
+        "Akshardham"
+      ]
     },
     {
       "id": "laxmi_nagar",
@@ -430,7 +798,13 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.6304,
       "lng": 77.2777,
       "region": "East",
-      "category": "Commercial"
+      "category": "Commercial",
+      "isCampus": false,
+      "zone": "East Delhi",
+      "aliases": [
+        "Laxmi Nagar (Vikas Marg)",
+        "Laxmi Nagar"
+      ]
     },
     {
       "id": "anand_vihar",
@@ -439,14 +813,545 @@ export const NEW_DELHI_GRAPH = {
       "lat": 28.6469,
       "lng": 77.316,
       "region": "East",
-      "category": "Transit"
+      "category": "Transit",
+      "isCampus": false,
+      "zone": "East Delhi",
+      "aliases": [
+        "Anand Vihar ISBT",
+        "Anand Vihar"
+      ]
     }
   ],
   "edges": [
     {
-      "id": "E1",
-      "from": "nsut_main",
+      "id": "CE1",
+      "from": "nsut_main_gate",
       "to": "nsut_admin",
+      "roadName": "NSUT Main Boulevard",
+      "distance": 345,
+      "speedKmh": 25,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6083,
+          77.0325
+        ],
+        [
+          28.6089,
+          77.0342
+        ],
+        [
+          28.6096,
+          77.0357
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE2",
+      "from": "nsut_admin",
+      "to": "nsut_moksha",
+      "roadName": "Admin–Moksha Open Walkway",
+      "distance": 135,
+      "speedKmh": 5,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": true,
+      "waypoints": [
+        [
+          28.6096,
+          77.0357
+        ],
+        [
+          28.6092,
+          77.0362
+        ],
+        [
+          28.6088,
+          77.0368
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE3",
+      "from": "nsut_admin",
+      "to": "nsut_apj",
+      "roadName": "Central Academic Spine",
+      "distance": 180,
+      "speedKmh": 20,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6096,
+          77.0357
+        ],
+        [
+          28.6101,
+          77.0365
+        ],
+        [
+          28.6105,
+          77.0372
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE4",
+      "from": "nsut_moksha",
+      "to": "nsut_apj",
+      "roadName": "Moksha Lawn Cut-Through",
+      "distance": 155,
+      "speedKmh": 5,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": true,
+      "waypoints": [
+        [
+          28.6088,
+          77.0368
+        ],
+        [
+          28.6098,
+          77.037
+        ],
+        [
+          28.6105,
+          77.0372
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE5",
+      "from": "nsut_moksha",
+      "to": "nsut_block4",
+      "roadName": "Fest Lawn to ECE Shortcut",
+      "distance": 195,
+      "speedKmh": 5,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": true,
+      "waypoints": [
+        [
+          28.6088,
+          77.0368
+        ],
+        [
+          28.6095,
+          77.0375
+        ],
+        [
+          28.6102,
+          77.0381
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE6",
+      "from": "nsut_apj",
+      "to": "nsut_block4",
+      "roadName": "APJ–ECE Departmental Corridor",
+      "distance": 98,
+      "speedKmh": 20,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6105,
+          77.0372
+        ],
+        [
+          28.6103,
+          77.0377
+        ],
+        [
+          28.6102,
+          77.0381
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE7",
+      "from": "nsut_block4",
+      "to": "nsut_connecting",
+      "roadName": "Block 4 to Connecting Block Arcade",
+      "distance": 72,
+      "speedKmh": 20,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6102,
+          77.0381
+        ],
+        [
+          28.6104,
+          77.0384
+        ],
+        [
+          28.6106,
+          77.0386
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE8",
+      "from": "nsut_connecting",
+      "to": "nsut_block5",
+      "roadName": "Connecting to CS/IT Block Corridor",
+      "distance": 68,
+      "speedKmh": 20,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6106,
+          77.0386
+        ],
+        [
+          28.6108,
+          77.0388
+        ],
+        [
+          28.611,
+          77.0391
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE9",
+      "from": "nsut_block5",
+      "to": "nsut_library",
+      "roadName": "CS Block–Library Approach",
+      "distance": 88,
+      "speedKmh": 20,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.611,
+          77.0391
+        ],
+        [
+          28.6113,
+          77.0393
+        ],
+        [
+          28.6116,
+          77.0395
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE10",
+      "from": "nsut_block4",
+      "to": "nsut_block6",
+      "roadName": "ECE–Workshop South Lane",
+      "distance": 110,
+      "speedKmh": 20,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6102,
+          77.0381
+        ],
+        [
+          28.61,
+          77.0386
+        ],
+        [
+          28.6098,
+          77.039
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE11",
+      "from": "nsut_admin",
+      "to": "nsut_gh",
+      "roadName": "Girls Hostel West Avenue",
+      "distance": 175,
+      "speedKmh": 20,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6096,
+          77.0357
+        ],
+        [
+          28.6088,
+          77.0352
+        ],
+        [
+          28.6082,
+          77.0348
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE12",
+      "from": "nsut_main_gate",
+      "to": "nsut_gh",
+      "roadName": "South Gate Promenade",
+      "distance": 235,
+      "speedKmh": 20,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6083,
+          77.0325
+        ],
+        [
+          28.6082,
+          77.0337
+        ],
+        [
+          28.6082,
+          77.0348
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE13",
+      "from": "nsut_apj",
+      "to": "nsut_sc_amul",
+      "roadName": "Central Plaza Walkway",
+      "distance": 115,
+      "speedKmh": 5,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": true,
+      "waypoints": [
+        [
+          28.6105,
+          77.0372
+        ],
+        [
+          28.6109,
+          77.0374
+        ],
+        [
+          28.6113,
+          77.0376
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE14",
+      "from": "nsut_sc_amul",
+      "to": "nsut_library",
+      "roadName": "Student Centre–Library Spine",
+      "distance": 195,
+      "speedKmh": 20,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6113,
+          77.0376
+        ],
+        [
+          28.6114,
+          77.0385
+        ],
+        [
+          28.6116,
+          77.0395
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE15",
+      "from": "nsut_sc_amul",
+      "to": "nsut_sac",
+      "roadName": "Student Hub to SAC Pathway",
+      "distance": 125,
+      "speedKmh": 20,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6113,
+          77.0376
+        ],
+        [
+          28.6118,
+          77.038
+        ],
+        [
+          28.6122,
+          77.0384
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE16",
+      "from": "nsut_sac",
+      "to": "nsut_bh",
+      "roadName": "SAC to Boys Hostel Avenue",
+      "distance": 165,
+      "speedKmh": 20,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6122,
+          77.0384
+        ],
+        [
+          28.6129,
+          77.0381
+        ],
+        [
+          28.6135,
+          77.0378
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE17",
+      "from": "nsut_library",
+      "to": "nsut_sports",
+      "roadName": "Library to Sports Complex Link",
+      "distance": 145,
+      "speedKmh": 20,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6116,
+          77.0395
+        ],
+        [
+          28.612,
+          77.04
+        ],
+        [
+          28.6125,
+          77.0405
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE18",
+      "from": "nsut_sac",
+      "to": "nsut_sports",
+      "roadName": "SAC to Sports Complex Crossway",
+      "distance": 215,
+      "speedKmh": 20,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6122,
+          77.0384
+        ],
+        [
+          28.6124,
+          77.0395
+        ],
+        [
+          28.6125,
+          77.0405
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE19",
+      "from": "nsut_bh",
+      "to": "nsut_north_gate",
+      "roadName": "Hostel to North Gate Road",
+      "distance": 185,
+      "speedKmh": 25,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6135,
+          77.0378
+        ],
+        [
+          28.6137,
+          77.0369
+        ],
+        [
+          28.6138,
+          77.036
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE20",
+      "from": "nsut_sc_amul",
+      "to": "nsut_north_gate",
+      "roadName": "North Campus Internal Loop",
+      "distance": 315,
+      "speedKmh": 25,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6113,
+          77.0376
+        ],
+        [
+          28.6126,
+          77.0368
+        ],
+        [
+          28.6138,
+          77.036
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE21",
+      "from": "nsut_north_gate",
+      "to": "dwarka_mor",
+      "roadName": "Old Palam & Dwarka Mor Link Rd",
+      "distance": 680,
+      "speedKmh": 40,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6138,
+          77.036
+        ],
+        [
+          28.6165,
+          77.0345
+        ],
+        [
+          28.6193,
+          77.0332
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "E1",
+      "from": "nsut_main_gate",
+      "to": "nsut_main_gate",
       "roadName": "NSUT Main Campus Boulevard",
       "speedKmh": 35,
       "trafficMultiplier": 1,
@@ -570,8 +1475,8 @@ export const NEW_DELHI_GRAPH = {
     },
     {
       "id": "E2",
-      "from": "nsut_main",
-      "to": "nsut_admin",
+      "from": "nsut_main_gate",
+      "to": "nsut_main_gate",
       "roadName": "NSUT Academic Lawn Walkway (Shortcut)",
       "speedKmh": 5,
       "trafficMultiplier": 1,
@@ -695,7 +1600,7 @@ export const NEW_DELHI_GRAPH = {
     },
     {
       "id": "E3",
-      "from": "nsut_main",
+      "from": "nsut_main_gate",
       "to": "dwarka_mor",
       "roadName": "Azad Hind Fauj Marg North",
       "speedKmh": 40,
@@ -820,7 +1725,7 @@ export const NEW_DELHI_GRAPH = {
     },
     {
       "id": "E4",
-      "from": "nsut_admin",
+      "from": "nsut_main_gate",
       "to": "dwarka_mor",
       "roadName": "Old Palam & Shivaji Marg Link",
       "speedKmh": 40,
@@ -945,7 +1850,7 @@ export const NEW_DELHI_GRAPH = {
     },
     {
       "id": "E5",
-      "from": "nsut_main",
+      "from": "nsut_main_gate",
       "to": "vegas_mall",
       "roadName": "Azad Hind Fauj Marg South (Sec-14)",
       "speedKmh": 40,
@@ -1070,7 +1975,7 @@ export const NEW_DELHI_GRAPH = {
     },
     {
       "id": "E6",
-      "from": "nsut_main",
+      "from": "nsut_main_gate",
       "to": "vegas_mall",
       "roadName": "NSUT Hostel–Vegas Footpath (Shortcut)",
       "speedKmh": 5,
@@ -1320,7 +2225,7 @@ export const NEW_DELHI_GRAPH = {
     },
     {
       "id": "E8",
-      "from": "nsut_main",
+      "from": "nsut_main_gate",
       "to": "dwarka_sec10",
       "roadName": "Dwarka Sector 3–10 Central Ave",
       "speedKmh": 45,
@@ -1695,7 +2600,7 @@ export const NEW_DELHI_GRAPH = {
     },
     {
       "id": "E11",
-      "from": "nsut_main",
+      "from": "nsut_main_gate",
       "to": "dabri_more",
       "roadName": "Dabri–Dwarka Sector 3 Road",
       "speedKmh": 40,
@@ -1820,7 +2725,7 @@ export const NEW_DELHI_GRAPH = {
     },
     {
       "id": "E12",
-      "from": "nsut_admin",
+      "from": "nsut_main_gate",
       "to": "dabri_more",
       "roadName": "Madhu Vihar–Dabri Pedestrian Greenway",
       "speedKmh": 5,
@@ -9817,22 +10722,103 @@ export const NEW_DELHI_GRAPH = {
       ],
       "distance": 8063,
       "bidirectional": true
+    },
+    {
+      "id": "CE22",
+      "from": "nsut_main_gate",
+      "to": "nsut_moksha",
+      "roadName": "Moksha Ground South Access Rd",
+      "distance": 380,
+      "speedKmh": 20,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6083,
+          77.0325
+        ],
+        [
+          28.6085,
+          77.0345
+        ],
+        [
+          28.6088,
+          77.0368
+        ]
+      ],
+      "bidirectional": true
+    },
+    {
+      "id": "CE23",
+      "from": "nsut_admin",
+      "to": "nsut_moksha",
+      "roadName": "Admin–Moksha Perimeter Road",
+      "distance": 190,
+      "speedKmh": 20,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6096,
+          77.0357
+        ],
+        [
+          28.609,
+          77.036
+        ],
+        [
+          28.6088,
+          77.0368
+        ]
+      ],
+      "bidirectional": true
     }
   ]
 };
 
-export const GRAPH_PRESETS = {
-  delhi: NEW_DELHI_GRAPH,
-};
-
-export const DEFAULT_GRAPH = NEW_DELHI_GRAPH;
+export const DEFAULT_GRAPH = UNIFIED_GRAPH;
 
 /**
- * Evaluate edge travel duration (in minutes) and Dijkstra weight for "car" vs "walk".
+ * Inject a custom geocoded location (e.g. from Nominatim) dynamically into the graph.
  */
+export function injectCustomNode(graph, customNode) {
+  if (!customNode || !customNode.id || !customNode.lat || !customNode.lng) return graph;
+  if (graph.nodes.some(n => n.id === customNode.id)) return graph;
+
+  const nearest = graph.nodes
+    .map(n => ({
+      node: n,
+      dist: haversineDistance(customNode.lat, customNode.lng, n.lat, n.lng)
+    }))
+    .sort((a, b) => a.dist - b.dist)
+    .slice(0, 2);
+
+  const newEdges = nearest.map((cand, idx) => ({
+    id: `custom_edge_${customNode.id}_${cand.node.id}_${idx}`,
+    from: customNode.id,
+    to: cand.node.id,
+    roadName: `Road to ${cand.node.shortName}`,
+    distance: cand.dist,
+    speedKmh: 35,
+    trafficMultiplier: 1.0,
+    pedestrianOnly: false,
+    bidirectional: true,
+    waypoints: [
+      [customNode.lat, customNode.lng],
+      [cand.node.lat, cand.node.lng]
+    ]
+  }));
+
+  return {
+    ...graph,
+    nodes: [...graph.nodes, customNode],
+    edges: [...graph.edges, ...newEdges]
+  };
+}
+
 export function evaluateEdgeForMode(edge, mode = "car") {
   const normalizedMode = mode === "walk" ? "walk" : "car";
-  const distMeters = Number(edge.distance) || 200;
+  const distMeters = Number(edge.distance) || 150;
 
   if (normalizedMode === "car" && edge.pedestrianOnly) {
     return {
@@ -9844,8 +10830,7 @@ export function evaluateEdgeForMode(edge, mode = "car") {
   }
 
   if (normalizedMode === "walk") {
-    // 5.0 km/h = 83.3333 m/min (1.39 m/s), ignoring road traffic congestion
-    const durationMin = distMeters / 83.3333;
+    const durationMin = distMeters / 83.3333; // 5.0 km/h walking speed
     return {
       allowed: true,
       weight: durationMin,
@@ -9854,7 +10839,7 @@ export function evaluateEdgeForMode(edge, mode = "car") {
     };
   }
 
-  const speedKmh = Number(edge.speedKmh) || 42;
+  const speedKmh = Number(edge.speedKmh) || 35;
   const traffic = Number(edge.trafficMultiplier) || 1.0;
   const metersPerMin = (speedKmh * 1000) / 60;
   const durationMin = (distMeters / metersPerMin) * traffic;
@@ -9867,9 +10852,6 @@ export function evaluateEdgeForMode(edge, mode = "car") {
   };
 }
 
-/**
- * Build mode-aware adjacency list from graph dataset.
- */
 export function buildAdjacencyList(graph, mode = "car") {
   const adjacency = {};
   const nodesMap = {};
@@ -9905,7 +10887,7 @@ export function buildAdjacencyList(graph, mode = "car") {
       durationMin: evalResult.durationMin,
       weight: evalResult.weight,
       trafficMultiplier: Number(edge.trafficMultiplier || 1.0),
-      speedKmh: Number(edge.speedKmh || 40),
+      speedKmh: Number(edge.speedKmh || 35),
       pedestrianOnly: Boolean(edge.pedestrianOnly),
       waypoints: forwardWaypoints,
     });
@@ -9919,7 +10901,7 @@ export function buildAdjacencyList(graph, mode = "car") {
         durationMin: evalResult.durationMin,
         weight: evalResult.weight,
         trafficMultiplier: Number(edge.trafficMultiplier || 1.0),
-        speedKmh: Number(edge.speedKmh || 40),
+        speedKmh: Number(edge.speedKmh || 35),
         pedestrianOnly: Boolean(edge.pedestrianOnly),
         waypoints: reverseWaypoints,
       });
@@ -9929,9 +10911,6 @@ export function buildAdjacencyList(graph, mode = "car") {
   return { adjacency, nodesMap };
 }
 
-/**
- * Execute Dijkstra on a single consecutive leg (segStart -> segEnd).
- */
 function runSegmentDijkstra(adjacency, nodesMap, segStart, segEnd, legIndex = 1) {
   const distances = {};
   const metersMap = {};
@@ -10073,9 +11052,6 @@ function runSegmentDijkstra(adjacency, nodesMap, segStart, segEnd, legIndex = 1)
   };
 }
 
-/**
- * Generate turn-by-turn street instructions from path edges.
- */
 function buildFallbackTurnByTurnSteps(pathEdges, nodesMap, mode = "car") {
   if (!pathEdges || pathEdges.length === 0) return [];
   const verb = mode === "walk" ? "Walk along" : "Continue onto";
@@ -10083,7 +11059,7 @@ function buildFallbackTurnByTurnSteps(pathEdges, nodesMap, mode = "car") {
     const targetNode = nodesMap[edge.to];
     const maneuver =
       idx === 0
-        ? `Depart via ${edge.roadName} toward ${targetNode?.shortName || edge.to}`
+        ? `Depart on ${edge.roadName} toward ${targetNode?.shortName || edge.to}`
         : idx === pathEdges.length - 1
         ? `${verb} ${edge.roadName} to reach ${targetNode?.shortName || edge.to}`
         : `${verb} ${edge.roadName} (${targetNode?.shortName || edge.to})`;
@@ -10100,9 +11076,6 @@ function buildFallbackTurnByTurnSteps(pathEdges, nodesMap, mode = "car") {
   });
 }
 
-/**
- * Execute Chained / Segmented Dijkstra across [sourceId, ...viaNodeIds, targetId].
- */
 export function runChainedDijkstraForMode({
   graph = DEFAULT_GRAPH,
   sourceId,
@@ -10195,9 +11168,8 @@ export function runChainedDijkstraForMode({
       shortName: node.shortName || node.name,
       lat: node.lat,
       lng: node.lng,
-      region: node.region || "Delhi",
-      category: node.category,
-      isPriorityHub: Boolean(node.isPriorityHub),
+      zone: node.zone || "Delhi",
+      isCampus: Boolean(node.isCampus),
       stepIndex: idx,
       isOrigin: idx === 0,
       isDestination: idx === allNodeIds.length - 1,
@@ -10250,9 +11222,6 @@ export function runChainedDijkstraForMode({
   };
 }
 
-/**
- * Hydrate the winning Dijkstra node sequence with full high-resolution OSRM street geometry.
- */
 export async function hydrateWithOSRM(modeResult) {
   if (!modeResult || !modeResult.reachable || modeResult.shortestPath.length < 2) {
     return modeResult;
@@ -10305,10 +11274,6 @@ export async function hydrateWithOSRM(modeResult) {
   return modeResult;
 }
 
-/**
- * Primary Async Entrypoint: Computes BOTH "car" and "walk" Dijkstra routes
- * across the 34-Node Pan-New Delhi network and snaps road geometry via OSRM.
- */
 export async function executeDijkstraAsync({
   graph = DEFAULT_GRAPH,
   sourceId,
@@ -10382,7 +11347,7 @@ export async function executeDijkstraAsync({
 
   return {
     status: "ok",
-    engine: "Dijkstra Min-Heap + OSRM Street Geometry v3.0",
+    engine: "Dijkstra Min-Heap + OSRM Street Geometry v4.0",
     mode: normalizedMode,
     sourceId,
     targetId,
@@ -10407,8 +11372,8 @@ export async function executeDijkstraAsync({
           shortName: n.shortName,
           lat: n.lat,
           lng: n.lng,
-          region: n.region,
-          isPriorityHub: n.isPriorityHub,
+          zone: n.zone,
+          isCampus: n.isCampus,
         })),
         roadGeometry: carResult.roadGeometry,
         roadGeometryGeoJSON: carResult.roadGeometryGeoJSON,
@@ -10425,8 +11390,8 @@ export async function executeDijkstraAsync({
           shortName: n.shortName,
           lat: n.lat,
           lng: n.lng,
-          region: n.region,
-          isPriorityHub: n.isPriorityHub,
+          zone: n.zone,
+          isCampus: n.isCampus,
         })),
         roadGeometry: walkResult.roadGeometry,
         roadGeometryGeoJSON: walkResult.roadGeometryGeoJSON,
@@ -10444,88 +11409,6 @@ export async function executeDijkstraAsync({
     distancesMap: primary.distancesMap,
     predecessors: primary.predecessors,
     executionTimeMs: dijkstraComputeMs,
-    timestamp: new Date().toISOString(),
-  };
-}
-
-export function executeDijkstra(params) {
-  const activeGraph =
-    params?.graph && params.graph.nodes ? params.graph : DEFAULT_GRAPH;
-  const normalizedMode = params?.mode === "walk" ? "walk" : "car";
-  const cleanViaNodeIds = Array.isArray(params?.viaNodeIds)
-    ? params.viaNodeIds
-    : [];
-
-  const carResult = runChainedDijkstraForMode({
-    graph: activeGraph,
-    sourceId: params.sourceId,
-    targetId: params.targetId,
-    viaNodeIds: cleanViaNodeIds,
-    mode: "car",
-  });
-
-  const walkResult = runChainedDijkstraForMode({
-    graph: activeGraph,
-    sourceId: params.sourceId,
-    targetId: params.targetId,
-    viaNodeIds: cleanViaNodeIds,
-    mode: "walk",
-  });
-
-  const primary = normalizedMode === "walk" ? walkResult : carResult;
-  const timeSavedByCarMin = Math.max(
-    1,
-    (walkResult.estimatedTime || 0) - (carResult.estimatedTime || 0)
-  );
-
-  return {
-    status: primary.reachable ? "ok" : "unreachable",
-    engine: "Dijkstra Min-Heap + Street Geometry v3.0",
-    mode: normalizedMode,
-    sourceId: params.sourceId,
-    targetId: params.targetId,
-    viaNodeIds: cleanViaNodeIds,
-    shortestPath: primary.shortestPath || [],
-    pathEdges: primary.pathEdges || [],
-    roadGeometry: primary.roadGeometry || [],
-    roadGeometryGeoJSON: primary.roadGeometryGeoJSON || null,
-    segments: primary.segments || [],
-    turnByTurnSteps: primary.turnByTurnSteps || [],
-    totalDistance: primary.totalDistance || 0,
-    totalDistanceKm: primary.totalDistanceKm || 0,
-    estimatedTime: primary.estimatedTime || 0,
-    comparison: {
-      car: {
-        distanceMeters: carResult.totalDistance,
-        distanceKm: carResult.totalDistanceKm,
-        durationMin: carResult.estimatedTime,
-        path: carResult.shortestPath,
-        roadGeometry: carResult.roadGeometry,
-        roadGeometryGeoJSON: carResult.roadGeometryGeoJSON,
-        segments: carResult.segments,
-        turnByTurnSteps: carResult.turnByTurnSteps,
-      },
-      walk: {
-        distanceMeters: walkResult.totalDistance,
-        distanceKm: walkResult.totalDistanceKm,
-        durationMin: walkResult.estimatedTime,
-        path: walkResult.shortestPath,
-        roadGeometry: walkResult.roadGeometry,
-        roadGeometryGeoJSON: walkResult.roadGeometryGeoJSON,
-        segments: walkResult.segments,
-        turnByTurnSteps: walkResult.turnByTurnSteps,
-      },
-      timeSavedByCarMin,
-      walkShorterDistanceMeters: Math.max(
-        0,
-        (carResult.totalDistance || 0) - (walkResult.totalDistance || 0)
-      ),
-    },
-    visitedOrder: primary.visitedOrder || [],
-    visitedEdges: primary.visitedEdges || [],
-    distancesMap: primary.distancesMap || {},
-    predecessors: primary.predecessors || {},
-    executionTimeMs: 0.31,
     timestamp: new Date().toISOString(),
   };
 }

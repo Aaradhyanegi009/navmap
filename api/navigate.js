@@ -5,10 +5,7 @@ import {
 
 /**
  * Vercel Serverless Function: POST /api/navigate
- * Deliverables:
- *   - Project 14: Standalone Backend REST API for Dijkstra Shortest-Path Routing
- *   - Project 15: Pan-New Delhi + NSUT Dwarka Priority Hub, Chained "Via" Stops,
- *     Car vs. Walk Dual-Mode Comparison, and Real OSRM Street Snapping
+ * Executes Chained Dijkstra on the two-tier graph and snaps path to OSRM street geometry.
  */
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -24,7 +21,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const viaRaw = req.query?.viaNodeIds || '';
     payload = {
-      sourceId: req.query?.sourceId || 'nsut_main',
+      sourceId: req.query?.sourceId || 'nsut_main_gate',
       targetId: req.query?.targetId || 'connaught_place',
       viaNodeIds: viaRaw ? viaRaw.split(',').filter(Boolean) : [],
       mode: req.query?.mode || 'car',
@@ -51,21 +48,12 @@ export default async function handler(req, res) {
     return res.status(400).json({
       status: 'error',
       message: 'Both "sourceId" and "targetId" are required.',
-      examplePayload: {
-        sourceId: 'nsut_main',
-        targetId: 'connaught_place',
-        viaNodeIds: ['dhaula_kuan'],
-        mode: 'car',
-      },
     });
   }
 
   try {
     const startHr = process.hrtime.bigint();
-    const baseGraph =
-      customGraph && customGraph.version === 'navmap_v3_graph'
-        ? customGraph
-        : DEFAULT_GRAPH;
+    const baseGraph = customGraph && customGraph.nodes ? customGraph : DEFAULT_GRAPH;
 
     const result = await executeDijkstraAsync({
       graph: baseGraph,
@@ -80,8 +68,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       ...result,
-      version: 'navmap_v3_graph',
-      deliverable: 'Experiments 14 & 15 — Pan-Delhi Hybrid Dijkstra + OSRM API',
+      version: 'navmap_v4_graph',
       serverExecutionTimeMs: Number(elapsedMs.toFixed(2)),
       serverHandled: true,
     });

@@ -1,13 +1,8 @@
-import {
-  DEFAULT_GRAPH,
-  DELHI_REGIONS,
-  PRIORITY_HUB_CONFIG,
-} from '../src/lib/dijkstra.js';
+import { DEFAULT_GRAPH, NSUT_CAMPUS_CONFIG } from '../src/lib/dijkstra.js';
 
 /**
  * Vercel Serverless Function: GET /api/graph
- * Project 14 Deliverable: Returns the 34-Node Pan-New Delhi Road Network
- * with NSUT Dwarka designated as the "Circle of Importance" Priority Hub.
+ * Returns the unified two-tier graph (Internal NSUT Campus + Pan-New Delhi).
  */
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -31,11 +26,8 @@ export default async function handler(req, res) {
 
   return res.status(200).json({
     status: 'ok',
-    version: 'navmap_v3_graph',
-    deliverable: 'Experiment 14 — Pan-New Delhi + NSUT Priority Hub Graph API',
-    engine: 'Dijkstra Engine · v3.0 (OSRM Street Geometry)',
-    priorityHub: PRIORITY_HUB_CONFIG,
-    regions: DELHI_REGIONS,
+    version: 'navmap_v4_graph',
+    campusConfig: NSUT_CAMPUS_CONFIG,
     graph: DEFAULT_GRAPH,
     executionTimeMs: Number(Math.max(0.12, elapsedMs).toFixed(2)),
     timestamp: new Date().toISOString(),
