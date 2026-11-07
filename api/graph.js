@@ -1,15 +1,19 @@
-import { DEFAULT_GRAPH, GRAPH_PRESETS } from '../src/lib/dijkstra.js';
+import {
+  DEFAULT_GRAPH,
+  DELHI_REGIONS,
+  PRIORITY_HUB_CONFIG,
+} from '../src/lib/dijkstra.js';
 
 /**
  * Vercel Serverless Function: GET /api/graph
- * Project 14 Deliverable: Returns road-snapped topological graph dataset
- * including intersection coordinates, categories, pedestrianOnly flags,
- * traffic multipliers, and multi-point street curve waypoints.
+ * Project 14 Deliverable: Returns the 34-Node Pan-New Delhi Road Network
+ * with NSUT Dwarka designated as the "Circle of Importance" Priority Hub.
  */
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -23,28 +27,16 @@ export default async function handler(req, res) {
   }
 
   const startHr = process.hrtime.bigint();
-  const presetKey = (req.query?.preset || 'nsut').toLowerCase();
-  const selectedGraph = GRAPH_PRESETS[presetKey] || DEFAULT_GRAPH;
-
-  const presetsMeta = Object.values(GRAPH_PRESETS).map((g) => ({
-    id: g.id,
-    name: g.name,
-    subtitle: g.subtitle,
-    nodeCount: g.nodes.length,
-    edgeCount: g.edges.length,
-    center: g.center,
-    zoom: g.zoom,
-  }));
-
   const elapsedMs = Number(process.hrtime.bigint() - startHr) / 1e6;
 
   return res.status(200).json({
     status: 'ok',
-    deliverable: 'Experiment 14 — Road-Snapped Graph Topology REST API',
-    engine: 'Dijkstra Engine · v2.0 (OSRM Street Geometry)',
-    preset: selectedGraph.id,
-    presets: presetsMeta,
-    graph: selectedGraph,
+    version: 'navmap_v3_graph',
+    deliverable: 'Experiment 14 — Pan-New Delhi + NSUT Priority Hub Graph API',
+    engine: 'Dijkstra Engine · v3.0 (OSRM Street Geometry)',
+    priorityHub: PRIORITY_HUB_CONFIG,
+    regions: DELHI_REGIONS,
+    graph: DEFAULT_GRAPH,
     executionTimeMs: Number(Math.max(0.12, elapsedMs).toFixed(2)),
     timestamp: new Date().toISOString(),
   });

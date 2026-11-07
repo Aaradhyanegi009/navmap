@@ -1,45 +1,50 @@
 import {
   DEFAULT_GRAPH,
-  GRAPH_PRESETS,
+  DELHI_REGIONS,
+  PRIORITY_HUB_CONFIG,
   executeDijkstraAsync,
 } from './dijkstra.js';
 
 /**
- * Fetch road-snapped topological graph from `GET /api/graph`.
+ * Fetch the 34-Node Pan-New Delhi + NSUT Priority Hub graph from `GET /api/graph`.
  */
-export async function fetchGraphTopology(preset = 'nsut') {
+export async function fetchGraphTopology() {
   const t0 = performance.now();
-  const endpoint = `/api/graph?preset=${encodeURIComponent(preset)}`;
+  const endpoint = '/api/graph?v=navmap_v3_graph';
 
   try {
     const response = await fetch(endpoint, {
       method: 'GET',
       headers: { Accept: 'application/json' },
+      cache: 'no-store',
     });
     const roundTripMs = Math.max(1, Math.round(performance.now() - t0));
 
     if (response.ok) {
       const data = await response.json();
-      return {
-        ...data,
-        httpStatus: `${response.status} ${response.statusText || 'OK'}`,
-        roundTripMs,
-        endpoint: `GET ${endpoint}`,
-      };
+      if (data?.graph?.version === 'navmap_v3_graph') {
+        return {
+          ...data,
+          httpStatus: `${response.status} ${response.statusText || 'OK'}`,
+          roundTripMs,
+          endpoint: 'GET /api/graph',
+        };
+      }
     }
-    throw new Error(`HTTP ${response.status}`);
+    throw new Error('Fallback to bundled v3 graph');
   } catch {
-    const fallbackGraph = GRAPH_PRESETS[preset] || DEFAULT_GRAPH;
     const roundTripMs = Math.max(1, Math.round(performance.now() - t0));
     return {
       status: 'ok',
-      engine: 'Dijkstra Engine · v2.0',
-      preset: fallbackGraph.id,
-      graph: fallbackGraph,
-      executionTimeMs: 0.25,
+      version: 'navmap_v3_graph',
+      engine: 'Dijkstra Engine · v3.0',
+      priorityHub: PRIORITY_HUB_CONFIG,
+      regions: DELHI_REGIONS,
+      graph: DEFAULT_GRAPH,
+      executionTimeMs: 0.24,
       httpStatus: '200 OK',
       roundTripMs,
-      endpoint: `GET ${endpoint}`,
+      endpoint: 'GET /api/graph',
       timestamp: new Date().toISOString(),
     };
   }
@@ -47,15 +52,13 @@ export async function fetchGraphTopology(preset = 'nsut') {
 
 /**
  * Execute Chained Dijkstra + OSRM Road Geometry via `POST /api/navigate`
- * with automatic client-side fallback if run without Vercel serverless runtime.
+ * with automatic client-side fallback.
  */
 export async function requestDijkstraRoute({
   sourceId,
   targetId,
   viaNodeIds = [],
   mode = 'car',
-  preset = 'nsut',
-  customGraph = null,
 }) {
   const t0 = performance.now();
   const endpoint = '/api/navigate';
@@ -64,36 +67,34 @@ export async function requestDijkstraRoute({
     targetId,
     viaNodeIds,
     mode: mode === 'walk' ? 'walk' : 'car',
-    preset,
   };
 
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...requestPayload,
-        ...(customGraph ? { customGraph } : {}),
-      }),
+      body: JSON.stringify(requestPayload),
+      cache: 'no-store',
     });
 
     const roundTripMs = Math.max(1, Math.round(performance.now() - t0));
 
     if (response.ok) {
       const data = await response.json();
-      return {
-        ...data,
-        httpStatus: `${response.status} ${response.statusText || 'OK'}`,
-        roundTripMs,
-        endpoint: 'POST /api/navigate',
-        requestPayload,
-      };
+      if (data?.status === 'ok') {
+        return {
+          ...data,
+          httpStatus: `${response.status} ${response.statusText || 'OK'}`,
+          roundTripMs,
+          endpoint: 'POST /api/navigate',
+          requestPayload,
+        };
+      }
     }
     throw new Error(`HTTP ${response.status}`);
   } catch {
-    // Client-side fallback executing identical Dijkstra + OSRM hydration
     const result = await executeDijkstraAsync({
-      graph: customGraph || GRAPH_PRESETS[preset] || DEFAULT_GRAPH,
+      graph: DEFAULT_GRAPH,
       sourceId,
       targetId,
       viaNodeIds,

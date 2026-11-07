@@ -4,36 +4,42 @@ import {
   TileLayer,
   Polyline,
   CircleMarker,
+  Circle,
   Tooltip,
   useMap,
 } from 'react-leaflet';
-import { LocateFixed, PlusCircle } from 'lucide-react';
+import { LocateFixed, PlusCircle, Star } from 'lucide-react';
+import { PRIORITY_HUB_CONFIG } from '../lib/dijkstra.js';
 
 /**
- * Smooth camera controller that fits the road-snapped polyline bounds.
+ * Smooth camera controller that handles both region chip flyTo and route bounds fitting.
  */
-function CameraController({ center, zoom, bounds, recenterTrigger }) {
+function CameraController({ cameraTarget, routeBounds, fitTrigger }) {
   const map = useMap();
 
   useEffect(() => {
-    if (bounds && bounds.length >= 2) {
+    if (cameraTarget && cameraTarget.center) {
+      map.flyTo(cameraTarget.center, cameraTarget.zoom || 13, {
+        duration: 0.85,
+      });
+    }
+  }, [cameraTarget, map]);
+
+  useEffect(() => {
+    if (routeBounds && routeBounds.length >= 2) {
       try {
-        map.fitBounds(bounds, {
-          paddingTopLeft: [60, 60],
-          paddingBottomRight: [60, 80],
-          maxZoom: 16,
+        map.fitBounds(routeBounds, {
+          paddingTopLeft: [65, 65],
+          paddingBottomRight: [65, 85],
+          maxZoom: 15,
           animate: true,
-          duration: 0.75,
+          duration: 0.8,
         });
-        return;
       } catch {
-        // Fallback to center/zoom
+        // Ignore bounds error if map not ready
       }
     }
-    if (center && zoom) {
-      map.flyTo(center, zoom, { duration: 0.8 });
-    }
-  }, [center, zoom, bounds, recenterTrigger, map]);
+  }, [routeBounds, fitTrigger, map]);
 
   return null;
 }
@@ -45,11 +51,14 @@ export default function MapCanvas({
   viaNodeIds = [],
   mode = 'car',
   routeResult,
-  isAddingViaStop,
+  showGraphMesh = false,
+  isAddingViaStop = false,
   onSelectNode,
   onCancelViaMode,
-  recenterTrigger,
-  onTriggerRecenter,
+  cameraTarget,
+  fitTrigger,
+  onTriggerFitRoute,
+  onFlyToNsutHub,
 }) {
   const nodes = graph?.nodes || [];
   const edges = graph?.edges || [];
@@ -66,7 +75,7 @@ export default function MapCanvas({
     [shortestPath]
   );
 
-  // Use the real OSRM road-snapped polyline coordinates (never 2-point straight lines)
+  // Snapped street polyline coordinates
   const snappedRoutePositions = React.useMemo(() => {
     if (
       Array.isArray(routeResult?.roadGeometry) &&
@@ -77,24 +86,14 @@ export default function MapCanvas({
     return [];
   }, [routeResult]);
 
-  // Also grab inactive mode road geometry for subtle ghost comparison line
-  const secondaryComparisonPositions = React.useMemo(() => {
-    const otherMode = mode === 'car' ? 'walk' : 'car';
-    const otherGeo = routeResult?.comparison?.[otherMode]?.roadGeometry;
-    if (Array.isArray(otherGeo) && otherGeo.length >= 2) {
-      return otherGeo;
-    }
-    return [];
-  }, [routeResult, mode]);
-
   const isWalkMode = mode === 'walk';
   const primaryColor = isWalkMode ? '#A594F9' : '#4ADE80';
 
   return (
     <div className="relative w-full h-full bg-[#09090B] select-none overflow-hidden">
       <MapContainer
-        center={graph.center || [28.6095, 77.0352]}
-        zoom={graph.zoom || 15}
+        center={PRIORITY_HUB_CONFIG.center}
+        zoom={13}
         zoomControl={false}
         className={`w-full h-full ${
           isAddingViaStop
@@ -111,70 +110,64 @@ export default function MapCanvas({
         />
 
         <CameraController
-          center={graph.center}
-          zoom={graph.zoom}
-          bounds={snappedRoutePositions}
-          recenterTrigger={recenterTrigger}
+          cameraTarget={cameraTarget}
+          routeBounds={snappedRoutePositions}
+          fitTrigger={fitTrigger}
         />
 
-        {/* 1. Background Graph Edges Using Multi-Point Road-Snapped Waypoints */}
-        {edges.map((edge) => {
-          const u = nodesMap[edge.from];
-          const v = nodesMap[edge.to];
-          if (!u || !v) return null;
+        {/* 1. NSUT DWARKA "CIRCLE OF IMPORTANCE" GEODESIC BOUNDARY RING */}
+        <Circle
+          center={PRIORITY_HUB_CONFIG.center}
+          radius={PRIORITY_HUB_CONFIG.radiusMeters}
+          pathOptions={{
+            color: '#A594F9',
+            weight: 1.8,
+            opacity: 0.65,
+            dashArray: '6 8',
+            fillColor: '#14331C',
+            fillOpacity: 0.14,
+          }}
+        >
+          <Tooltip
+            direction="top"
+            sticky
+            className="navmap-node-tooltip origin"
+          >
+            <span>⭐ {PRIORITY_HUB_CONFIG.name} (3.5 km Priority Zone)</span>
+          </Tooltip>
+        </Circle>
 
-          const edgePositions =
-            Array.isArray(edge.waypoints) && edge.waypoints.length >= 2
-              ? edge.waypoints
-              : [
-                  [u.lat, u.lng],
-                  [v.lat, v.lng],
-                ];
+        {/* 2. Optional Graph Topology Layer (Hidden by default so map stays ultra-clean) */}
+        {showGraphMesh &&
+          edges.map((edge) => {
+            const u = nodesMap[edge.from];
+            const v = nodesMap[edge.to];
+            if (!u || !v) return null;
 
-          const isPedestrianShortcut = Boolean(edge.pedestrianOnly);
+            const edgePositions =
+              Array.isArray(edge.waypoints) && edge.waypoints.length >= 2
+                ? edge.waypoints
+                : [
+                    [u.lat, u.lng],
+                    [v.lat, v.lng],
+                  ];
 
-          return (
-            <Polyline
-              key={edge.id}
-              positions={edgePositions}
-              pathOptions={{
-                color: isPedestrianShortcut
-                  ? 'rgba(165, 148, 249, 0.28)'
-                  : 'rgba(255, 255, 255, 0.14)',
-                weight: isPedestrianShortcut ? 2 : 2.2,
-                dashArray: isPedestrianShortcut ? '4 6' : undefined,
-                lineCap: 'round',
-                lineJoin: 'round',
-              }}
-            >
-              <Tooltip
-                direction="center"
-                className="navmap-edge-tooltip"
-                opacity={0.85}
-              >
-                <span>
-                  {edge.roadName} · {edge.distance}m
-                  {isPedestrianShortcut ? ' (Walk Shortcut)' : ''}
-                </span>
-              </Tooltip>
-            </Polyline>
-          );
-        })}
-
-        {/* 2. Subtle Secondary Comparison Route (Alternative Travel Mode) */}
-        {secondaryComparisonPositions.length >= 2 && (
-          <Polyline
-            positions={secondaryComparisonPositions}
-            pathOptions={{
-              color: isWalkMode ? '#4ADE80' : '#A594F9',
-              weight: 3,
-              opacity: 0.22,
-              dashArray: '5 7',
-              lineCap: 'round',
-              lineJoin: 'round',
-            }}
-          />
-        )}
+            return (
+              <Polyline
+                key={edge.id}
+                positions={edgePositions}
+                pathOptions={{
+                  color: edge.pedestrianOnly
+                    ? 'rgba(165, 148, 249, 0.35)'
+                    : 'rgba(255, 255, 255, 0.16)',
+                  weight: 2,
+                  dashArray: edge.pedestrianOnly ? '4 6' : undefined,
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                }}
+              />
+            );
+          })}
 
         {/* 3. Active Snapped Street Route Polyline (Solid Emerald for Car, Dashed Lavender for Walk) */}
         {snappedRoutePositions.length >= 2 && (
@@ -217,18 +210,19 @@ export default function MapCanvas({
           </>
         )}
 
-        {/* 4. Interactive Graph Nodes (Origin 'A', Via Stops '1, 2...', Destination 'B') */}
+        {/* 4. Interactive Pan-New Delhi & NSUT Priority Hub Nodes */}
         {nodes.map((node) => {
           const isOrigin = node.id === sourceId;
           const isTarget = node.id === targetId;
           const viaIndex = viaNodeIds.indexOf(node.id);
           const isViaStop = viaIndex !== -1;
           const isInPath = shortestPathNodeIds.has(node.id);
+          const isPriorityHub = Boolean(node.isPriorityHub);
 
-          let fillColor = '#1C1C20';
-          let strokeColor = '#71717A';
-          let radius = 6.5;
-          let strokeWeight = 2;
+          let fillColor = isPriorityHub ? '#282249' : '#1C1C20';
+          let strokeColor = isPriorityHub ? '#A594F9' : '#71717A';
+          let radius = isPriorityHub ? 7.5 : 6;
+          let strokeWeight = isPriorityHub ? 2.2 : 1.8;
 
           if (isOrigin) {
             fillColor = '#4ADE80';
@@ -248,31 +242,35 @@ export default function MapCanvas({
           } else if (isInPath) {
             fillColor = primaryColor;
             strokeColor = '#09090B';
-            radius = 7.5;
-            strokeWeight = 2.2;
+            radius = 8;
+            strokeWeight = 2.4;
           }
 
           return (
             <React.Fragment key={node.id}>
-              {/* Pulsing Halo Ring for Origin (A), Via Stops (1..n), and Destination (B) */}
-              {(isOrigin || isTarget || isViaStop) && (
+              {/* Outer Halo Ring for Origin, Via, Target, or NSUT Priority Hub Nodes */}
+              {(isOrigin || isTarget || isViaStop || isPriorityHub) && (
                 <CircleMarker
                   center={[node.lat, node.lng]}
-                  radius={18}
+                  radius={isOrigin || isTarget || isViaStop ? 18 : 13}
                   pathOptions={{
                     color: isOrigin
                       ? '#4ADE80'
                       : isViaStop
                       ? '#A594F9'
-                      : '#F28B66',
+                      : isTarget
+                      ? '#F28B66'
+                      : '#A594F9',
                     fillColor: isOrigin
                       ? '#4ADE80'
                       : isViaStop
                       ? '#A594F9'
-                      : '#F28B66',
-                    fillOpacity: 0.22,
-                    weight: 1.2,
-                    opacity: 0.55,
+                      : isTarget
+                      ? '#F28B66'
+                      : '#A594F9',
+                    fillOpacity: isOrigin || isTarget || isViaStop ? 0.22 : 0.1,
+                    weight: 1,
+                    opacity: isOrigin || isTarget || isViaStop ? 0.55 : 0.35,
                   }}
                 />
               )}
@@ -294,7 +292,7 @@ export default function MapCanvas({
                 }}
               >
                 <Tooltip
-                  permanent={isOrigin || isTarget || isViaStop || isInPath}
+                  permanent={isOrigin || isTarget || isViaStop}
                   direction="top"
                   offset={[0, -10]}
                   className={`navmap-node-tooltip ${
@@ -323,10 +321,8 @@ export default function MapCanvas({
                         B
                       </span>
                     )}
-                    {!isOrigin && !isViaStop && !isTarget && (
-                      <span className="font-mono text-[10px] opacity-70">
-                        {node.id}
-                      </span>
+                    {!isOrigin && !isViaStop && !isTarget && isPriorityHub && (
+                      <span className="text-[#A594F9] text-[10px]">★</span>
                     )}
                     <span>{node.shortName || node.name}</span>
                   </div>
@@ -340,33 +336,36 @@ export default function MapCanvas({
       {/* Top-Right Map HUD Controls */}
       <div className="absolute top-4 right-4 z-[400] flex flex-col items-end gap-2.5 pointer-events-none">
         <div className="pointer-events-auto bg-[#141417]/90 backdrop-blur-xl border border-white/[0.08] rounded-full px-3.5 py-2 flex items-center gap-3 shadow-2xl">
-          <div className="flex items-center gap-1.5 text-xs text-zinc-300">
+          <button
+            onClick={onFlyToNsutHub}
+            className="flex items-center gap-1.5 text-xs font-semibold text-[#A594F9] hover:text-white transition"
+          >
+            <Star className="w-3.5 h-3.5 fill-[#A594F9]" />
+            <span>NSUT Priority Circle</span>
+          </button>
+          <span className="text-zinc-700">|</span>
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-300">
             <span className="w-2.5 h-2.5 rounded-full bg-[#4ADE80] inline-block" />
             <span>Origin (A)</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-zinc-300">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#A594F9] inline-block" />
-            <span>Via (1, 2)</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-zinc-300">
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-300">
             <span className="w-2.5 h-2.5 rounded-full bg-[#F28B66] inline-block" />
             <span>Dest (B)</span>
           </div>
           <button
-            onClick={onTriggerRecenter}
-            title="Fit Route on Map"
-            className="ml-1 w-7 h-7 rounded-full bg-[#1C1C20] hover:bg-white/10 border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white transition"
+            onClick={onTriggerFitRoute}
+            title="Fit Active Route on Map"
+            className="w-7 h-7 rounded-full bg-[#1C1C20] hover:bg-white/10 border border-white/10 flex items-center justify-center text-zinc-300 hover:text-white transition"
           >
             <LocateFixed className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Active Via Stop Map Selection Banner */}
         {isAddingViaStop && (
           <div className="pointer-events-auto bg-[#282249]/95 backdrop-blur-xl border border-[#A594F9]/50 rounded-2xl px-4 py-2.5 shadow-2xl flex items-center gap-3">
             <PlusCircle className="w-4 h-4 text-[#A594F9] shrink-0" />
             <span className="text-xs font-semibold text-white">
-              Tap any node on the map to insert as a Via stop
+              Tap any Delhi node on the map to insert as a Via stop
             </span>
             <button
               onClick={onCancelViaMode}

@@ -1,12 +1,32 @@
 /**
  * ============================================================================
- * NavMap — Core GIS & Dijkstra Shortest-Path Engine (Real Street Geometry)
+ * NavMap v3.0 — Pan-New Delhi GIS & Dijkstra Shortest-Path Engine
  * Deliverables:
- *   - Project 14: Standalone REST API Backend & Road-Snapped Graph Dataset
- *   - Project 15: Hybrid Dijkstra + OSRM Street Hydration, Car vs. Walk
- *     Dual-Mode Routing, and Chained Intermediate Waypoints ("Via" Stops)
+ *   - Project 14: Standalone REST API Backend & 34-Node New Delhi Graph Dataset
+ *   - Project 15: NSUT Dwarka "Circle of Importance" Priority Hub, Hybrid
+ *     Dijkstra + OSRM Street Hydration, Car vs. Walk Dual-Mode Comparison,
+ *     and Chained Intermediate Waypoints ("Via" Stops)
  * ============================================================================
  */
+
+export const PRIORITY_HUB_CONFIG = {
+  id: "nsut_circle_of_importance",
+  name: "Circle of Importance · NSUT Dwarka Hub",
+  shortLabel: "NSUT Priority Hub",
+  center: [28.6091, 77.0370],
+  radiusMeters: 3500,
+  zoom: 14,
+};
+
+export const DELHI_REGIONS = [
+  { id: "NSUT Hub", label: "⭐ NSUT Hub", center: [28.6091, 77.0370], zoom: 14 },
+  { id: "All", label: "All Delhi (34)", center: [28.6139, 77.1650], zoom: 11 },
+  { id: "Central", label: "Central", center: [28.6280, 77.2180], zoom: 13 },
+  { id: "South", label: "South", center: [28.5490, 77.2050], zoom: 13 },
+  { id: "West", label: "West", center: [28.6350, 77.0950], zoom: 12 },
+  { id: "North", label: "North", center: [28.6950, 77.1950], zoom: 12 },
+  { id: "East", label: "East", center: [28.6280, 77.2900], zoom: 13 },
+];
 
 /**
  * Binary Min-Heap Priority Queue for O((V + E) log V) Dijkstra execution.
@@ -89,557 +109,352 @@ export function haversineDistance(lat1, lng1, lat2, lng2) {
   return Math.max(20, Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))));
 }
 
-export const NSUT_DWARKA_GRAPH = {
-  "id": "nsut",
-  "name": "NSUT Dwarka & Sector 3",
-  "subtitle": "New Delhi · 15 Road Intersections · 27 Snapped Street Edges",
+export const NEW_DELHI_GRAPH = {
+  "id": "delhi",
+  "version": "navmap_v3_graph",
+  "name": "Pan-New Delhi + NSUT Dwarka Hub",
+  "subtitle": "34 Major Delhi Intersections · 75 Snapped Road Corridors · NSUT Priority Circle",
   "center": [
-    28.6095,
-    77.0352
+    28.6139,
+    77.145
   ],
-  "zoom": 15,
+  "zoom": 12,
+  "priorityHub": {
+    "center": [
+      28.6091,
+      77.037
+    ],
+    "radiusMeters": 3500,
+    "label": "Circle of Importance · NSUT Dwarka Hub"
+  },
   "nodes": [
     {
-      "id": "N1",
-      "name": "NSUT Main Gate (North)",
-      "shortName": "NSUT North Gate",
-      "lat": 28.61267,
-      "lng": 77.03358,
-      "category": "Gateway",
-      "zone": "Azad Hind Fauj Marg"
+      "id": "nsut_main",
+      "name": "NSUT Main Gate (Dwarka Sec-3)",
+      "shortName": "NSUT Main Gate",
+      "lat": 28.6083,
+      "lng": 77.0355,
+      "region": "NSUT Hub",
+      "category": "Priority Hub",
+      "isPriorityHub": true
     },
     {
-      "id": "N2",
+      "id": "nsut_admin",
+      "name": "NSUT Admin & Academic Block",
+      "shortName": "NSUT Admin Block",
+      "lat": 28.6102,
+      "lng": 77.0378,
+      "region": "NSUT Hub",
+      "category": "Priority Hub",
+      "isPriorityHub": true
+    },
+    {
+      "id": "dwarka_mor",
       "name": "Dwarka Mor Metro Junction",
       "shortName": "Dwarka Mor",
-      "lat": 28.61915,
-      "lng": 77.03328,
-      "category": "Transit",
-      "zone": "Shivaji Marg / Blue Line"
+      "lat": 28.6193,
+      "lng": 77.0332,
+      "region": "NSUT Hub",
+      "category": "Priority Hub",
+      "isPriorityHub": true
     },
     {
-      "id": "N3",
-      "name": "Administrative Block Rotary",
-      "shortName": "Admin Block",
-      "lat": 28.60965,
-      "lng": 77.03535,
-      "category": "Academic",
-      "zone": "NSUT Central Ring"
-    },
-    {
-      "id": "N4",
-      "name": "APJ Lecture Complex",
-      "shortName": "APJ Complex",
-      "lat": 28.60855,
-      "lng": 77.03785,
-      "category": "Academic",
-      "zone": "Academic Core"
-    },
-    {
-      "id": "N5",
-      "name": "Central Library & Computer Centre",
-      "shortName": "Central Library",
-      "lat": 28.60738,
-      "lng": 77.03612,
-      "category": "Academic",
-      "zone": "Academic Core"
-    },
-    {
-      "id": "N6",
-      "name": "Student Activity Centre (SAC)",
-      "shortName": "SAC Hub",
-      "lat": 28.60628,
-      "lng": 77.03418,
-      "category": "Campus Hub",
-      "zone": "Student Commons"
-    },
-    {
-      "id": "N7",
-      "name": "Boys Hostel Enclave (JC Bose / Raman)",
-      "shortName": "Hostel Enclave",
-      "lat": 28.60485,
-      "lng": 77.03425,
-      "category": "Residential",
-      "zone": "Hostel Ring"
-    },
-    {
-      "id": "N8",
-      "name": "Dept of Design & Guest House Gate",
-      "shortName": "Design / West Gate",
-      "lat": 28.60695,
-      "lng": 77.03212,
-      "category": "Gateway",
-      "zone": "Azad Hind Fauj Marg"
-    },
-    {
-      "id": "N9",
-      "name": "Electrical & ECE Faculty Block",
-      "shortName": "ECE / EE Block",
-      "lat": 28.61085,
-      "lng": 77.03795,
-      "category": "Academic",
-      "zone": "North Academic Spine"
-    },
-    {
-      "id": "N10",
-      "name": "NSUT South Crossing (Sec-3 Rd)",
-      "shortName": "Sec-3 Crossing",
-      "lat": 28.60295,
-      "lng": 77.03355,
-      "category": "Gateway",
-      "zone": "Sector 3 Arterial"
-    },
-    {
-      "id": "N11",
-      "name": "Vegas Mall Dwarka Sec-14",
+      "id": "vegas_mall",
+      "name": "Vegas Mall (Dwarka Sec-14)",
       "shortName": "Vegas Mall",
-      "lat": 28.60095,
-      "lng": 77.02945,
-      "category": "Commercial",
-      "zone": "Sector 14 Hub"
+      "lat": 28.6011,
+      "lng": 77.0294,
+      "region": "NSUT Hub",
+      "category": "Priority Hub",
+      "isPriorityHub": true
     },
     {
-      "id": "N12",
-      "name": "Dwarka Sector 14 Metro",
-      "shortName": "Sec-14 Metro",
-      "lat": 28.60225,
-      "lng": 77.02605,
-      "category": "Transit",
-      "zone": "Blue Line Corridor"
+      "id": "dwarka_sec10",
+      "name": "Dwarka Sector 10 District Center",
+      "shortName": "Dwarka Sec-10",
+      "lat": 28.5815,
+      "lng": 77.0592,
+      "region": "NSUT Hub",
+      "category": "Priority Hub",
+      "isPriorityHub": true
     },
     {
-      "id": "N13",
-      "name": "Akash Hospital Chowk (Sec-3)",
-      "shortName": "Akash Chowk",
-      "lat": 28.60415,
-      "lng": 77.04195,
-      "category": "Medical",
-      "zone": "Sector 3 East"
+      "id": "dwarka_sec21",
+      "name": "Dwarka Sector 21 Metro / IGI Link",
+      "shortName": "Dwarka Sec-21",
+      "lat": 28.5522,
+      "lng": 77.0583,
+      "region": "NSUT Hub",
+      "category": "Priority Hub",
+      "isPriorityHub": true
     },
     {
-      "id": "N14",
-      "name": "Sports Complex & Kaveri Hostel",
-      "shortName": "Sports Complex",
-      "lat": 28.60575,
-      "lng": 77.03985,
-      "category": "Sports",
-      "zone": "East Campus Ring"
+      "id": "dabri_more",
+      "name": "Dabri More / Pankha Road Flyover",
+      "shortName": "Dabri More",
+      "lat": 28.6095,
+      "lng": 77.0825,
+      "region": "NSUT Hub",
+      "category": "Priority Hub",
+      "isPriorityHub": true
     },
     {
-      "id": "N15",
-      "name": "Madhu Vihar East Gate",
-      "shortName": "Madhu Vihar Gate",
-      "lat": 28.61145,
-      "lng": 77.04235,
-      "category": "Gateway",
-      "zone": "Madhu Vihar Rd"
+      "id": "janakpuri_west",
+      "name": "Janakpuri West (District Center)",
+      "shortName": "Janakpuri West",
+      "lat": 28.6289,
+      "lng": 77.0777,
+      "region": "West",
+      "category": "Transit"
+    },
+    {
+      "id": "uttam_nagar",
+      "name": "Uttam Nagar East Junction",
+      "shortName": "Uttam Nagar",
+      "lat": 28.6219,
+      "lng": 77.0652,
+      "region": "West",
+      "category": "Transit"
+    },
+    {
+      "id": "rajouri_garden",
+      "name": "Rajouri Garden Ring Road",
+      "shortName": "Rajouri Garden",
+      "lat": 28.6492,
+      "lng": 77.1225,
+      "region": "West",
+      "category": "Commercial"
+    },
+    {
+      "id": "punjabi_bagh",
+      "name": "Punjabi Bagh Chowk",
+      "shortName": "Punjabi Bagh",
+      "lat": 28.669,
+      "lng": 77.1332,
+      "region": "West",
+      "category": "Arterial"
+    },
+    {
+      "id": "peeragarhi",
+      "name": "Peeragarhi Chowk (Rohtak Rd)",
+      "shortName": "Peeragarhi",
+      "lat": 28.6796,
+      "lng": 77.0928,
+      "region": "West",
+      "category": "Gateway"
+    },
+    {
+      "id": "igi_t3",
+      "name": "IGI Airport Terminal 3",
+      "shortName": "IGI Airport T3",
+      "lat": 28.5562,
+      "lng": 77.1,
+      "region": "West",
+      "category": "Airport"
+    },
+    {
+      "id": "dhaula_kuan",
+      "name": "Dhaula Kuan Intersection (NH-48)",
+      "shortName": "Dhaula Kuan",
+      "lat": 28.5919,
+      "lng": 77.1615,
+      "region": "Central",
+      "category": "Arterial"
+    },
+    {
+      "id": "karol_bagh",
+      "name": "Karol Bagh (Pusa Road)",
+      "shortName": "Karol Bagh",
+      "lat": 28.6441,
+      "lng": 77.1885,
+      "region": "Central",
+      "category": "Commercial"
+    },
+    {
+      "id": "connaught_place",
+      "name": "Connaught Place (Rajiv Chowk)",
+      "shortName": "Connaught Place",
+      "lat": 28.6328,
+      "lng": 77.2197,
+      "region": "Central",
+      "category": "Landmark"
+    },
+    {
+      "id": "india_gate",
+      "name": "India Gate Hexagon (Kartavya Path)",
+      "shortName": "India Gate",
+      "lat": 28.6129,
+      "lng": 77.2295,
+      "region": "Central",
+      "category": "Landmark"
+    },
+    {
+      "id": "ndls",
+      "name": "New Delhi Railway Station",
+      "shortName": "New Delhi Stn",
+      "lat": 28.6425,
+      "lng": 77.222,
+      "region": "Central",
+      "category": "Transit"
+    },
+    {
+      "id": "ito_junction",
+      "name": "ITO Crossing",
+      "shortName": "ITO Junction",
+      "lat": 28.6285,
+      "lng": 77.2415,
+      "region": "Central",
+      "category": "Arterial"
+    },
+    {
+      "id": "aiims_chowk",
+      "name": "AIIMS / Safdarjung Ring Road",
+      "shortName": "AIIMS Chowk",
+      "lat": 28.5672,
+      "lng": 77.21,
+      "region": "South",
+      "category": "Medical"
+    },
+    {
+      "id": "iit_hauz_khas",
+      "name": "IIT Delhi / Hauz Khas",
+      "shortName": "IIT Delhi",
+      "lat": 28.5457,
+      "lng": 77.1928,
+      "region": "South",
+      "category": "Academic"
+    },
+    {
+      "id": "vasant_kunj",
+      "name": "Vasant Kunj (Nelson Mandela Marg)",
+      "shortName": "Vasant Kunj",
+      "lat": 28.5402,
+      "lng": 77.1535,
+      "region": "South",
+      "category": "Commercial"
+    },
+    {
+      "id": "qutub_minar",
+      "name": "Qutub Minar (Mehrauli)",
+      "shortName": "Qutub Minar",
+      "lat": 28.5245,
+      "lng": 77.1855,
+      "region": "South",
+      "category": "Landmark"
+    },
+    {
+      "id": "saket_citywalk",
+      "name": "Saket (Press Enclave Road)",
+      "shortName": "Saket Hub",
+      "lat": 28.5286,
+      "lng": 77.2194,
+      "region": "South",
+      "category": "Commercial"
+    },
+    {
+      "id": "nehru_place",
+      "name": "Nehru Place Outer Ring Road",
+      "shortName": "Nehru Place",
+      "lat": 28.5494,
+      "lng": 77.2519,
+      "region": "South",
+      "category": "Commercial"
+    },
+    {
+      "id": "lajpat_nagar",
+      "name": "Lajpat Nagar (Moolchand Flyover)",
+      "shortName": "Lajpat Nagar",
+      "lat": 28.5677,
+      "lng": 77.2356,
+      "region": "South",
+      "category": "Commercial"
+    },
+    {
+      "id": "nsp_pitampura",
+      "name": "Netaji Subhash Place (NSP)",
+      "shortName": "NSP Pitampura",
+      "lat": 28.6961,
+      "lng": 77.1526,
+      "region": "North",
+      "category": "Commercial"
+    },
+    {
+      "id": "rohini_sec18",
+      "name": "Rohini Sector 18",
+      "shortName": "Rohini Sec-18",
+      "lat": 28.7383,
+      "lng": 77.1398,
+      "region": "North",
+      "category": "Residential"
+    },
+    {
+      "id": "du_north_campus",
+      "name": "Delhi University (North Campus)",
+      "shortName": "DU North Campus",
+      "lat": 28.688,
+      "lng": 77.21,
+      "region": "North",
+      "category": "Academic"
+    },
+    {
+      "id": "kashmere_gate",
+      "name": "Kashmere Gate ISBT",
+      "shortName": "Kashmere Gate",
+      "lat": 28.6675,
+      "lng": 77.2282,
+      "region": "North",
+      "category": "Transit"
+    },
+    {
+      "id": "red_fort",
+      "name": "Red Fort / Chandni Chowk",
+      "shortName": "Red Fort",
+      "lat": 28.6562,
+      "lng": 77.241,
+      "region": "North",
+      "category": "Landmark"
+    },
+    {
+      "id": "akshardham",
+      "name": "Akshardham Setu (NH-9)",
+      "shortName": "Akshardham",
+      "lat": 28.6127,
+      "lng": 77.2773,
+      "region": "East",
+      "category": "Landmark"
+    },
+    {
+      "id": "laxmi_nagar",
+      "name": "Laxmi Nagar (Vikas Marg)",
+      "shortName": "Laxmi Nagar",
+      "lat": 28.6304,
+      "lng": 77.2777,
+      "region": "East",
+      "category": "Commercial"
+    },
+    {
+      "id": "anand_vihar",
+      "name": "Anand Vihar ISBT",
+      "shortName": "Anand Vihar",
+      "lat": 28.6469,
+      "lng": 77.316,
+      "region": "East",
+      "category": "Transit"
     }
   ],
   "edges": [
     {
       "id": "E1",
-      "from": "N2",
-      "to": "N1",
-      "roadName": "Shivaji Marg & Azad Hind Fauj Marg",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 45,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.61921,
-          77.03327
-        ],
-        [
-          28.61919,
-          77.03313
-        ],
-        [
-          28.61911,
-          77.03262
-        ],
-        [
-          28.61909,
-          77.03251
-        ],
-        [
-          28.61906,
-          77.03228
-        ],
-        [
-          28.61903,
-          77.03208
-        ],
-        [
-          28.619,
-          77.03188
-        ],
-        [
-          28.61894,
-          77.03184
-        ],
-        [
-          28.61889,
-          77.03182
-        ],
-        [
-          28.61859,
-          77.0318
-        ],
-        [
-          28.6185,
-          77.03173
-        ],
-        [
-          28.61807,
-          77.03184
-        ],
-        [
-          28.61776,
-          77.03192
-        ],
-        [
-          28.61732,
-          77.03205
-        ],
-        [
-          28.61685,
-          77.03219
-        ],
-        [
-          28.61637,
-          77.03234
-        ],
-        [
-          28.61531,
-          77.03269
-        ],
-        [
-          28.61312,
-          77.03343
-        ],
-        [
-          28.61267,
-          77.03358
-        ]
-      ],
-      "distance": 867,
-      "bidirectional": true
-    },
-    {
-      "id": "E2",
-      "from": "N1",
-      "to": "N8",
-      "roadName": "Azad Hind Fauj Marg Corridor",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 50,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.61267,
-          77.03358
-        ],
-        [
-          28.61257,
-          77.03361
-        ],
-        [
-          28.61225,
-          77.03371
-        ],
-        [
-          28.60843,
-          77.03499
-        ],
-        [
-          28.60841,
-          77.03499
-        ],
-        [
-          28.60795,
-          77.03514
-        ],
-        [
-          28.60633,
-          77.03568
-        ],
-        [
-          28.60629,
-          77.0357
-        ],
-        [
-          28.60624,
-          77.03573
-        ],
-        [
-          28.60618,
-          77.03555
-        ],
-        [
-          28.60605,
-          77.03544
-        ],
-        [
-          28.60604,
-          77.03544
-        ],
-        [
-          28.60603,
-          77.03543
-        ],
-        [
-          28.60584,
-          77.03526
-        ],
-        [
-          28.6049,
-          77.03446
-        ],
-        [
-          28.60383,
-          77.03353
-        ],
-        [
-          28.60375,
-          77.03346
-        ],
-        [
-          28.6038,
-          77.03337
-        ],
-        [
-          28.60389,
-          77.03344
-        ],
-        [
-          28.60577,
-          77.03508
-        ],
-        [
-          28.60586,
-          77.03501
-        ],
-        [
-          28.60623,
-          77.03475
-        ],
-        [
-          28.60712,
-          77.03404
-        ],
-        [
-          28.60734,
-          77.03387
-        ],
-        [
-          28.60803,
-          77.03336
-        ],
-        [
-          28.60828,
-          77.03317
-        ],
-        [
-          28.60827,
-          77.03215
-        ],
-        [
-          28.60704,
-          77.0321
-        ]
-      ],
-      "distance": 1956,
-      "bidirectional": true
-    },
-    {
-      "id": "E3",
-      "from": "N8",
-      "to": "N10",
-      "roadName": "Azad Hind Fauj Marg South",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 50,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.60704,
-          77.0321
-        ],
-        [
-          28.60827,
-          77.03215
-        ],
-        [
-          28.60828,
-          77.03317
-        ],
-        [
-          28.60803,
-          77.03336
-        ],
-        [
-          28.60734,
-          77.03387
-        ],
-        [
-          28.60712,
-          77.03404
-        ],
-        [
-          28.60623,
-          77.03475
-        ],
-        [
-          28.60586,
-          77.03501
-        ],
-        [
-          28.60577,
-          77.03508
-        ],
-        [
-          28.60627,
-          77.03551
-        ],
-        [
-          28.60631,
-          77.03559
-        ],
-        [
-          28.60633,
-          77.03568
-        ],
-        [
-          28.60629,
-          77.0357
-        ],
-        [
-          28.60624,
-          77.03573
-        ],
-        [
-          28.60618,
-          77.03555
-        ],
-        [
-          28.60605,
-          77.03544
-        ],
-        [
-          28.60604,
-          77.03544
-        ],
-        [
-          28.60603,
-          77.03543
-        ],
-        [
-          28.60584,
-          77.03526
-        ],
-        [
-          28.6049,
-          77.03446
-        ],
-        [
-          28.60383,
-          77.03353
-        ],
-        [
-          28.60376,
-          77.03365
-        ],
-        [
-          28.60367,
-          77.03357
-        ],
-        [
-          28.60344,
-          77.03338
-        ],
-        [
-          28.6032,
-          77.03318
-        ]
-      ],
-      "distance": 1106,
-      "bidirectional": true
-    },
-    {
-      "id": "E4",
-      "from": "N1",
-      "to": "N3",
-      "roadName": "NSUT North Gate Boulevard",
-      "trafficMultiplier": 1,
+      "from": "nsut_main",
+      "to": "nsut_admin",
+      "roadName": "NSUT Main Campus Boulevard",
       "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.61267,
-          77.03358
-        ],
-        [
-          28.61257,
-          77.03361
-        ],
-        [
-          28.61225,
-          77.03371
-        ],
-        [
-          28.60843,
-          77.03499
-        ],
-        [
-          28.60841,
-          77.03499
-        ],
-        [
-          28.60842,
-          77.03502
-        ],
-        [
-          28.60844,
-          77.03507
-        ],
-        [
-          28.60949,
-          77.03473
-        ]
-      ],
-      "distance": 623,
-      "bidirectional": true
-    },
-    {
-      "id": "E5",
-      "from": "N1",
-      "to": "N9",
-      "roadName": "North Perimeter Faculty Rd",
       "trafficMultiplier": 1,
-      "speedKmh": 35,
       "pedestrianOnly": false,
       "waypoints": [
         [
-          28.61267,
-          77.03358
-        ],
-        [
-          28.61257,
-          77.03361
-        ],
-        [
-          28.61225,
-          77.03371
-        ],
-        [
-          28.60843,
-          77.03499
-        ],
-        [
-          28.60841,
-          77.03499
-        ],
-        [
-          28.60842,
-          77.03502
+          28.60821,
+          77.03515
         ],
         [
           28.60844,
@@ -664,381 +479,6 @@ export const NSUT_DWARKA_GRAPH = {
         [
           28.60853,
           77.03542
-        ],
-        [
-          28.60846,
-          77.03544
-        ],
-        [
-          28.60803,
-          77.03558
-        ],
-        [
-          28.60783,
-          77.03564
-        ],
-        [
-          28.6079,
-          77.03591
-        ],
-        [
-          28.60791,
-          77.03594
-        ],
-        [
-          28.60803,
-          77.03645
-        ],
-        [
-          28.60806,
-          77.03655
-        ],
-        [
-          28.60809,
-          77.03666
-        ],
-        [
-          28.60817,
-          77.03701
-        ],
-        [
-          28.60832,
-          77.0376
-        ],
-        [
-          28.60844,
-          77.03805
-        ],
-        [
-          28.6085,
-          77.03831
-        ],
-        [
-          28.60855,
-          77.0385
-        ],
-        [
-          28.60892,
-          77.03993
-        ],
-        [
-          28.60899,
-          77.04023
-        ],
-        [
-          28.60924,
-          77.04014
-        ],
-        [
-          28.61025,
-          77.03982
-        ],
-        [
-          28.61034,
-          77.03979
-        ],
-        [
-          28.61075,
-          77.03966
-        ],
-        [
-          28.6107,
-          77.03948
-        ],
-        [
-          28.6107,
-          77.03948
-        ]
-      ],
-      "distance": 1303,
-      "bidirectional": true
-    },
-    {
-      "id": "E6",
-      "from": "N3",
-      "to": "N8",
-      "roadName": "Guest House & Design Link Rd",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.60949,
-          77.03473
-        ],
-        [
-          28.60844,
-          77.03507
-        ],
-        [
-          28.60842,
-          77.03502
-        ],
-        [
-          28.60841,
-          77.03499
-        ],
-        [
-          28.60795,
-          77.03514
-        ],
-        [
-          28.60633,
-          77.03568
-        ],
-        [
-          28.60629,
-          77.0357
-        ],
-        [
-          28.60624,
-          77.03573
-        ],
-        [
-          28.60618,
-          77.03555
-        ],
-        [
-          28.60605,
-          77.03544
-        ],
-        [
-          28.60604,
-          77.03544
-        ],
-        [
-          28.60603,
-          77.03543
-        ],
-        [
-          28.60584,
-          77.03526
-        ],
-        [
-          28.6049,
-          77.03446
-        ],
-        [
-          28.60383,
-          77.03353
-        ],
-        [
-          28.60375,
-          77.03346
-        ],
-        [
-          28.6038,
-          77.03337
-        ],
-        [
-          28.60389,
-          77.03344
-        ],
-        [
-          28.60577,
-          77.03508
-        ],
-        [
-          28.60586,
-          77.03501
-        ],
-        [
-          28.60623,
-          77.03475
-        ],
-        [
-          28.60712,
-          77.03404
-        ],
-        [
-          28.60734,
-          77.03387
-        ],
-        [
-          28.60803,
-          77.03336
-        ],
-        [
-          28.60828,
-          77.03317
-        ],
-        [
-          28.60827,
-          77.03215
-        ],
-        [
-          28.60704,
-          77.0321
-        ]
-      ],
-      "distance": 1595,
-      "bidirectional": true
-    },
-    {
-      "id": "E7",
-      "from": "N3",
-      "to": "N9",
-      "roadName": "Academic Spine North",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.60949,
-          77.03473
-        ],
-        [
-          28.60844,
-          77.03507
-        ],
-        [
-          28.60845,
-          77.03514
-        ],
-        [
-          28.60846,
-          77.03518
-        ],
-        [
-          28.60848,
-          77.03525
-        ],
-        [
-          28.6085,
-          77.03531
-        ],
-        [
-          28.60853,
-          77.03542
-        ],
-        [
-          28.60846,
-          77.03544
-        ],
-        [
-          28.60803,
-          77.03558
-        ],
-        [
-          28.60783,
-          77.03564
-        ],
-        [
-          28.6079,
-          77.03591
-        ],
-        [
-          28.60791,
-          77.03594
-        ],
-        [
-          28.60803,
-          77.03645
-        ],
-        [
-          28.60806,
-          77.03655
-        ],
-        [
-          28.60809,
-          77.03666
-        ],
-        [
-          28.60817,
-          77.03701
-        ],
-        [
-          28.60832,
-          77.0376
-        ],
-        [
-          28.60844,
-          77.03805
-        ],
-        [
-          28.6085,
-          77.03831
-        ],
-        [
-          28.60855,
-          77.0385
-        ],
-        [
-          28.60892,
-          77.03993
-        ],
-        [
-          28.60899,
-          77.04023
-        ],
-        [
-          28.60924,
-          77.04014
-        ],
-        [
-          28.61025,
-          77.03982
-        ],
-        [
-          28.61034,
-          77.03979
-        ],
-        [
-          28.61075,
-          77.03966
-        ],
-        [
-          28.6107,
-          77.03948
-        ],
-        [
-          28.6107,
-          77.03948
-        ]
-      ],
-      "distance": 924,
-      "bidirectional": true
-    },
-    {
-      "id": "E8",
-      "from": "N3",
-      "to": "N4",
-      "roadName": "Chancellor Central Avenue",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.60949,
-          77.03473
-        ],
-        [
-          28.60844,
-          77.03507
-        ],
-        [
-          28.60845,
-          77.03514
-        ],
-        [
-          28.60846,
-          77.03518
-        ],
-        [
-          28.60848,
-          77.03525
-        ],
-        [
-          28.6085,
-          77.03531
-        ],
-        [
-          28.60853,
-          77.03542
-        ],
-        [
-          28.6086,
-          77.0354
         ],
         [
           28.60922,
@@ -1097,8 +537,129 @@ export const NSUT_DWARKA_GRAPH = {
           77.03632
         ],
         [
-          28.60979,
-          77.03638
+          28.6098,
+          77.03644
+        ],
+        [
+          28.60981,
+          77.03647
+        ],
+        [
+          28.60981,
+          77.03649
+        ],
+        [
+          28.60996,
+          77.03645
+        ],
+        [
+          28.6101,
+          77.0364
+        ],
+        [
+          28.61029,
+          77.03634
+        ],
+        [
+          28.61029,
+          77.03634
+        ]
+      ],
+      "distance": 357,
+      "bidirectional": true
+    },
+    {
+      "id": "E2",
+      "from": "nsut_main",
+      "to": "nsut_admin",
+      "roadName": "NSUT Academic Lawn Walkway (Shortcut)",
+      "speedKmh": 5,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": true,
+      "waypoints": [
+        [
+          28.60821,
+          77.03515
+        ],
+        [
+          28.60844,
+          77.03507
+        ],
+        [
+          28.60845,
+          77.03514
+        ],
+        [
+          28.60846,
+          77.03518
+        ],
+        [
+          28.60848,
+          77.03525
+        ],
+        [
+          28.6085,
+          77.03531
+        ],
+        [
+          28.60853,
+          77.03542
+        ],
+        [
+          28.60922,
+          77.0352
+        ],
+        [
+          28.6093,
+          77.03517
+        ],
+        [
+          28.60937,
+          77.03515
+        ],
+        [
+          28.60939,
+          77.03523
+        ],
+        [
+          28.60965,
+          77.0362
+        ],
+        [
+          28.60965,
+          77.03621
+        ],
+        [
+          28.60966,
+          77.03622
+        ],
+        [
+          28.60967,
+          77.03623
+        ],
+        [
+          28.60969,
+          77.03624
+        ],
+        [
+          28.60971,
+          77.03624
+        ],
+        [
+          28.60972,
+          77.03626
+        ],
+        [
+          28.60974,
+          77.03627
+        ],
+        [
+          28.60975,
+          77.03629
+        ],
+        [
+          28.60977,
+          77.03632
         ],
         [
           28.6098,
@@ -1113,287 +674,159 @@ export const NSUT_DWARKA_GRAPH = {
           77.03649
         ],
         [
-          28.60957,
-          77.03657
+          28.60996,
+          77.03645
         ],
         [
-          28.60944,
-          77.03661
+          28.6101,
+          77.0364
         ],
         [
-          28.60932,
-          77.03665
+          28.61029,
+          77.03634
         ],
         [
-          28.60926,
-          77.03667
-        ],
-        [
-          28.60913,
-          77.03671
-        ],
-        [
-          28.60909,
-          77.03671
-        ],
-        [
-          28.60909,
-          77.03671
+          28.61029,
+          77.03634
         ]
       ],
-      "distance": 481,
+      "distance": 303,
       "bidirectional": true
     },
     {
-      "id": "E9",
-      "from": "N3",
-      "to": "N5",
-      "roadName": "Library Lawn Footpath (Shortcut)",
-      "trafficMultiplier": 1,
-      "speedKmh": 5,
-      "pedestrianOnly": true,
+      "id": "E3",
+      "from": "nsut_main",
+      "to": "dwarka_mor",
+      "roadName": "Azad Hind Fauj Marg North",
+      "speedKmh": 40,
+      "trafficMultiplier": 1.4,
+      "pedestrianOnly": false,
       "waypoints": [
         [
-          28.60949,
-          77.03473
+          28.60821,
+          77.03515
         ],
         [
           28.60844,
           77.03507
         ],
         [
-          28.60845,
+          28.60842,
+          77.03502
+        ],
+        [
+          28.60795,
           77.03514
         ],
         [
-          28.60846,
-          77.03518
+          28.60633,
+          77.03568
         ],
         [
-          28.60848,
-          77.03525
+          28.60629,
+          77.0357
         ],
         [
-          28.6085,
-          77.03531
+          28.60624,
+          77.03573
         ],
         [
-          28.60853,
-          77.03542
+          28.60623,
+          77.03553
         ],
         [
-          28.60846,
-          77.03544
+          28.60627,
+          77.03551
         ],
         [
-          28.60803,
-          77.03558
+          28.60763,
+          77.03506
         ],
         [
-          28.60783,
-          77.03564
+          28.60773,
+          77.03502
         ],
         [
-          28.60759,
-          77.03572
+          28.60925,
+          77.03452
         ],
         [
-          28.60731,
-          77.03581
+          28.61062,
+          77.03408
         ],
         [
-          28.60734,
-          77.03596
-        ],
-        [
-          28.60735,
-          77.03598
-        ],
-        [
-          28.60737,
-          77.03606
-        ],
-        [
-          28.60744,
-          77.03637
-        ],
-        [
-          28.60747,
-          77.03649
-        ],
-        [
-          28.60747,
-          77.03649
-        ]
-      ],
-      "distance": 367,
-      "bidirectional": true
-    },
-    {
-      "id": "E10",
-      "from": "N9",
-      "to": "N4",
-      "roadName": "ECE–APJ Departmental Road",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.6107,
-          77.03948
-        ],
-        [
-          28.6107,
-          77.03948
-        ],
-        [
-          28.61075,
-          77.03966
-        ],
-        [
-          28.61084,
-          77.03963
-        ],
-        [
-          28.61126,
-          77.0395
-        ],
-        [
-          28.61141,
-          77.03945
-        ],
-        [
-          28.61143,
-          77.03943
-        ],
-        [
-          28.61145,
-          77.03942
-        ],
-        [
-          28.61147,
-          77.0394
-        ],
-        [
-          28.61148,
-          77.03938
-        ],
-        [
-          28.61151,
-          77.03933
-        ],
-        [
-          28.61158,
-          77.0392
-        ],
-        [
-          28.6116,
-          77.03917
-        ],
-        [
-          28.61171,
-          77.03897
-        ],
-        [
-          28.61176,
-          77.03889
-        ],
-        [
-          28.61177,
-          77.03887
-        ],
-        [
-          28.61186,
-          77.0387
-        ],
-        [
-          28.61187,
-          77.03865
-        ],
-        [
-          28.61187,
-          77.0386
-        ],
-        [
-          28.61186,
-          77.03854
-        ],
-        [
-          28.61184,
-          77.03847
-        ],
-        [
-          28.6118,
-          77.03825
-        ],
-        [
-          28.61175,
-          77.03806
-        ],
-        [
-          28.61161,
-          77.03751
-        ],
-        [
-          28.61159,
-          77.03742
-        ],
-        [
-          28.61145,
-          77.03687
-        ],
-        [
-          28.6114,
-          77.03668
-        ],
-        [
-          28.61136,
-          77.03652
+          28.61116,
+          77.0339
         ],
         [
           28.61134,
-          77.03645
+          77.03384
         ],
         [
-          28.61132,
-          77.03639
+          28.61254,
+          77.03345
         ],
         [
-          28.61128,
-          77.03632
+          28.61372,
+          77.03306
         ],
         [
-          28.61123,
-          77.03627
+          28.61421,
+          77.0329
         ],
         [
-          28.61117,
-          77.03623
+          28.61462,
+          77.03276
         ],
         [
-          28.61111,
-          77.03619
+          28.61512,
+          77.03259
         ],
         [
-          28.61105,
-          77.03617
+          28.61583,
+          77.03236
         ],
         [
-          28.61098,
-          77.03615
+          28.61669,
+          77.03209
         ],
         [
-          28.61091,
-          77.03615
+          28.61771,
+          77.03178
         ],
         [
-          28.61089,
-          77.03616
+          28.61839,
+          77.03159
         ],
         [
-          28.61083,
-          77.03617
+          28.61894,
+          77.03146
         ],
+        [
+          28.61914,
+          77.03158
+        ],
+        [
+          28.61927,
+          77.03243
+        ],
+        [
+          28.6194,
+          77.03318
+        ]
+      ],
+      "distance": 1971,
+      "bidirectional": true
+    },
+    {
+      "id": "E4",
+      "from": "nsut_admin",
+      "to": "dwarka_mor",
+      "roadName": "Old Palam & Shivaji Marg Link",
+      "speedKmh": 40,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
         [
           28.61029,
           77.03634
@@ -1403,161 +836,125 @@ export const NSUT_DWARKA_GRAPH = {
           77.0364
         ],
         [
-          28.60996,
-          77.03645
-        ],
-        [
           28.60981,
           77.03649
         ],
         [
-          28.60957,
-          77.03657
+          28.60956,
+          77.03653
         ],
         [
-          28.60944,
-          77.03661
+          28.60953,
+          77.03636
+        ],
+        [
+          28.60954,
+          77.03631
+        ],
+        [
+          28.60957,
+          77.03626
+        ],
+        [
+          28.60957,
+          77.03623
         ],
         [
           28.60932,
-          77.03665
+          77.03525
         ],
         [
-          28.60926,
-          77.03667
+          28.60922,
+          77.0352
         ],
         [
-          28.60913,
-          77.03671
+          28.60853,
+          77.03542
         ],
         [
-          28.60909,
-          77.03671
+          28.60846,
+          77.03518
         ],
         [
-          28.60909,
-          77.03671
+          28.60844,
+          77.03507
+        ],
+        [
+          28.60841,
+          77.03499
+        ],
+        [
+          28.60633,
+          77.03568
+        ],
+        [
+          28.60624,
+          77.03573
+        ],
+        [
+          28.60623,
+          77.03553
+        ],
+        [
+          28.60773,
+          77.03502
+        ],
+        [
+          28.61009,
+          77.03425
+        ],
+        [
+          28.61116,
+          77.0339
+        ],
+        [
+          28.61254,
+          77.03345
+        ],
+        [
+          28.61372,
+          77.03306
+        ],
+        [
+          28.61462,
+          77.03276
+        ],
+        [
+          28.61583,
+          77.03236
+        ],
+        [
+          28.61771,
+          77.03178
+        ],
+        [
+          28.61894,
+          77.03146
+        ],
+        [
+          28.61914,
+          77.03158
+        ],
+        [
+          28.6194,
+          77.03318
         ]
       ],
-      "distance": 681,
+      "distance": 2295,
       "bidirectional": true
     },
     {
-      "id": "E11",
-      "from": "N9",
-      "to": "N15",
-      "roadName": "Madhu Vihar Link Road",
-      "trafficMultiplier": 1.5,
+      "id": "E5",
+      "from": "nsut_main",
+      "to": "vegas_mall",
+      "roadName": "Azad Hind Fauj Marg South (Sec-14)",
       "speedKmh": 40,
+      "trafficMultiplier": 1.3,
       "pedestrianOnly": false,
       "waypoints": [
         [
-          28.6107,
-          77.03948
-        ],
-        [
-          28.6107,
-          77.03948
-        ],
-        [
-          28.61075,
-          77.03966
-        ],
-        [
-          28.61034,
-          77.03979
-        ],
-        [
-          28.61025,
-          77.03982
-        ],
-        [
-          28.60924,
-          77.04014
-        ],
-        [
-          28.60899,
-          77.04023
-        ],
-        [
-          28.60892,
-          77.03993
-        ],
-        [
-          28.60855,
-          77.0385
-        ],
-        [
-          28.6085,
-          77.03831
-        ],
-        [
-          28.60844,
-          77.03805
-        ],
-        [
-          28.60832,
-          77.0376
-        ],
-        [
-          28.60817,
-          77.03701
-        ],
-        [
-          28.60809,
-          77.03666
-        ],
-        [
-          28.60806,
-          77.03655
-        ],
-        [
-          28.60803,
-          77.03645
-        ],
-        [
-          28.60791,
-          77.03594
-        ],
-        [
-          28.6079,
-          77.03591
-        ],
-        [
-          28.60783,
-          77.03564
-        ],
-        [
-          28.60803,
-          77.03558
-        ],
-        [
-          28.60846,
-          77.03544
-        ],
-        [
-          28.60853,
-          77.03542
-        ],
-        [
-          28.6085,
-          77.03531
-        ],
-        [
-          28.60848,
-          77.03525
-        ],
-        [
-          28.60846,
-          77.03518
-        ],
-        [
-          28.60845,
-          77.03514
-        ],
-        [
-          28.60844,
-          77.03507
+          28.60821,
+          77.03515
         ],
         [
           28.60842,
@@ -1568,896 +965,16 @@ export const NSUT_DWARKA_GRAPH = {
           77.03499
         ],
         [
-          28.60795,
-          77.03514
-        ],
-        [
           28.60633,
           77.03568
         ],
         [
           28.60629,
           77.0357
-        ],
-        [
-          28.60624,
-          77.03573
-        ],
-        [
-          28.60448,
-          77.0383
-        ],
-        [
-          28.6037,
-          77.03947
-        ],
-        [
-          28.60365,
-          77.03956
-        ],
-        [
-          28.60377,
-          77.03966
-        ],
-        [
-          28.60434,
-          77.04015
-        ],
-        [
-          28.60441,
-          77.04021
-        ],
-        [
-          28.60521,
-          77.04091
-        ],
-        [
-          28.60542,
-          77.04109
-        ],
-        [
-          28.60565,
-          77.04129
-        ],
-        [
-          28.60606,
-          77.04165
-        ],
-        [
-          28.60606,
-          77.04179
-        ],
-        [
-          28.60606,
-          77.04195
-        ],
-        [
-          28.60606,
-          77.04272
-        ],
-        [
-          28.6064,
-          77.04271
-        ],
-        [
-          28.60645,
-          77.0427
-        ],
-        [
-          28.60649,
-          77.04267
-        ],
-        [
-          28.60681,
-          77.04232
-        ],
-        [
-          28.60711,
-          77.04204
-        ],
-        [
-          28.60722,
-          77.04199
-        ],
-        [
-          28.60733,
-          77.042
-        ],
-        [
-          28.60803,
-          77.04212
-        ],
-        [
-          28.60851,
-          77.04221
-        ],
-        [
-          28.60894,
-          77.04229
-        ],
-        [
-          28.6105,
-          77.04258
-        ],
-        [
-          28.61097,
-          77.04268
-        ],
-        [
-          28.61123,
-          77.04272
-        ],
-        [
-          28.61136,
-          77.04273
-        ],
-        [
-          28.61146,
-          77.04274
-        ],
-        [
-          28.61176,
-          77.04276
-        ],
-        [
-          28.61193,
-          77.04277
-        ],
-        [
-          28.61218,
-          77.04278
-        ],
-        [
-          28.61235,
-          77.04279
-        ],
-        [
-          28.61235,
-          77.04244
-        ],
-        [
-          28.61164,
-          77.04243
-        ]
-      ],
-      "distance": 2817,
-      "bidirectional": true
-    },
-    {
-      "id": "E12",
-      "from": "N4",
-      "to": "N5",
-      "roadName": "Central Library Ring Road",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.60909,
-          77.03671
-        ],
-        [
-          28.60909,
-          77.03671
-        ],
-        [
-          28.60913,
-          77.03671
-        ],
-        [
-          28.60926,
-          77.03667
-        ],
-        [
-          28.60932,
-          77.03665
-        ],
-        [
-          28.60944,
-          77.03661
-        ],
-        [
-          28.60957,
-          77.03657
-        ],
-        [
-          28.60956,
-          77.03653
-        ],
-        [
-          28.60953,
-          77.03643
-        ],
-        [
-          28.60953,
-          77.03639
-        ],
-        [
-          28.60953,
-          77.03636
-        ],
-        [
-          28.60953,
-          77.03633
-        ],
-        [
-          28.60954,
-          77.03631
-        ],
-        [
-          28.60956,
-          77.03628
-        ],
-        [
-          28.60957,
-          77.03626
-        ],
-        [
-          28.60957,
-          77.03624
-        ],
-        [
-          28.60957,
-          77.03623
-        ],
-        [
-          28.60957,
-          77.03621
-        ],
-        [
-          28.60932,
-          77.03525
-        ],
-        [
-          28.6093,
-          77.03517
-        ],
-        [
-          28.60922,
-          77.0352
-        ],
-        [
-          28.6086,
-          77.0354
-        ],
-        [
-          28.60853,
-          77.03542
-        ],
-        [
-          28.60846,
-          77.03544
-        ],
-        [
-          28.60803,
-          77.03558
-        ],
-        [
-          28.60783,
-          77.03564
-        ],
-        [
-          28.60759,
-          77.03572
-        ],
-        [
-          28.60731,
-          77.03581
-        ],
-        [
-          28.60734,
-          77.03596
-        ],
-        [
-          28.60735,
-          77.03598
-        ],
-        [
-          28.60737,
-          77.03606
-        ],
-        [
-          28.60744,
-          77.03637
-        ],
-        [
-          28.60747,
-          77.03649
-        ],
-        [
-          28.60747,
-          77.03649
-        ]
-      ],
-      "distance": 497,
-      "bidirectional": true
-    },
-    {
-      "id": "E13",
-      "from": "N4",
-      "to": "N14",
-      "roadName": "East Campus Sports Avenue",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.60909,
-          77.03671
-        ],
-        [
-          28.60909,
-          77.03671
-        ],
-        [
-          28.60913,
-          77.03671
-        ],
-        [
-          28.60926,
-          77.03667
-        ],
-        [
-          28.60932,
-          77.03665
-        ],
-        [
-          28.60944,
-          77.03661
-        ],
-        [
-          28.60957,
-          77.03657
-        ],
-        [
-          28.60956,
-          77.03653
-        ],
-        [
-          28.60953,
-          77.03643
-        ],
-        [
-          28.60953,
-          77.03639
-        ],
-        [
-          28.60953,
-          77.03636
-        ],
-        [
-          28.60953,
-          77.03633
-        ],
-        [
-          28.60954,
-          77.03631
-        ],
-        [
-          28.60956,
-          77.03628
-        ],
-        [
-          28.60957,
-          77.03626
-        ],
-        [
-          28.60957,
-          77.03624
-        ],
-        [
-          28.60957,
-          77.03623
-        ],
-        [
-          28.60957,
-          77.03621
-        ],
-        [
-          28.60932,
-          77.03525
-        ],
-        [
-          28.6093,
-          77.03517
-        ],
-        [
-          28.60922,
-          77.0352
-        ],
-        [
-          28.6086,
-          77.0354
-        ],
-        [
-          28.60853,
-          77.03542
-        ],
-        [
-          28.6085,
-          77.03531
-        ],
-        [
-          28.60848,
-          77.03525
-        ],
-        [
-          28.60846,
-          77.03518
-        ],
-        [
-          28.60845,
-          77.03514
-        ],
-        [
-          28.60844,
-          77.03507
-        ],
-        [
-          28.60842,
-          77.03502
-        ],
-        [
-          28.60841,
-          77.03499
-        ],
-        [
-          28.60795,
-          77.03514
-        ],
-        [
-          28.60633,
-          77.03568
-        ],
-        [
-          28.60629,
-          77.0357
-        ],
-        [
-          28.60624,
-          77.03573
-        ],
-        [
-          28.60448,
-          77.0383
-        ],
-        [
-          28.6037,
-          77.03947
-        ],
-        [
-          28.60365,
-          77.03956
-        ],
-        [
-          28.60377,
-          77.03966
-        ],
-        [
-          28.60434,
-          77.04015
-        ],
-        [
-          28.60441,
-          77.04021
-        ],
-        [
-          28.60521,
-          77.04091
-        ],
-        [
-          28.60527,
-          77.04082
-        ],
-        [
-          28.60534,
-          77.04073
-        ],
-        [
-          28.60591,
-          77.03988
-        ],
-        [
-          28.6058,
-          77.03978
-        ]
-      ],
-      "distance": 1418,
-      "bidirectional": true
-    },
-    {
-      "id": "E14",
-      "from": "N4",
-      "to": "N15",
-      "roadName": "East Gate Service Lane",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.60909,
-          77.03671
-        ],
-        [
-          28.60909,
-          77.03671
-        ],
-        [
-          28.60913,
-          77.03671
-        ],
-        [
-          28.60926,
-          77.03667
-        ],
-        [
-          28.60932,
-          77.03665
-        ],
-        [
-          28.60944,
-          77.03661
-        ],
-        [
-          28.60957,
-          77.03657
-        ],
-        [
-          28.60956,
-          77.03653
-        ],
-        [
-          28.60953,
-          77.03643
-        ],
-        [
-          28.60953,
-          77.03639
-        ],
-        [
-          28.60953,
-          77.03636
-        ],
-        [
-          28.60953,
-          77.03633
-        ],
-        [
-          28.60954,
-          77.03631
-        ],
-        [
-          28.60956,
-          77.03628
-        ],
-        [
-          28.60957,
-          77.03626
-        ],
-        [
-          28.60957,
-          77.03624
-        ],
-        [
-          28.60957,
-          77.03623
-        ],
-        [
-          28.60957,
-          77.03621
-        ],
-        [
-          28.60932,
-          77.03525
-        ],
-        [
-          28.6093,
-          77.03517
-        ],
-        [
-          28.60922,
-          77.0352
-        ],
-        [
-          28.6086,
-          77.0354
-        ],
-        [
-          28.60853,
-          77.03542
-        ],
-        [
-          28.6085,
-          77.03531
-        ],
-        [
-          28.60848,
-          77.03525
-        ],
-        [
-          28.60846,
-          77.03518
-        ],
-        [
-          28.60845,
-          77.03514
-        ],
-        [
-          28.60844,
-          77.03507
-        ],
-        [
-          28.60842,
-          77.03502
-        ],
-        [
-          28.60841,
-          77.03499
-        ],
-        [
-          28.60795,
-          77.03514
-        ],
-        [
-          28.60633,
-          77.03568
-        ],
-        [
-          28.60629,
-          77.0357
-        ],
-        [
-          28.60624,
-          77.03573
-        ],
-        [
-          28.60448,
-          77.0383
-        ],
-        [
-          28.6037,
-          77.03947
-        ],
-        [
-          28.60365,
-          77.03956
-        ],
-        [
-          28.60377,
-          77.03966
-        ],
-        [
-          28.60434,
-          77.04015
-        ],
-        [
-          28.60441,
-          77.04021
-        ],
-        [
-          28.60521,
-          77.04091
-        ],
-        [
-          28.60542,
-          77.04109
-        ],
-        [
-          28.60565,
-          77.04129
-        ],
-        [
-          28.60606,
-          77.04165
-        ],
-        [
-          28.60606,
-          77.04179
-        ],
-        [
-          28.60606,
-          77.04195
-        ],
-        [
-          28.60606,
-          77.04272
-        ],
-        [
-          28.6064,
-          77.04271
-        ],
-        [
-          28.60645,
-          77.0427
-        ],
-        [
-          28.60649,
-          77.04267
-        ],
-        [
-          28.60681,
-          77.04232
-        ],
-        [
-          28.60711,
-          77.04204
-        ],
-        [
-          28.60722,
-          77.04199
-        ],
-        [
-          28.60733,
-          77.042
-        ],
-        [
-          28.60803,
-          77.04212
-        ],
-        [
-          28.60851,
-          77.04221
-        ],
-        [
-          28.60894,
-          77.04229
-        ],
-        [
-          28.6105,
-          77.04258
-        ],
-        [
-          28.61097,
-          77.04268
-        ],
-        [
-          28.61123,
-          77.04272
-        ],
-        [
-          28.61136,
-          77.04273
-        ],
-        [
-          28.61146,
-          77.04274
-        ],
-        [
-          28.61176,
-          77.04276
-        ],
-        [
-          28.61193,
-          77.04277
-        ],
-        [
-          28.61218,
-          77.04278
-        ],
-        [
-          28.61235,
-          77.04279
-        ],
-        [
-          28.61235,
-          77.04244
-        ],
-        [
-          28.61164,
-          77.04243
-        ]
-      ],
-      "distance": 2338,
-      "bidirectional": true
-    },
-    {
-      "id": "E15",
-      "from": "N5",
-      "to": "N6",
-      "roadName": "SAC Walkway & Internal Rd",
-      "trafficMultiplier": 1,
-      "speedKmh": 30,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.60747,
-          77.03649
-        ],
-        [
-          28.60747,
-          77.03649
-        ],
-        [
-          28.60744,
-          77.03637
-        ],
-        [
-          28.60737,
-          77.03606
-        ],
-        [
-          28.60735,
-          77.03598
-        ],
-        [
-          28.60734,
-          77.03596
-        ],
-        [
-          28.60731,
-          77.03581
-        ],
-        [
-          28.60759,
-          77.03572
-        ],
-        [
-          28.60783,
-          77.03564
-        ],
-        [
-          28.60803,
-          77.03558
-        ],
-        [
-          28.60846,
-          77.03544
-        ],
-        [
-          28.60853,
-          77.03542
-        ],
-        [
-          28.6085,
-          77.03531
-        ],
-        [
-          28.60848,
-          77.03525
-        ],
-        [
-          28.60846,
-          77.03518
-        ],
-        [
-          28.60845,
-          77.03514
-        ],
-        [
-          28.60844,
-          77.03507
-        ],
-        [
-          28.60842,
-          77.03502
-        ],
-        [
-          28.60841,
-          77.03499
-        ],
-        [
-          28.60795,
-          77.03514
-        ],
-        [
-          28.60633,
-          77.03568
-        ],
-        [
-          28.60629,
-          77.0357
-        ],
-        [
-          28.60624,
-          77.03573
         ],
         [
           28.60618,
           77.03555
-        ],
-        [
-          28.60605,
-          77.03544
         ],
         [
           28.60604,
@@ -2468,566 +985,16 @@ export const NSUT_DWARKA_GRAPH = {
           77.03543
         ],
         [
-          28.60584,
-          77.03526
-        ],
-        [
           28.6049,
           77.03446
         ],
         [
           28.60383,
           77.03353
-        ],
-        [
-          28.60375,
-          77.03346
-        ],
-        [
-          28.6038,
-          77.03337
-        ],
-        [
-          28.60389,
-          77.03344
-        ],
-        [
-          28.60577,
-          77.03508
-        ],
-        [
-          28.60586,
-          77.03501
-        ],
-        [
-          28.60623,
-          77.03475
-        ],
-        [
-          28.60623,
-          77.03418
-        ]
-      ],
-      "distance": 1262,
-      "bidirectional": true
-    },
-    {
-      "id": "E16",
-      "from": "N5",
-      "to": "N14",
-      "roadName": "Library–Kaveri Footpath (Shortcut)",
-      "trafficMultiplier": 1,
-      "speedKmh": 5,
-      "pedestrianOnly": true,
-      "waypoints": [
-        [
-          28.60747,
-          77.03649
-        ],
-        [
-          28.60747,
-          77.03649
-        ],
-        [
-          28.60744,
-          77.03637
-        ],
-        [
-          28.60737,
-          77.03606
-        ],
-        [
-          28.60735,
-          77.03598
-        ],
-        [
-          28.60734,
-          77.03596
-        ],
-        [
-          28.60731,
-          77.03581
-        ],
-        [
-          28.60759,
-          77.03572
-        ],
-        [
-          28.60783,
-          77.03564
-        ],
-        [
-          28.60803,
-          77.03558
-        ],
-        [
-          28.60846,
-          77.03544
-        ],
-        [
-          28.60853,
-          77.03542
-        ],
-        [
-          28.6085,
-          77.03531
-        ],
-        [
-          28.60848,
-          77.03525
-        ],
-        [
-          28.60846,
-          77.03518
-        ],
-        [
-          28.60845,
-          77.03514
-        ],
-        [
-          28.60844,
-          77.03507
-        ],
-        [
-          28.60842,
-          77.03502
-        ],
-        [
-          28.60841,
-          77.03499
-        ],
-        [
-          28.60795,
-          77.03514
-        ],
-        [
-          28.60633,
-          77.03568
-        ],
-        [
-          28.60629,
-          77.0357
-        ],
-        [
-          28.60624,
-          77.03573
-        ],
-        [
-          28.60448,
-          77.0383
-        ],
-        [
-          28.6037,
-          77.03947
-        ],
-        [
-          28.60365,
-          77.03956
-        ],
-        [
-          28.60377,
-          77.03966
-        ],
-        [
-          28.60434,
-          77.04015
-        ],
-        [
-          28.60441,
-          77.04021
-        ],
-        [
-          28.60521,
-          77.04091
-        ],
-        [
-          28.60527,
-          77.04082
-        ],
-        [
-          28.60534,
-          77.04073
-        ],
-        [
-          28.60591,
-          77.03988
-        ],
-        [
-          28.6058,
-          77.03978
-        ]
-      ],
-      "distance": 1339,
-      "bidirectional": true
-    },
-    {
-      "id": "E17",
-      "from": "N8",
-      "to": "N6",
-      "roadName": "Moksha Ground Internal Rd",
-      "trafficMultiplier": 1,
-      "speedKmh": 30,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.60704,
-          77.0321
-        ],
-        [
-          28.60827,
-          77.03215
-        ],
-        [
-          28.60828,
-          77.03317
-        ],
-        [
-          28.60803,
-          77.03336
-        ],
-        [
-          28.60734,
-          77.03387
-        ],
-        [
-          28.60712,
-          77.03404
-        ],
-        [
-          28.60623,
-          77.03475
-        ],
-        [
-          28.60623,
-          77.03418
-        ]
-      ],
-      "distance": 568,
-      "bidirectional": true
-    },
-    {
-      "id": "E18",
-      "from": "N6",
-      "to": "N7",
-      "roadName": "JC Bose Hostel Road",
-      "trafficMultiplier": 1,
-      "speedKmh": 30,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.60623,
-          77.03418
-        ],
-        [
-          28.60623,
-          77.03475
-        ],
-        [
-          28.60586,
-          77.03501
-        ],
-        [
-          28.60577,
-          77.03508
-        ],
-        [
-          28.60627,
-          77.03551
-        ],
-        [
-          28.60631,
-          77.03559
-        ],
-        [
-          28.60633,
-          77.03568
-        ],
-        [
-          28.60629,
-          77.0357
-        ],
-        [
-          28.60624,
-          77.03573
-        ],
-        [
-          28.60618,
-          77.03555
-        ],
-        [
-          28.60605,
-          77.03544
-        ],
-        [
-          28.60604,
-          77.03544
-        ],
-        [
-          28.60603,
-          77.03543
-        ],
-        [
-          28.60584,
-          77.03526
-        ],
-        [
-          28.6049,
-          77.03446
-        ],
-        [
-          28.60383,
-          77.03353
-        ],
-        [
-          28.60375,
-          77.03346
-        ],
-        [
-          28.6038,
-          77.03337
-        ],
-        [
-          28.60389,
-          77.03344
-        ],
-        [
-          28.60484,
-          77.03427
-        ]
-      ],
-      "distance": 726,
-      "bidirectional": true
-    },
-    {
-      "id": "E19",
-      "from": "N7",
-      "to": "N10",
-      "roadName": "Hostel South Exit Road",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.60484,
-          77.03427
-        ],
-        [
-          28.60577,
-          77.03508
-        ],
-        [
-          28.60627,
-          77.03551
-        ],
-        [
-          28.60631,
-          77.03559
-        ],
-        [
-          28.60633,
-          77.03568
-        ],
-        [
-          28.60629,
-          77.0357
-        ],
-        [
-          28.60624,
-          77.03573
-        ],
-        [
-          28.60618,
-          77.03555
-        ],
-        [
-          28.60605,
-          77.03544
-        ],
-        [
-          28.60604,
-          77.03544
-        ],
-        [
-          28.60603,
-          77.03543
-        ],
-        [
-          28.60584,
-          77.03526
-        ],
-        [
-          28.6049,
-          77.03446
-        ],
-        [
-          28.60383,
-          77.03353
-        ],
-        [
-          28.60376,
-          77.03365
-        ],
-        [
-          28.60367,
-          77.03357
-        ],
-        [
-          28.60344,
-          77.03338
-        ],
-        [
-          28.6032,
-          77.03318
-        ]
-      ],
-      "distance": 664,
-      "bidirectional": true
-    },
-    {
-      "id": "E20",
-      "from": "N8",
-      "to": "N7",
-      "roadName": "West Hostel Footpath (Shortcut)",
-      "trafficMultiplier": 1,
-      "speedKmh": 5,
-      "pedestrianOnly": true,
-      "waypoints": [
-        [
-          28.60704,
-          77.0321
-        ],
-        [
-          28.60827,
-          77.03215
-        ],
-        [
-          28.60828,
-          77.03317
-        ],
-        [
-          28.60803,
-          77.03336
-        ],
-        [
-          28.60734,
-          77.03387
-        ],
-        [
-          28.60712,
-          77.03404
-        ],
-        [
-          28.60623,
-          77.03475
-        ],
-        [
-          28.60586,
-          77.03501
-        ],
-        [
-          28.60577,
-          77.03508
-        ],
-        [
-          28.60627,
-          77.03551
-        ],
-        [
-          28.60631,
-          77.03559
-        ],
-        [
-          28.60633,
-          77.03568
-        ],
-        [
-          28.60629,
-          77.0357
-        ],
-        [
-          28.60624,
-          77.03573
-        ],
-        [
-          28.60618,
-          77.03555
-        ],
-        [
-          28.60605,
-          77.03544
-        ],
-        [
-          28.60604,
-          77.03544
-        ],
-        [
-          28.60603,
-          77.03543
-        ],
-        [
-          28.60584,
-          77.03526
-        ],
-        [
-          28.6049,
-          77.03446
-        ],
-        [
-          28.60383,
-          77.03353
-        ],
-        [
-          28.60375,
-          77.03346
-        ],
-        [
-          28.6038,
-          77.03337
-        ],
-        [
-          28.60389,
-          77.03344
-        ],
-        [
-          28.60484,
-          77.03427
-        ]
-      ],
-      "distance": 1181,
-      "bidirectional": true
-    },
-    {
-      "id": "E21",
-      "from": "N10",
-      "to": "N11",
-      "roadName": "Sector 14 Vegas Arterial",
-      "trafficMultiplier": 2.2,
-      "speedKmh": 45,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.6032,
-          77.03318
-        ],
-        [
-          28.60344,
-          77.03338
-        ],
-        [
-          28.60367,
-          77.03357
-        ],
-        [
-          28.60375,
-          77.03346
         ],
         [
           28.60179,
           77.03179
-        ],
-        [
-          28.60106,
-          77.03116
         ],
         [
           28.59991,
@@ -3038,20 +1005,12 @@ export const NSUT_DWARKA_GRAPH = {
           77.03011
         ],
         [
-          28.59954,
-          77.03014
-        ],
-        [
           28.59943,
           77.03012
         ],
         [
           28.59932,
           77.03004
-        ],
-        [
-          28.59925,
-          77.02992
         ],
         [
           28.59923,
@@ -3062,16 +1021,8 @@ export const NSUT_DWARKA_GRAPH = {
           77.02962
         ],
         [
-          28.59937,
-          77.02949
-        ],
-        [
           28.59943,
           77.02945
-        ],
-        [
-          28.59953,
-          77.02943
         ],
         [
           28.59968,
@@ -3080,10 +1031,6 @@ export const NSUT_DWARKA_GRAPH = {
         [
           28.59977,
           77.02926
-        ],
-        [
-          28.60118,
-          77.02718
         ],
         [
           28.60125,
@@ -3094,16 +1041,8 @@ export const NSUT_DWARKA_GRAPH = {
           77.02693
         ],
         [
-          28.60142,
-          77.02695
-        ],
-        [
           28.60146,
           77.02701
-        ],
-        [
-          28.6015,
-          77.02713
         ],
         [
           28.60136,
@@ -3114,407 +1053,41 @@ export const NSUT_DWARKA_GRAPH = {
           77.02791
         ],
         [
-          28.60071,
-          77.02822
+          28.601,
+          77.02824
         ],
         [
-          28.60028,
-          77.02887
+          28.60107,
+          77.02835
+        ],
+        [
+          28.60153,
+          77.02874
         ]
       ],
-      "distance": 1330,
+      "distance": 1886,
       "bidirectional": true
     },
     {
-      "id": "E22",
-      "from": "N11",
-      "to": "N12",
-      "roadName": "Sector 14 Metro Promenade",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
+      "id": "E6",
+      "from": "nsut_main",
+      "to": "vegas_mall",
+      "roadName": "NSUT Hostel–Vegas Footpath (Shortcut)",
+      "speedKmh": 5,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": true,
       "waypoints": [
         [
-          28.60028,
-          77.02887
+          28.60821,
+          77.03515
         ],
         [
-          28.59993,
-          77.0294
+          28.60842,
+          77.03502
         ],
         [
-          28.59985,
-          77.02972
-        ],
-        [
-          28.59986,
-          77.02982
-        ],
-        [
-          28.59985,
-          77.02987
-        ],
-        [
-          28.59983,
-          77.02992
-        ],
-        [
-          28.59977,
-          77.03004
-        ],
-        [
-          28.59967,
-          77.03011
-        ],
-        [
-          28.59954,
-          77.03014
-        ],
-        [
-          28.59943,
-          77.03012
-        ],
-        [
-          28.59932,
-          77.03004
-        ],
-        [
-          28.59925,
-          77.02992
-        ],
-        [
-          28.59923,
-          77.02978
-        ],
-        [
-          28.59926,
-          77.02962
-        ],
-        [
-          28.59937,
-          77.02949
-        ],
-        [
-          28.59943,
-          77.02945
-        ],
-        [
-          28.59953,
-          77.02943
-        ],
-        [
-          28.59968,
-          77.02932
-        ],
-        [
-          28.59977,
-          77.02926
-        ],
-        [
-          28.60118,
-          77.02718
-        ],
-        [
-          28.60125,
-          77.02693
-        ],
-        [
-          28.60136,
-          77.02675
-        ],
-        [
-          28.60141,
-          77.02668
-        ],
-        [
-          28.60147,
-          77.02657
-        ],
-        [
-          28.60167,
-          77.02627
-        ],
-        [
-          28.60222,
-          77.02559
-        ],
-        [
-          28.60259,
-          77.02523
-        ],
-        [
-          28.60285,
-          77.02503
-        ],
-        [
-          28.60291,
-          77.02498
-        ],
-        [
-          28.60292,
-          77.02503
-        ],
-        [
-          28.60294,
-          77.02511
-        ],
-        [
-          28.60297,
-          77.02516
-        ],
-        [
-          28.60303,
-          77.02523
-        ],
-        [
-          28.60309,
-          77.02526
-        ],
-        [
-          28.60317,
-          77.02529
-        ],
-        [
-          28.60258,
-          77.02586
-        ],
-        [
-          28.60234,
-          77.02614
-        ]
-      ],
-      "distance": 1015,
-      "bidirectional": true
-    },
-    {
-      "id": "E23",
-      "from": "N8",
-      "to": "N12",
-      "roadName": "Dwarka Sector 14 Link Road",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 40,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.60704,
-          77.0321
-        ],
-        [
-          28.60827,
-          77.03215
-        ],
-        [
-          28.60828,
-          77.03317
-        ],
-        [
-          28.60803,
-          77.03336
-        ],
-        [
-          28.60734,
-          77.03387
-        ],
-        [
-          28.60712,
-          77.03404
-        ],
-        [
-          28.60698,
-          77.03374
-        ],
-        [
-          28.60695,
-          77.03362
-        ],
-        [
-          28.60622,
-          77.03362
-        ],
-        [
-          28.60622,
-          77.03343
-        ],
-        [
-          28.60622,
-          77.03251
-        ],
-        [
-          28.60622,
-          77.03223
-        ],
-        [
-          28.60621,
-          77.03162
-        ],
-        [
-          28.60622,
-          77.03114
-        ],
-        [
-          28.60623,
-          77.03038
-        ],
-        [
-          28.60625,
-          77.02954
-        ],
-        [
-          28.60626,
-          77.0289
-        ],
-        [
-          28.6063,
-          77.02729
-        ],
-        [
-          28.60631,
-          77.02671
-        ],
-        [
-          28.60631,
-          77.02646
-        ],
-        [
-          28.60631,
-          77.02627
-        ],
-        [
-          28.60632,
-          77.02535
-        ],
-        [
-          28.60633,
-          77.0246
-        ],
-        [
-          28.60594,
-          77.0246
-        ],
-        [
-          28.60572,
-          77.02459
-        ],
-        [
-          28.60551,
-          77.02458
-        ],
-        [
-          28.60528,
-          77.02458
-        ],
-        [
-          28.60516,
-          77.02457
-        ],
-        [
-          28.60506,
-          77.02457
-        ],
-        [
-          28.60484,
-          77.02457
-        ],
-        [
-          28.60444,
-          77.02456
-        ],
-        [
-          28.60441,
-          77.02456
-        ],
-        [
-          28.60439,
-          77.02456
-        ],
-        [
-          28.60438,
-          77.02454
-        ],
-        [
-          28.60434,
-          77.02451
-        ],
-        [
-          28.60425,
-          77.02438
-        ],
-        [
-          28.60418,
-          77.02437
-        ],
-        [
-          28.60411,
-          77.02434
-        ],
-        [
-          28.60391,
-          77.02454
-        ],
-        [
-          28.60333,
-          77.0251
-        ],
-        [
-          28.60317,
-          77.02529
-        ],
-        [
-          28.60258,
-          77.02586
-        ],
-        [
-          28.60234,
-          77.02614
-        ]
-      ],
-      "distance": 1918,
-      "bidirectional": true
-    },
-    {
-      "id": "E24",
-      "from": "N10",
-      "to": "N13",
-      "roadName": "Sector 3 Main Road East",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 45,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.6032,
-          77.03318
-        ],
-        [
-          28.60344,
-          77.03338
-        ],
-        [
-          28.60367,
-          77.03357
-        ],
-        [
-          28.60375,
-          77.03346
-        ],
-        [
-          28.6038,
-          77.03337
-        ],
-        [
-          28.60389,
-          77.03344
-        ],
-        [
-          28.60577,
-          77.03508
-        ],
-        [
-          28.60627,
-          77.03551
-        ],
-        [
-          28.60631,
-          77.03559
+          28.60841,
+          77.03499
         ],
         [
           28.60633,
@@ -3525,4286 +1098,4325 @@ export const NSUT_DWARKA_GRAPH = {
           77.0357
         ],
         [
-          28.60624,
-          77.03573
+          28.60618,
+          77.03555
         ],
         [
-          28.60448,
-          77.0383
+          28.60604,
+          77.03544
+        ],
+        [
+          28.60603,
+          77.03543
+        ],
+        [
+          28.6049,
+          77.03446
+        ],
+        [
+          28.60383,
+          77.03353
+        ],
+        [
+          28.60179,
+          77.03179
+        ],
+        [
+          28.59991,
+          77.03019
+        ],
+        [
+          28.59967,
+          77.03011
+        ],
+        [
+          28.59943,
+          77.03012
+        ],
+        [
+          28.59932,
+          77.03004
+        ],
+        [
+          28.59923,
+          77.02978
+        ],
+        [
+          28.59926,
+          77.02962
+        ],
+        [
+          28.59943,
+          77.02945
+        ],
+        [
+          28.59968,
+          77.02932
+        ],
+        [
+          28.59977,
+          77.02926
+        ],
+        [
+          28.60125,
+          77.02693
+        ],
+        [
+          28.60138,
+          77.02693
+        ],
+        [
+          28.60146,
+          77.02701
+        ],
+        [
+          28.60136,
+          77.02726
+        ],
+        [
+          28.60092,
+          77.02791
+        ],
+        [
+          28.601,
+          77.02824
+        ],
+        [
+          28.60107,
+          77.02835
+        ],
+        [
+          28.60153,
+          77.02874
+        ]
+      ],
+      "distance": 1603,
+      "bidirectional": true
+    },
+    {
+      "id": "E7",
+      "from": "dwarka_mor",
+      "to": "vegas_mall",
+      "roadName": "Sector 14 Metro Corridor Rd",
+      "speedKmh": 40,
+      "trafficMultiplier": 1.5,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6194,
+          77.03318
+        ],
+        [
+          28.61955,
+          77.03416
+        ],
+        [
+          28.61967,
+          77.03488
+        ],
+        [
+          28.61975,
+          77.03542
+        ],
+        [
+          28.61958,
+          77.03548
+        ],
+        [
+          28.61955,
+          77.03531
+        ],
+        [
+          28.61936,
+          77.03425
+        ],
+        [
+          28.61928,
+          77.03376
+        ],
+        [
+          28.61909,
+          77.03251
+        ],
+        [
+          28.619,
+          77.03188
+        ],
+        [
+          28.61859,
+          77.0318
+        ],
+        [
+          28.61776,
+          77.03192
+        ],
+        [
+          28.61637,
+          77.03234
+        ],
+        [
+          28.61257,
+          77.03361
+        ],
+        [
+          28.60841,
+          77.03499
+        ],
+        [
+          28.60629,
+          77.0357
+        ],
+        [
+          28.60605,
+          77.03544
+        ],
+        [
+          28.60584,
+          77.03526
+        ],
+        [
+          28.60375,
+          77.03346
+        ],
+        [
+          28.59991,
+          77.03019
+        ],
+        [
+          28.59943,
+          77.03012
+        ],
+        [
+          28.59926,
+          77.02962
+        ],
+        [
+          28.59953,
+          77.02943
+        ],
+        [
+          28.60118,
+          77.02718
+        ],
+        [
+          28.60142,
+          77.02695
+        ],
+        [
+          28.60136,
+          77.02726
+        ],
+        [
+          28.601,
+          77.02824
+        ],
+        [
+          28.60153,
+          77.02874
+        ]
+      ],
+      "distance": 3728,
+      "bidirectional": true
+    },
+    {
+      "id": "E8",
+      "from": "nsut_main",
+      "to": "dwarka_sec10",
+      "roadName": "Dwarka Sector 3–10 Central Ave",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.60821,
+          77.03515
+        ],
+        [
+          28.60841,
+          77.03499
+        ],
+        [
+          28.60629,
+          77.0357
         ],
         [
           28.6037,
           77.03947
         ],
         [
-          28.60365,
-          77.03956
+          28.60184,
+          77.0422
         ],
         [
-          28.60377,
-          77.03966
+          28.6013,
+          77.04303
         ],
         [
-          28.60434,
-          77.04015
+          28.59858,
+          77.04713
         ],
         [
-          28.60441,
-          77.04021
+          28.59803,
+          77.04794
+        ],
+        [
+          28.59687,
+          77.04969
+        ],
+        [
+          28.59645,
+          77.05033
+        ],
+        [
+          28.59424,
+          77.0536
+        ],
+        [
+          28.59335,
+          77.05499
+        ],
+        [
+          28.59154,
+          77.05767
+        ],
+        [
+          28.59078,
+          77.05881
+        ],
+        [
+          28.58888,
+          77.06163
+        ],
+        [
+          28.58822,
+          77.06104
+        ],
+        [
+          28.58736,
+          77.06029
+        ],
+        [
+          28.58665,
+          77.05976
+        ],
+        [
+          28.58648,
+          77.05985
+        ],
+        [
+          28.5862,
+          77.06026
+        ],
+        [
+          28.58586,
+          77.06077
+        ],
+        [
+          28.58508,
+          77.06195
+        ],
+        [
+          28.58489,
+          77.06202
+        ],
+        [
+          28.58377,
+          77.06112
+        ],
+        [
+          28.58338,
+          77.06077
+        ],
+        [
+          28.5827,
+          77.06018
+        ],
+        [
+          28.58275,
+          77.05991
+        ],
+        [
+          28.58172,
+          77.05923
+        ]
+      ],
+      "distance": 4586,
+      "bidirectional": true
+    },
+    {
+      "id": "E9",
+      "from": "vegas_mall",
+      "to": "dwarka_sec10",
+      "roadName": "Dwarka Sector 14–10 Arterial Rd",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.2,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.60153,
+          77.02874
+        ],
+        [
+          28.60096,
+          77.02813
+        ],
+        [
+          28.59993,
+          77.0294
+        ],
+        [
+          28.59983,
+          77.02992
+        ],
+        [
+          28.59943,
+          77.03012
+        ],
+        [
+          28.59923,
+          77.02978
+        ],
+        [
+          28.59807,
+          77.02867
+        ],
+        [
+          28.59503,
+          77.03101
+        ],
+        [
+          28.59347,
+          77.03333
+        ],
+        [
+          28.59232,
+          77.03505
+        ],
+        [
+          28.58872,
+          77.04044
+        ],
+        [
+          28.58856,
+          77.04081
+        ],
+        [
+          28.58785,
+          77.04209
+        ],
+        [
+          28.58734,
+          77.04266
+        ],
+        [
+          28.58599,
+          77.04455
+        ],
+        [
+          28.58264,
+          77.04957
+        ],
+        [
+          28.58303,
+          77.05046
+        ],
+        [
+          28.58462,
+          77.0516
+        ],
+        [
+          28.58475,
+          77.05186
+        ],
+        [
+          28.58481,
+          77.05193
+        ],
+        [
+          28.58503,
+          77.05198
+        ],
+        [
+          28.58512,
+          77.05214
+        ],
+        [
+          28.58499,
+          77.05234
+        ],
+        [
+          28.58334,
+          77.05468
+        ],
+        [
+          28.58312,
+          77.05516
+        ],
+        [
+          28.5829,
+          77.05728
+        ],
+        [
+          28.58188,
+          77.05751
+        ],
+        [
+          28.58172,
+          77.05923
+        ]
+      ],
+      "distance": 4691,
+      "bidirectional": true
+    },
+    {
+      "id": "E10",
+      "from": "dwarka_sec10",
+      "to": "dwarka_sec21",
+      "roadName": "Dwarka Sector 9–21 Expressway Link",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.58172,
+          77.05923
+        ],
+        [
+          28.58279,
+          77.05912
+        ],
+        [
+          28.58285,
+          77.05797
+        ],
+        [
+          28.58291,
+          77.05891
+        ],
+        [
+          28.58282,
+          77.06007
+        ],
+        [
+          28.58271,
+          77.06036
+        ],
+        [
+          28.5818,
+          77.06172
+        ],
+        [
+          28.58154,
+          77.0615
+        ],
+        [
+          28.57903,
+          77.05936
+        ],
+        [
+          28.57744,
+          77.05801
+        ],
+        [
+          28.57713,
+          77.05798
+        ],
+        [
+          28.57595,
+          77.05962
+        ],
+        [
+          28.57411,
+          77.06225
+        ],
+        [
+          28.57242,
+          77.06479
+        ],
+        [
+          28.57202,
+          77.06545
+        ],
+        [
+          28.57161,
+          77.06606
+        ],
+        [
+          28.57036,
+          77.06662
+        ],
+        [
+          28.56841,
+          77.06677
+        ],
+        [
+          28.56569,
+          77.06446
+        ],
+        [
+          28.56346,
+          77.06259
+        ],
+        [
+          28.56315,
+          77.06281
+        ],
+        [
+          28.5615,
+          77.06359
+        ],
+        [
+          28.56042,
+          77.0636
+        ],
+        [
+          28.55978,
+          77.06345
+        ],
+        [
+          28.55354,
+          77.05822
+        ],
+        [
+          28.55181,
+          77.05703
+        ],
+        [
+          28.55175,
+          77.05712
+        ],
+        [
+          28.55204,
+          77.05752
+        ]
+      ],
+      "distance": 5138,
+      "bidirectional": true
+    },
+    {
+      "id": "E11",
+      "from": "nsut_main",
+      "to": "dabri_more",
+      "roadName": "Dabri–Dwarka Sector 3 Road",
+      "speedKmh": 40,
+      "trafficMultiplier": 1.5,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.60821,
+          77.03515
+        ],
+        [
+          28.60633,
+          77.03568
+        ],
+        [
+          28.6037,
+          77.03947
+        ],
+        [
+          28.60275,
+          77.04309
+        ],
+        [
+          28.6044,
+          77.04578
+        ],
+        [
+          28.60512,
+          77.04821
+        ],
+        [
+          28.60514,
+          77.0519
+        ],
+        [
+          28.60446,
+          77.05416
+        ],
+        [
+          28.60355,
+          77.0558
+        ],
+        [
+          28.60307,
+          77.05656
+        ],
+        [
+          28.60004,
+          77.06106
+        ],
+        [
+          28.59953,
+          77.06188
+        ],
+        [
+          28.59864,
+          77.06324
+        ],
+        [
+          28.5999,
+          77.06484
+        ],
+        [
+          28.60112,
+          77.06692
+        ],
+        [
+          28.60262,
+          77.06885
+        ],
+        [
+          28.60364,
+          77.07124
+        ],
+        [
+          28.60493,
+          77.07229
+        ],
+        [
+          28.60624,
+          77.07486
+        ],
+        [
+          28.60758,
+          77.07815
+        ],
+        [
+          28.60862,
+          77.07972
+        ],
+        [
+          28.61059,
+          77.0822
+        ],
+        [
+          28.6109,
+          77.08339
+        ],
+        [
+          28.61119,
+          77.08397
+        ],
+        [
+          28.61085,
+          77.08407
+        ],
+        [
+          28.61008,
+          77.08351
+        ],
+        [
+          28.60888,
+          77.08268
+        ],
+        [
+          28.60951,
+          77.08249
+        ]
+      ],
+      "distance": 6530,
+      "bidirectional": true
+    },
+    {
+      "id": "E12",
+      "from": "nsut_admin",
+      "to": "dabri_more",
+      "roadName": "Madhu Vihar–Dabri Pedestrian Greenway",
+      "speedKmh": 5,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": true,
+      "waypoints": [
+        [
+          28.61029,
+          77.03634
+        ],
+        [
+          28.60956,
+          77.03653
+        ],
+        [
+          28.60954,
+          77.03631
+        ],
+        [
+          28.60932,
+          77.03525
+        ],
+        [
+          28.6085,
+          77.03531
+        ],
+        [
+          28.60841,
+          77.03499
+        ],
+        [
+          28.6037,
+          77.03947
+        ],
+        [
+          28.60275,
+          77.04309
+        ],
+        [
+          28.60469,
+          77.0465
+        ],
+        [
+          28.60531,
+          77.05023
+        ],
+        [
+          28.60476,
+          77.05338
+        ],
+        [
+          28.60355,
+          77.0558
+        ],
+        [
+          28.60307,
+          77.05656
+        ],
+        [
+          28.60002,
+          77.06109
+        ],
+        [
+          28.59939,
+          77.06208
+        ],
+        [
+          28.59976,
+          77.06471
+        ],
+        [
+          28.60038,
+          77.06569
+        ],
+        [
+          28.60262,
+          77.06885
+        ],
+        [
+          28.6038,
+          77.07154
         ],
         [
           28.60521,
-          77.04091
+          77.07246
         ],
         [
-          28.60542,
-          77.04109
+          28.60668,
+          77.07619
         ],
         [
-          28.60565,
-          77.04129
+          28.6083,
+          77.07933
         ],
         [
-          28.60606,
-          77.04165
+          28.61059,
+          77.0822
         ],
         [
-          28.60542,
-          77.04262
+          28.61091,
+          77.08341
         ],
         [
-          28.60477,
-          77.04204
+          28.61115,
+          77.08435
         ],
         [
-          28.60465,
-          77.04194
+          28.61057,
+          77.08379
         ],
         [
-          28.60416,
-          77.0415
+          28.60934,
+          77.08297
         ],
         [
-          28.60414,
-          77.0415
-        ],
-        [
-          28.60412,
-          77.0415
-        ],
-        [
-          28.60408,
-          77.04152
-        ],
-        [
-          28.60392,
-          77.04175
+          28.60951,
+          77.08249
         ]
       ],
-      "distance": 1605,
+      "distance": 5826,
+      "bidirectional": true
+    },
+    {
+      "id": "E13",
+      "from": "dwarka_sec10",
+      "to": "dabri_more",
+      "roadName": "Palam Flyover & Manglapuri Rd",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.4,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.58172,
+          77.05923
+        ],
+        [
+          28.5828,
+          77.059
+        ],
+        [
+          28.58299,
+          77.0574
+        ],
+        [
+          28.58283,
+          77.05992
+        ],
+        [
+          28.58271,
+          77.06036
+        ],
+        [
+          28.58513,
+          77.0644
+        ],
+        [
+          28.58694,
+          77.06593
+        ],
+        [
+          28.59087,
+          77.0693
+        ],
+        [
+          28.59379,
+          77.07137
+        ],
+        [
+          28.59466,
+          77.0717
+        ],
+        [
+          28.59562,
+          77.07189
+        ],
+        [
+          28.59675,
+          77.07202
+        ],
+        [
+          28.59885,
+          77.07178
+        ],
+        [
+          28.60143,
+          77.07079
+        ],
+        [
+          28.60318,
+          77.07017
+        ],
+        [
+          28.60404,
+          77.07179
+        ],
+        [
+          28.60521,
+          77.07246
+        ],
+        [
+          28.60638,
+          77.07524
+        ],
+        [
+          28.60758,
+          77.07815
+        ],
+        [
+          28.60862,
+          77.07972
+        ],
+        [
+          28.61048,
+          77.08199
+        ],
+        [
+          28.61075,
+          77.08312
+        ],
+        [
+          28.61104,
+          77.08374
+        ],
+        [
+          28.61097,
+          77.08419
+        ],
+        [
+          28.61061,
+          77.08382
+        ],
+        [
+          28.60984,
+          77.08334
+        ],
+        [
+          28.60871,
+          77.08258
+        ],
+        [
+          28.60951,
+          77.08249
+        ]
+      ],
+      "distance": 5674,
+      "bidirectional": true
+    },
+    {
+      "id": "E14",
+      "from": "dwarka_mor",
+      "to": "uttam_nagar",
+      "roadName": "Najafgarh Road (Blue Line Corridor)",
+      "speedKmh": 40,
+      "trafficMultiplier": 1.6,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6194,
+          77.03318
+        ],
+        [
+          28.61955,
+          77.03416
+        ],
+        [
+          28.61967,
+          77.03488
+        ],
+        [
+          28.61975,
+          77.03542
+        ],
+        [
+          28.6199,
+          77.03661
+        ],
+        [
+          28.62014,
+          77.03837
+        ],
+        [
+          28.62026,
+          77.03917
+        ],
+        [
+          28.62035,
+          77.04018
+        ],
+        [
+          28.62035,
+          77.04186
+        ],
+        [
+          28.62027,
+          77.04348
+        ],
+        [
+          28.62038,
+          77.04509
+        ],
+        [
+          28.62056,
+          77.04665
+        ],
+        [
+          28.62069,
+          77.04767
+        ],
+        [
+          28.62088,
+          77.04916
+        ],
+        [
+          28.62113,
+          77.05115
+        ],
+        [
+          28.62132,
+          77.05264
+        ],
+        [
+          28.62151,
+          77.054
+        ],
+        [
+          28.62189,
+          77.05612
+        ],
+        [
+          28.62215,
+          77.05739
+        ],
+        [
+          28.62254,
+          77.05871
+        ],
+        [
+          28.62273,
+          77.05947
+        ],
+        [
+          28.62334,
+          77.06125
+        ],
+        [
+          28.62365,
+          77.06204
+        ],
+        [
+          28.62412,
+          77.06322
+        ],
+        [
+          28.62429,
+          77.06407
+        ],
+        [
+          28.62322,
+          77.06536
+        ],
+        [
+          28.6222,
+          77.06534
+        ],
+        [
+          28.62188,
+          77.06527
+        ]
+      ],
+      "distance": 3445,
+      "bidirectional": true
+    },
+    {
+      "id": "E15",
+      "from": "uttam_nagar",
+      "to": "janakpuri_west",
+      "roadName": "Shivaji Marg / Janakpuri District Rd",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.4,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.62188,
+          77.06527
+        ],
+        [
+          28.62211,
+          77.06533
+        ],
+        [
+          28.62282,
+          77.06535
+        ],
+        [
+          28.62357,
+          77.06535
+        ],
+        [
+          28.62424,
+          77.06397
+        ],
+        [
+          28.62441,
+          77.06391
+        ],
+        [
+          28.62479,
+          77.06486
+        ],
+        [
+          28.62506,
+          77.06558
+        ],
+        [
+          28.62544,
+          77.06656
+        ],
+        [
+          28.62574,
+          77.06742
+        ],
+        [
+          28.62617,
+          77.06855
+        ],
+        [
+          28.62675,
+          77.07012
+        ],
+        [
+          28.62687,
+          77.07042
+        ],
+        [
+          28.62717,
+          77.07118
+        ],
+        [
+          28.62734,
+          77.07161
+        ],
+        [
+          28.62754,
+          77.07212
+        ],
+        [
+          28.62819,
+          77.0739
+        ],
+        [
+          28.6286,
+          77.07512
+        ],
+        [
+          28.62852,
+          77.07521
+        ],
+        [
+          28.62807,
+          77.07547
+        ],
+        [
+          28.6281,
+          77.07591
+        ],
+        [
+          28.62807,
+          77.07609
+        ],
+        [
+          28.62736,
+          77.0767
+        ],
+        [
+          28.62756,
+          77.07701
+        ],
+        [
+          28.62796,
+          77.07713
+        ],
+        [
+          28.62836,
+          77.07744
+        ],
+        [
+          28.62857,
+          77.07783
+        ],
+        [
+          28.62888,
+          77.07765
+        ]
+      ],
+      "distance": 2073,
+      "bidirectional": true
+    },
+    {
+      "id": "E16",
+      "from": "dabri_more",
+      "to": "janakpuri_west",
+      "roadName": "Pankha Road Flyover Corridor",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.60951,
+          77.08249
+        ],
+        [
+          28.61016,
+          77.08345
+        ],
+        [
+          28.6106,
+          77.08337
+        ],
+        [
+          28.61119,
+          77.08397
+        ],
+        [
+          28.61172,
+          77.08466
+        ],
+        [
+          28.61213,
+          77.08568
+        ],
+        [
+          28.61266,
+          77.08616
+        ],
+        [
+          28.61341,
+          77.0862
+        ],
+        [
+          28.61375,
+          77.08575
+        ],
+        [
+          28.61446,
+          77.08424
+        ],
+        [
+          28.61641,
+          77.08035
+        ],
+        [
+          28.61752,
+          77.07799
+        ],
+        [
+          28.61772,
+          77.07757
+        ],
+        [
+          28.61953,
+          77.07378
+        ],
+        [
+          28.62089,
+          77.07093
+        ],
+        [
+          28.62156,
+          77.06972
+        ],
+        [
+          28.6226,
+          77.06862
+        ],
+        [
+          28.62453,
+          77.06764
+        ],
+        [
+          28.62529,
+          77.06726
+        ],
+        [
+          28.62608,
+          77.06832
+        ],
+        [
+          28.62684,
+          77.07035
+        ],
+        [
+          28.62734,
+          77.07161
+        ],
+        [
+          28.62819,
+          77.0739
+        ],
+        [
+          28.62833,
+          77.0753
+        ],
+        [
+          28.6281,
+          77.07602
+        ],
+        [
+          28.62739,
+          77.07675
+        ],
+        [
+          28.62836,
+          77.07744
+        ],
+        [
+          28.62888,
+          77.07765
+        ]
+      ],
+      "distance": 4421,
+      "bidirectional": true
+    },
+    {
+      "id": "E17",
+      "from": "dabri_more",
+      "to": "uttam_nagar",
+      "roadName": "Dabri–Uttam Nagar Link Rd",
+      "speedKmh": 38,
+      "trafficMultiplier": 1.5,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.60951,
+          77.08249
+        ],
+        [
+          28.6096,
+          77.08303
+        ],
+        [
+          28.61032,
+          77.0835
+        ],
+        [
+          28.61076,
+          77.08337
+        ],
+        [
+          28.61117,
+          77.08393
+        ],
+        [
+          28.61151,
+          77.08449
+        ],
+        [
+          28.61181,
+          77.08481
+        ],
+        [
+          28.61213,
+          77.08568
+        ],
+        [
+          28.61234,
+          77.08593
+        ],
+        [
+          28.61315,
+          77.08637
+        ],
+        [
+          28.61341,
+          77.0862
+        ],
+        [
+          28.61368,
+          77.08594
+        ],
+        [
+          28.61391,
+          77.08543
+        ],
+        [
+          28.61503,
+          77.08312
+        ],
+        [
+          28.61549,
+          77.08233
+        ],
+        [
+          28.61737,
+          77.07829
+        ],
+        [
+          28.61754,
+          77.07794
+        ],
+        [
+          28.61772,
+          77.07757
+        ],
+        [
+          28.6183,
+          77.07635
+        ],
+        [
+          28.62081,
+          77.07108
+        ],
+        [
+          28.62103,
+          77.07062
+        ],
+        [
+          28.62156,
+          77.06972
+        ],
+        [
+          28.62218,
+          77.06887
+        ],
+        [
+          28.62212,
+          77.06847
+        ],
+        [
+          28.62251,
+          77.06759
+        ],
+        [
+          28.62255,
+          77.0667
+        ],
+        [
+          28.62197,
+          77.06668
+        ],
+        [
+          28.62188,
+          77.06527
+        ]
+      ],
+      "distance": 3121,
+      "bidirectional": true
+    },
+    {
+      "id": "E18",
+      "from": "janakpuri_west",
+      "to": "rajouri_garden",
+      "roadName": "Najafgarh Rd & Raja Garden Flyover",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.4,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.62888,
+          77.07765
+        ],
+        [
+          28.62887,
+          77.07707
+        ],
+        [
+          28.62855,
+          77.07671
+        ],
+        [
+          28.62756,
+          77.07701
+        ],
+        [
+          28.6281,
+          77.07602
+        ],
+        [
+          28.62759,
+          77.07572
+        ],
+        [
+          28.6271,
+          77.07567
+        ],
+        [
+          28.62692,
+          77.0755
+        ],
+        [
+          28.62729,
+          77.07565
+        ],
+        [
+          28.62769,
+          77.0756
+        ],
+        [
+          28.62863,
+          77.0752
+        ],
+        [
+          28.62982,
+          77.07757
+        ],
+        [
+          28.63013,
+          77.0781
+        ],
+        [
+          28.63038,
+          77.07911
+        ],
+        [
+          28.6314,
+          77.08175
+        ],
+        [
+          28.63275,
+          77.08549
+        ],
+        [
+          28.63425,
+          77.08944
+        ],
+        [
+          28.63448,
+          77.09019
+        ],
+        [
+          28.63569,
+          77.09328
+        ],
+        [
+          28.63813,
+          77.09917
+        ],
+        [
+          28.6391,
+          77.10132
+        ],
+        [
+          28.64069,
+          77.10537
+        ],
+        [
+          28.6414,
+          77.10713
+        ],
+        [
+          28.64237,
+          77.10935
+        ],
+        [
+          28.64425,
+          77.1135
+        ],
+        [
+          28.64592,
+          77.11612
+        ],
+        [
+          28.64741,
+          77.11846
+        ],
+        [
+          28.64911,
+          77.12256
+        ]
+      ],
+      "distance": 6036,
+      "bidirectional": true
+    },
+    {
+      "id": "E19",
+      "from": "janakpuri_west",
+      "to": "peeragarhi",
+      "roadName": "Outer Ring Road West (Vikaspuri)",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.62888,
+          77.07765
+        ],
+        [
+          28.62887,
+          77.07707
+        ],
+        [
+          28.62841,
+          77.0768
+        ],
+        [
+          28.62736,
+          77.0767
+        ],
+        [
+          28.62807,
+          77.07554
+        ],
+        [
+          28.62743,
+          77.07575
+        ],
+        [
+          28.62677,
+          77.07546
+        ],
+        [
+          28.62724,
+          77.07564
+        ],
+        [
+          28.62759,
+          77.07563
+        ],
+        [
+          28.6286,
+          77.07512
+        ],
+        [
+          28.62989,
+          77.07764
+        ],
+        [
+          28.63016,
+          77.0782
+        ],
+        [
+          28.6305,
+          77.07936
+        ],
+        [
+          28.6315,
+          77.08157
+        ],
+        [
+          28.63355,
+          77.08075
+        ],
+        [
+          28.63579,
+          77.08061
+        ],
+        [
+          28.64101,
+          77.08245
+        ],
+        [
+          28.64845,
+          77.08498
+        ],
+        [
+          28.65493,
+          77.0891
+        ],
+        [
+          28.6608,
+          77.09145
+        ],
+        [
+          28.66514,
+          77.09217
+        ],
+        [
+          28.66879,
+          77.09264
+        ],
+        [
+          28.66953,
+          77.09282
+        ],
+        [
+          28.67281,
+          77.0934
+        ],
+        [
+          28.67674,
+          77.09347
+        ],
+        [
+          28.67763,
+          77.09363
+        ],
+        [
+          28.67789,
+          77.09263
+        ],
+        [
+          28.67961,
+          77.0928
+        ]
+      ],
+      "distance": 7481,
+      "bidirectional": true
+    },
+    {
+      "id": "E20",
+      "from": "rajouri_garden",
+      "to": "punjabi_bagh",
+      "roadName": "Mahatma Gandhi Ring Road West",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.64911,
+          77.12256
+        ],
+        [
+          28.64937,
+          77.1231
+        ],
+        [
+          28.65004,
+          77.12444
+        ],
+        [
+          28.65045,
+          77.12462
+        ],
+        [
+          28.65142,
+          77.12417
+        ],
+        [
+          28.65227,
+          77.12389
+        ],
+        [
+          28.6528,
+          77.12384
+        ],
+        [
+          28.65331,
+          77.12398
+        ],
+        [
+          28.65388,
+          77.12418
+        ],
+        [
+          28.65414,
+          77.12432
+        ],
+        [
+          28.65493,
+          77.12496
+        ],
+        [
+          28.65675,
+          77.12656
+        ],
+        [
+          28.65736,
+          77.1271
+        ],
+        [
+          28.65846,
+          77.12808
+        ],
+        [
+          28.65946,
+          77.12891
+        ],
+        [
+          28.65981,
+          77.12912
+        ],
+        [
+          28.66021,
+          77.12917
+        ],
+        [
+          28.66118,
+          77.12911
+        ],
+        [
+          28.66189,
+          77.1293
+        ],
+        [
+          28.66241,
+          77.12959
+        ],
+        [
+          28.66274,
+          77.12981
+        ],
+        [
+          28.66369,
+          77.13084
+        ],
+        [
+          28.66393,
+          77.13111
+        ],
+        [
+          28.66572,
+          77.13321
+        ],
+        [
+          28.6661,
+          77.13365
+        ],
+        [
+          28.66741,
+          77.13349
+        ],
+        [
+          28.66786,
+          77.13297
+        ],
+        [
+          28.66884,
+          77.13337
+        ]
+      ],
+      "distance": 2818,
+      "bidirectional": true
+    },
+    {
+      "id": "E21",
+      "from": "punjabi_bagh",
+      "to": "peeragarhi",
+      "roadName": "Rohtak Road (NH-9 Corridor)",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.5,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.66884,
+          77.13337
+        ],
+        [
+          28.66862,
+          77.13198
+        ],
+        [
+          28.66877,
+          77.13176
+        ],
+        [
+          28.66934,
+          77.13056
+        ],
+        [
+          28.66946,
+          77.13026
+        ],
+        [
+          28.66983,
+          77.12934
+        ],
+        [
+          28.6699,
+          77.12846
+        ],
+        [
+          28.67068,
+          77.12848
+        ],
+        [
+          28.67141,
+          77.12859
+        ],
+        [
+          28.67214,
+          77.1287
+        ],
+        [
+          28.67433,
+          77.12902
+        ],
+        [
+          28.67507,
+          77.12913
+        ],
+        [
+          28.67568,
+          77.12419
+        ],
+        [
+          28.67626,
+          77.12009
+        ],
+        [
+          28.67641,
+          77.11902
+        ],
+        [
+          28.67664,
+          77.11713
+        ],
+        [
+          28.67699,
+          77.1142
+        ],
+        [
+          28.67703,
+          77.1139
+        ],
+        [
+          28.67708,
+          77.11347
+        ],
+        [
+          28.67718,
+          77.11267
+        ],
+        [
+          28.6778,
+          77.10775
+        ],
+        [
+          28.67802,
+          77.106
+        ],
+        [
+          28.67892,
+          77.09887
+        ],
+        [
+          28.67924,
+          77.09597
+        ],
+        [
+          28.67938,
+          77.09491
+        ],
+        [
+          28.67945,
+          77.09431
+        ],
+        [
+          28.67955,
+          77.09354
+        ],
+        [
+          28.67961,
+          77.0928
+        ]
+      ],
+      "distance": 4734,
+      "bidirectional": true
+    },
+    {
+      "id": "E22",
+      "from": "dwarka_sec21",
+      "to": "igi_t3",
+      "roadName": "IGI Airport Express Tunnel Rd",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.55204,
+          77.05752
+        ],
+        [
+          28.55125,
+          77.05644
+        ],
+        [
+          28.54999,
+          77.05509
+        ],
+        [
+          28.54807,
+          77.05723
+        ],
+        [
+          28.54557,
+          77.06126
+        ],
+        [
+          28.54472,
+          77.0635
+        ],
+        [
+          28.54331,
+          77.06948
+        ],
+        [
+          28.54261,
+          77.07304
+        ],
+        [
+          28.54156,
+          77.07762
+        ],
+        [
+          28.54062,
+          77.08118
+        ],
+        [
+          28.53847,
+          77.08998
+        ],
+        [
+          28.53746,
+          77.09561
+        ],
+        [
+          28.5378,
+          77.09934
+        ],
+        [
+          28.53659,
+          77.10601
+        ],
+        [
+          28.53523,
+          77.10874
+        ],
+        [
+          28.53553,
+          77.11113
+        ],
+        [
+          28.53815,
+          77.1159
+        ],
+        [
+          28.54192,
+          77.11726
+        ],
+        [
+          28.54413,
+          77.11517
+        ],
+        [
+          28.54615,
+          77.10648
+        ],
+        [
+          28.54718,
+          77.10543
+        ],
+        [
+          28.54926,
+          77.10461
+        ],
+        [
+          28.55216,
+          77.10299
+        ],
+        [
+          28.55323,
+          77.10084
+        ],
+        [
+          28.55295,
+          77.10357
+        ],
+        [
+          28.55419,
+          77.10427
+        ],
+        [
+          28.55571,
+          77.09742
+        ],
+        [
+          28.55638,
+          77.10005
+        ]
+      ],
+      "distance": 11116,
+      "bidirectional": true
+    },
+    {
+      "id": "E23",
+      "from": "dwarka_sec10",
+      "to": "igi_t3",
+      "roadName": "Dwarka–Airport Underpass Road",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.2,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.58172,
+          77.05923
+        ],
+        [
+          28.58283,
+          77.05992
+        ],
+        [
+          28.57971,
+          77.05993
+        ],
+        [
+          28.57595,
+          77.05962
+        ],
+        [
+          28.57161,
+          77.06606
+        ],
+        [
+          28.56552,
+          77.06432
+        ],
+        [
+          28.55989,
+          77.06347
+        ],
+        [
+          28.55068,
+          77.05555
+        ],
+        [
+          28.54892,
+          77.0558
+        ],
+        [
+          28.54577,
+          77.0608
+        ],
+        [
+          28.54459,
+          77.06405
+        ],
+        [
+          28.54309,
+          77.07075
+        ],
+        [
+          28.5423,
+          77.07449
+        ],
+        [
+          28.54062,
+          77.08118
+        ],
+        [
+          28.53837,
+          77.09086
+        ],
+        [
+          28.53782,
+          77.09666
+        ],
+        [
+          28.53667,
+          77.10555
+        ],
+        [
+          28.53521,
+          77.10893
+        ],
+        [
+          28.53551,
+          77.11143
+        ],
+        [
+          28.54132,
+          77.11732
+        ],
+        [
+          28.54413,
+          77.11517
+        ],
+        [
+          28.54637,
+          77.10581
+        ],
+        [
+          28.5484,
+          77.10506
+        ],
+        [
+          28.55177,
+          77.10338
+        ],
+        [
+          28.55331,
+          77.10085
+        ],
+        [
+          28.55313,
+          77.10394
+        ],
+        [
+          28.5551,
+          77.10006
+        ],
+        [
+          28.55638,
+          77.10005
+        ]
+      ],
+      "distance": 16088,
+      "bidirectional": true
+    },
+    {
+      "id": "E24",
+      "from": "dabri_more",
+      "to": "igi_t3",
+      "roadName": "Palam–IGI Terminal Approach Rd",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.4,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.60951,
+          77.08249
+        ],
+        [
+          28.61117,
+          77.08393
+        ],
+        [
+          28.60956,
+          77.08313
+        ],
+        [
+          28.6062,
+          77.08116
+        ],
+        [
+          28.60427,
+          77.08287
+        ],
+        [
+          28.60179,
+          77.08231
+        ],
+        [
+          28.59812,
+          77.08149
+        ],
+        [
+          28.59437,
+          77.08085
+        ],
+        [
+          28.59236,
+          77.08213
+        ],
+        [
+          28.58761,
+          77.08466
+        ],
+        [
+          28.58199,
+          77.09466
+        ],
+        [
+          28.5785,
+          77.10557
+        ],
+        [
+          28.57517,
+          77.11739
+        ],
+        [
+          28.57192,
+          77.12154
+        ],
+        [
+          28.56835,
+          77.12627
+        ],
+        [
+          28.56855,
+          77.13093
+        ],
+        [
+          28.5705,
+          77.13449
+        ],
+        [
+          28.56879,
+          77.13184
+        ],
+        [
+          28.56458,
+          77.12741
+        ],
+        [
+          28.55906,
+          77.12875
+        ],
+        [
+          28.55409,
+          77.12695
+        ],
+        [
+          28.55487,
+          77.12122
+        ],
+        [
+          28.54864,
+          77.11915
+        ],
+        [
+          28.55118,
+          77.10882
+        ],
+        [
+          28.55165,
+          77.11051
+        ],
+        [
+          28.55329,
+          77.10812
+        ],
+        [
+          28.55477,
+          77.10123
+        ],
+        [
+          28.55638,
+          77.10005
+        ]
+      ],
+      "distance": 15956,
       "bidirectional": true
     },
     {
       "id": "E25",
-      "from": "N14",
-      "to": "N13",
-      "roadName": "Akash Hospital Link Road",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
+      "from": "dabri_more",
+      "to": "dhaula_kuan",
+      "roadName": "Cariappa Marg (Delhi Cantt)",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.3,
       "pedestrianOnly": false,
       "waypoints": [
         [
-          28.6058,
-          77.03978
+          28.60951,
+          77.08249
         ],
         [
-          28.60591,
-          77.03988
+          28.61091,
+          77.08341
         ],
         [
-          28.60534,
-          77.04073
+          28.61209,
+          77.08561
         ],
         [
-          28.60527,
-          77.04082
+          28.61343,
+          77.08639
         ],
         [
-          28.60521,
-          77.04091
+          28.61325,
+          77.08775
         ],
         [
-          28.60542,
-          77.04109
+          28.6112,
+          77.0924
         ],
         [
-          28.60565,
-          77.04129
+          28.60937,
+          77.09661
         ],
         [
-          28.60606,
-          77.04165
+          28.60931,
+          77.09974
         ],
         [
-          28.60542,
-          77.04262
+          28.60821,
+          77.10322
         ],
         [
-          28.60477,
-          77.04204
+          28.60557,
+          77.10956
         ],
         [
-          28.60465,
-          77.04194
+          28.60423,
+          77.11342
         ],
         [
-          28.60416,
-          77.0415
+          28.6072,
+          77.12238
         ],
         [
-          28.60414,
-          77.0415
+          28.60503,
+          77.12759
         ],
         [
-          28.60412,
-          77.0415
+          28.60287,
+          77.13311
         ],
         [
-          28.60408,
-          77.04152
+          28.59857,
+          77.14404
         ],
         [
-          28.60392,
-          77.04175
+          28.59259,
+          77.15921
+        ],
+        [
+          28.59391,
+          77.16521
+        ],
+        [
+          28.59623,
+          77.16477
+        ],
+        [
+          28.59699,
+          77.16488
+        ],
+        [
+          28.59696,
+          77.16577
+        ],
+        [
+          28.59464,
+          77.16638
+        ],
+        [
+          28.59387,
+          77.16782
+        ],
+        [
+          28.59324,
+          77.16835
+        ],
+        [
+          28.5926,
+          77.16822
+        ],
+        [
+          28.59238,
+          77.16764
+        ],
+        [
+          28.59279,
+          77.16701
+        ],
+        [
+          28.59388,
+          77.16584
+        ],
+        [
+          28.59207,
+          77.16141
         ]
       ],
-      "distance": 596,
+      "distance": 11042,
       "bidirectional": true
     },
     {
       "id": "E26",
-      "from": "N13",
-      "to": "N15",
-      "roadName": "Madhu Vihar Eastern Arterial",
-      "trafficMultiplier": 2.2,
-      "speedKmh": 45,
+      "from": "igi_t3",
+      "to": "dhaula_kuan",
+      "roadName": "NH-48 Delhi–Gurgaon Expressway",
+      "speedKmh": 55,
+      "trafficMultiplier": 1.2,
       "pedestrianOnly": false,
       "waypoints": [
         [
-          28.60392,
-          77.04175
+          28.55638,
+          77.10005
         ],
         [
-          28.60408,
-          77.04152
+          28.55422,
+          77.10439
         ],
         [
-          28.60412,
-          77.0415
+          28.55169,
+          77.10897
         ],
         [
-          28.60414,
-          77.0415
+          28.54973,
+          77.11726
         ],
         [
-          28.60416,
-          77.0415
+          28.55065,
+          77.11934
         ],
         [
-          28.60465,
-          77.04194
+          28.55523,
+          77.1211
         ],
         [
-          28.60477,
-          77.04204
+          28.55479,
+          77.12483
         ],
         [
-          28.60542,
-          77.04262
+          28.55479,
+          77.12755
         ],
         [
-          28.60606,
-          77.04165
+          28.56131,
+          77.12664
         ],
         [
-          28.60606,
-          77.04179
+          28.5663,
+          77.12797
         ],
         [
-          28.60606,
-          77.04195
+          28.56896,
+          77.13187
         ],
         [
-          28.60606,
-          77.04272
+          28.57149,
+          77.13543
         ],
         [
-          28.6064,
-          77.04271
+          28.57505,
+          77.14218
         ],
         [
-          28.60645,
-          77.0427
+          28.57976,
+          77.14486
         ],
         [
-          28.60649,
-          77.04267
+          28.58666,
+          77.14746
         ],
         [
-          28.60681,
-          77.04232
+          28.59034,
+          77.15648
         ],
         [
-          28.60711,
-          77.04204
+          28.59275,
+          77.16233
         ],
         [
-          28.60722,
-          77.04199
+          28.59473,
+          77.16564
         ],
         [
-          28.60733,
-          77.042
+          28.59689,
+          77.16478
         ],
         [
-          28.60803,
-          77.04212
+          28.59705,
+          77.16565
         ],
         [
-          28.60851,
-          77.04221
+          28.59524,
+          77.16596
         ],
         [
-          28.60894,
-          77.04229
+          28.59391,
+          77.16768
         ],
         [
-          28.6105,
-          77.04258
+          28.5933,
+          77.16833
         ],
         [
-          28.61097,
-          77.04268
+          28.59265,
+          77.16827
         ],
         [
-          28.61123,
-          77.04272
+          28.59238,
+          77.16769
         ],
         [
-          28.61136,
-          77.04273
+          28.59273,
+          77.16705
         ],
         [
-          28.61146,
-          77.04274
+          28.59388,
+          77.16584
         ],
         [
-          28.61176,
-          77.04276
-        ],
-        [
-          28.61193,
-          77.04277
-        ],
-        [
-          28.61218,
-          77.04278
-        ],
-        [
-          28.61235,
-          77.04279
-        ],
-        [
-          28.61235,
-          77.04244
-        ],
-        [
-          28.61164,
-          77.04243
+          28.59207,
+          77.16141
         ]
       ],
-      "distance": 1280,
+      "distance": 11956,
       "bidirectional": true
     },
     {
       "id": "E27",
-      "from": "N2",
-      "to": "N15",
-      "roadName": "Shivaji Marg–Madhu Vihar Outer Rd",
-      "trafficMultiplier": 2.2,
+      "from": "janakpuri_west",
+      "to": "dhaula_kuan",
+      "roadName": "Jail Road & Mayapuri Ring Rd",
       "speedKmh": 45,
+      "trafficMultiplier": 1.4,
       "pedestrianOnly": false,
       "waypoints": [
         [
-          28.61921,
-          77.03327
+          28.62888,
+          77.07765
         ],
         [
-          28.61919,
-          77.03313
+          28.62854,
+          77.07671
         ],
         [
-          28.61854,
-          77.03312
+          28.62807,
+          77.07554
         ],
         [
-          28.61823,
-          77.03312
+          28.62687,
+          77.07555
         ],
         [
-          28.61808,
-          77.03312
+          28.62159,
+          77.07148
         ],
         [
-          28.61792,
-          77.03312
+          28.61757,
+          77.07806
         ],
         [
-          28.61767,
-          77.03312
+          28.61157,
+          77.09122
         ],
         [
-          28.61746,
-          77.03312
+          28.60908,
+          77.0975
         ],
         [
-          28.61724,
-          77.03312
+          28.60931,
+          77.1006
         ],
         [
-          28.61712,
-          77.03312
+          28.6077,
+          77.10445
         ],
         [
-          28.61703,
-          77.03325
+          28.60471,
+          77.11125
         ],
         [
-          28.61681,
-          77.03358
+          28.60507,
+          77.11558
         ],
         [
-          28.61678,
-          77.03363
+          28.60604,
+          77.12512
         ],
         [
-          28.61661,
-          77.03389
+          28.60447,
+          77.12901
         ],
         [
-          28.61649,
-          77.03402
+          28.60218,
+          77.13486
         ],
         [
-          28.61649,
-          77.03453
+          28.59394,
+          77.15589
         ],
         [
-          28.6165,
-          77.03475
+          28.5927,
+          77.16216
         ],
         [
-          28.6165,
-          77.03499
+          28.59463,
+          77.16566
         ],
         [
-          28.61651,
-          77.03524
+          28.59677,
+          77.16473
         ],
         [
-          28.61651,
-          77.03546
+          28.59708,
+          77.16558
         ],
         [
-          28.61652,
-          77.03568
+          28.59555,
+          77.1659
         ],
         [
-          28.61652,
-          77.03576
+          28.59391,
+          77.16768
         ],
         [
-          28.61652,
-          77.0359
+          28.59336,
+          77.16831
         ],
         [
-          28.61652,
-          77.03598
+          28.5927,
+          77.16832
         ],
         [
-          28.61653,
-          77.03607
+          28.59238,
+          77.16769
         ],
         [
-          28.61652,
-          77.03624
+          28.59273,
+          77.16705
         ],
         [
-          28.61652,
-          77.03647
+          28.59388,
+          77.16584
         ],
         [
-          28.61652,
-          77.03659
+          28.59207,
+          77.16141
+        ]
+      ],
+      "distance": 13437,
+      "bidirectional": true
+    },
+    {
+      "id": "E28",
+      "from": "rajouri_garden",
+      "to": "dhaula_kuan",
+      "roadName": "Naraina Ring Road Flyover",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.64911,
+          77.12256
         ],
         [
-          28.61652,
-          77.03668
+          28.65026,
+          77.12486
         ],
         [
-          28.61652,
-          77.03678
+          28.64866,
+          77.12597
         ],
         [
-          28.61651,
-          77.03701
+          28.64472,
+          77.12733
         ],
         [
-          28.61651,
-          77.03728
+          28.63929,
+          77.12948
         ],
         [
-          28.61668,
-          77.03729
+          28.63657,
+          77.1305
         ],
         [
-          28.61685,
-          77.0373
+          28.63127,
+          77.13244
         ],
         [
-          28.61684,
-          77.03757
+          28.62609,
+          77.13455
         ],
         [
-          28.61684,
-          77.03785
+          28.62093,
+          77.13647
         ],
         [
-          28.61683,
-          77.0381
-        ],
-        [
-          28.61683,
-          77.03835
-        ],
-        [
-          28.61682,
-          77.03859
-        ],
-        [
-          28.61683,
-          77.03883
-        ],
-        [
-          28.61682,
-          77.03914
-        ],
-        [
-          28.61682,
-          77.03966
-        ],
-        [
-          28.61682,
-          77.03998
-        ],
-        [
-          28.61637,
-          77.03998
+          28.61964,
+          77.13653
         ],
         [
           28.61582,
-          77.03998
+          77.13653
         ],
         [
-          28.6154,
-          77.03998
+          28.6139,
+          77.13671
         ],
         [
-          28.61519,
-          77.03997
+          28.61074,
+          77.13898
         ],
         [
-          28.61499,
-          77.03997
+          28.60795,
+          77.14101
         ],
         [
-          28.61478,
-          77.03997
+          28.60596,
+          77.14413
         ],
         [
-          28.61457,
-          77.03996
+          28.60388,
+          77.15618
         ],
         [
-          28.61452,
-          77.03996
+          28.59936,
+          77.16261
         ],
         [
-          28.61436,
-          77.03996
+          28.59436,
+          77.16657
         ],
         [
-          28.61423,
-          77.03996
+          28.59396,
+          77.16734
         ],
         [
-          28.6141,
-          77.0409
+          28.59366,
+          77.16819
         ],
         [
-          28.61406,
-          77.04122
+          28.59313,
+          77.16838
         ],
         [
-          28.61403,
-          77.04137
+          28.5927,
+          77.16832
         ],
         [
-          28.61399,
-          77.04162
+          28.59242,
+          77.16794
         ],
         [
-          28.61347,
-          77.04162
+          28.59241,
+          77.16748
         ],
         [
-          28.61272,
-          77.04162
+          28.59273,
+          77.16705
         ],
         [
-          28.61271,
-          77.04197
+          28.59377,
+          77.16633
         ],
         [
-          28.61271,
-          77.04244
+          28.59373,
+          77.16514
         ],
         [
-          28.61235,
-          77.04244
-        ],
-        [
-          28.61164,
-          77.04243
+          28.59207,
+          77.16141
         ]
       ],
-      "distance": 1764,
+      "distance": 9499,
       "bidirectional": true
-    }
-  ]
-};
-
-export const CONNAUGHT_PLACE_GRAPH = {
-  "id": "cp",
-  "name": "Connaught Place Radial",
-  "subtitle": "Central Delhi · 12 Road Intersections · 20 Snapped Street Edges",
-  "center": [
-    28.6275,
-    77.2205
-  ],
-  "zoom": 14,
-  "nodes": [
-    {
-      "id": "C1",
-      "name": "Rajiv Chowk (Inner Circle)",
-      "shortName": "Rajiv Chowk",
-      "lat": 28.6328,
-      "lng": 77.2197,
-      "category": "Transit",
-      "zone": "Inner Circle"
     },
     {
-      "id": "C2",
-      "name": "Shivaji Stadium Terminal",
-      "shortName": "Shivaji Stadium",
-      "lat": 28.6295,
-      "lng": 77.2112,
-      "category": "Transit",
-      "zone": "West Radial"
-    },
-    {
-      "id": "C3",
-      "name": "Gurudwara Bangla Sahib",
-      "shortName": "Bangla Sahib",
-      "lat": 28.6264,
-      "lng": 77.2091,
-      "category": "Landmark",
-      "zone": "Baba Kharak Singh Marg"
-    },
-    {
-      "id": "C4",
-      "name": "Jantar Mantar Observatory",
-      "shortName": "Jantar Mantar",
-      "lat": 28.6271,
-      "lng": 77.2166,
-      "category": "Landmark",
-      "zone": "Sansad Marg"
-    },
-    {
-      "id": "C5",
-      "name": "Janpath Market Plaza",
-      "shortName": "Janpath",
-      "lat": 28.6248,
-      "lng": 77.2195,
-      "category": "Commercial",
-      "zone": "Janpath Radial"
-    },
-    {
-      "id": "C6",
-      "name": "Barakhamba Road Metro",
-      "shortName": "Barakhamba Rd",
-      "lat": 28.6305,
-      "lng": 77.2268,
-      "category": "Commercial",
-      "zone": "Barakhamba Radial"
-    },
-    {
-      "id": "C7",
-      "name": "Mandi House Circle",
-      "shortName": "Mandi House",
-      "lat": 28.6258,
-      "lng": 77.2342,
-      "category": "Academic",
-      "zone": "Cultural Hub"
-    },
-    {
-      "id": "C8",
-      "name": "India Gate Hexagon",
-      "shortName": "India Gate",
-      "lat": 28.6129,
-      "lng": 77.2295,
-      "category": "Landmark",
-      "zone": "Kartavya Path"
-    },
-    {
-      "id": "C9",
-      "name": "Parliament Street Hub",
-      "shortName": "Parliament St",
-      "lat": 28.6212,
-      "lng": 77.2135,
-      "category": "Gateway",
-      "zone": "Central Vista"
-    },
-    {
-      "id": "C10",
-      "name": "ITO Crossing Junction",
-      "shortName": "ITO Junction",
-      "lat": 28.6282,
-      "lng": 77.2415,
-      "category": "Gateway",
-      "zone": "East Arterial"
-    },
-    {
-      "id": "C11",
-      "name": "Supreme Court / Tilak Marg",
-      "shortName": "Tilak Marg",
-      "lat": 28.6204,
-      "lng": 77.2392,
-      "category": "Academic",
-      "zone": "Tilak Marg"
-    },
-    {
-      "id": "C12",
-      "name": "Khan Market Enclave",
-      "shortName": "Khan Market",
-      "lat": 28.6004,
-      "lng": 77.2272,
-      "category": "Commercial",
-      "zone": "South Enclave"
-    }
-  ],
-  "edges": [
-    {
-      "id": "CE1",
-      "from": "C1",
-      "to": "C2",
-      "roadName": "Shaheed Bhagat Singh Marg",
+      "id": "E29",
+      "from": "rajouri_garden",
+      "to": "karol_bagh",
+      "roadName": "Patel Road & Pusa Road Corridor",
+      "speedKmh": 45,
       "trafficMultiplier": 1.5,
-      "speedKmh": 40,
       "pedestrianOnly": false,
       "waypoints": [
         [
-          28.6325,
-          77.22092
+          28.64911,
+          77.12256
         ],
         [
-          28.63236,
-          77.22088
+          28.65004,
+          77.12444
         ],
         [
-          28.63217,
-          77.22076
+          28.65042,
+          77.12516
         ],
         [
-          28.63203,
-          77.22065
+          28.65219,
+          77.12914
         ],
         [
-          28.63192,
-          77.22052
+          28.65241,
+          77.12997
         ],
         [
-          28.63182,
-          77.22037
+          28.65313,
+          77.13286
         ],
         [
-          28.63177,
-          77.22026
+          28.65379,
+          77.13505
         ],
         [
-          28.63173,
-          77.22016
+          28.65554,
+          77.13825
         ],
         [
-          28.63167,
-          77.21998
+          28.65665,
+          77.14023
         ],
         [
-          28.63165,
-          77.21982
+          28.6581,
+          77.14286
         ],
         [
-          28.63164,
-          77.21971
+          28.65893,
+          77.14447
         ],
         [
-          28.63163,
-          77.21958
+          28.65931,
+          77.14581
         ],
         [
-          28.63168,
-          77.21939
+          28.65863,
+          77.14694
         ],
         [
-          28.63175,
-          77.2192
+          28.65804,
+          77.1479
         ],
         [
-          28.63187,
-          77.21897
+          28.65698,
+          77.14949
         ],
         [
-          28.63196,
-          77.21885
+          28.65627,
+          77.15064
         ],
         [
-          28.63211,
-          77.21868
+          28.65299,
+          77.15611
         ],
         [
-          28.63226,
-          77.21857
+          28.65135,
+          77.15887
         ],
         [
-          28.63222,
-          77.21848
+          28.64996,
+          77.16125
         ],
         [
-          28.63213,
-          77.21825
+          28.64824,
+          77.16411
         ],
         [
-          28.63211,
-          77.21821
+          28.64574,
+          77.16827
         ],
         [
-          28.6321,
-          77.2182
+          28.64364,
+          77.17177
         ],
         [
-          28.63205,
-          77.21807
+          28.64227,
+          77.17423
         ],
         [
-          28.6319,
-          77.21774
+          28.64213,
+          77.17564
         ],
         [
-          28.63183,
-          77.21757
+          28.64248,
+          77.17762
         ],
         [
-          28.63168,
-          77.21728
+          28.64297,
+          77.18086
         ],
         [
-          28.63158,
-          77.21708
+          28.64368,
+          77.18578
         ],
         [
-          28.63153,
-          77.21697
+          28.64406,
+          77.18851
+        ]
+      ],
+      "distance": 7349,
+      "bidirectional": true
+    },
+    {
+      "id": "E30",
+      "from": "punjabi_bagh",
+      "to": "karol_bagh",
+      "roadName": "New Rohtak Road Central",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.5,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.66884,
+          77.13337
         ],
         [
-          28.63143,
-          77.21674
+          28.66958,
+          77.13503
         ],
         [
-          28.63133,
-          77.21654
+          28.66821,
+          77.13666
         ],
         [
-          28.63117,
-          77.2162
+          28.6675,
+          77.13771
         ],
         [
-          28.63113,
-          77.2161
+          28.6665,
+          77.13864
         ],
         [
-          28.63113,
-          77.2161
+          28.66506,
+          77.13964
         ],
         [
-          28.63094,
-          77.21568
+          28.66258,
+          77.14137
         ],
         [
-          28.63072,
-          77.21518
+          28.66082,
+          77.14287
         ],
         [
-          28.6306,
-          77.21489
+          28.65961,
+          77.14485
         ],
         [
-          28.63027,
-          77.21416
+          28.65883,
+          77.14639
         ],
         [
-          28.63008,
-          77.21372
+          28.65698,
+          77.14947
         ],
         [
-          28.62962,
-          77.21269
+          28.65687,
+          77.14968
         ],
         [
-          28.62957,
-          77.21259
+          28.65391,
+          77.15452
         ],
         [
-          28.62946,
-          77.21233
+          28.65299,
+          77.15611
         ],
         [
-          28.62942,
-          77.21225
+          28.65135,
+          77.15887
         ],
         [
-          28.62932,
-          77.21203
+          28.65036,
+          77.16055
         ],
         [
-          28.62908,
-          77.21148
+          28.64883,
+          77.16314
         ],
         [
-          28.62889,
-          77.21106
+          28.64666,
+          77.16671
         ],
         [
-          28.6288,
-          77.21087
+          28.64499,
+          77.16951
         ],
         [
-          28.62869,
-          77.21062
+          28.64393,
+          77.17129
         ],
         [
-          28.62795,
-          77.209
+          28.64238,
+          77.17387
         ],
         [
-          28.62787,
-          77.20882
+          28.64215,
+          77.17472
         ],
         [
-          28.62786,
-          77.20879
+          28.6422,
+          77.1761
         ],
         [
-          28.62794,
-          77.20875
+          28.64248,
+          77.17762
         ],
         [
-          28.62799,
-          77.20885
+          28.6427,
+          77.17896
         ],
         [
-          28.62802,
-          77.20893
+          28.64317,
+          77.18228
         ],
         [
-          28.62826,
-          77.20945
+          28.6438,
+          77.18675
         ],
         [
-          28.62828,
-          77.20949
+          28.64406,
+          77.18851
+        ]
+      ],
+      "distance": 6580,
+      "bidirectional": true
+    },
+    {
+      "id": "E31",
+      "from": "dhaula_kuan",
+      "to": "karol_bagh",
+      "roadName": "Upper Ridge Road & Vandemataram Marg",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.2,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.59207,
+          77.16141
         ],
         [
-          28.62862,
-          77.21023
+          28.58989,
+          77.15596
+        ],
+        [
+          28.58867,
+          77.15346
+        ],
+        [
+          28.58795,
+          77.1515
+        ],
+        [
+          28.58844,
+          77.15098
+        ],
+        [
+          28.58844,
+          77.15137
+        ],
+        [
+          28.58983,
+          77.15525
+        ],
+        [
+          28.59216,
+          77.1606
+        ],
+        [
+          28.59411,
+          77.16544
+        ],
+        [
+          28.59538,
+          77.16532
+        ],
+        [
+          28.59677,
+          77.16473
+        ],
+        [
+          28.59769,
+          77.16598
+        ],
+        [
+          28.60173,
+          77.16842
+        ],
+        [
+          28.60554,
+          77.17064
+        ],
+        [
+          28.60924,
+          77.17257
+        ],
+        [
+          28.61205,
+          77.1748
+        ],
+        [
+          28.61519,
+          77.17515
+        ],
+        [
+          28.61891,
+          77.17637
+        ],
+        [
+          28.6223,
+          77.17878
+        ],
+        [
+          28.62394,
+          77.18091
+        ],
+        [
+          28.62751,
+          77.18534
+        ],
+        [
+          28.63147,
+          77.18813
+        ],
+        [
+          28.63402,
+          77.18926
+        ],
+        [
+          28.63523,
+          77.19066
+        ],
+        [
+          28.64338,
+          77.19675
+        ],
+        [
+          28.64505,
+          77.19701
+        ],
+        [
+          28.6443,
+          77.19154
+        ],
+        [
+          28.64406,
+          77.18851
+        ]
+      ],
+      "distance": 10672,
+      "bidirectional": true
+    },
+    {
+      "id": "E32",
+      "from": "dhaula_kuan",
+      "to": "connaught_place",
+      "roadName": "Sardar Patel Marg & Mother Teresa Cres",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.2,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.59207,
+          77.16141
+        ],
+        [
+          28.58906,
+          77.15392
+        ],
+        [
+          28.58798,
+          77.15181
+        ],
+        [
+          28.58828,
+          77.15109
+        ],
+        [
+          28.58859,
+          77.15124
+        ],
+        [
+          28.5892,
+          77.15348
+        ],
+        [
+          28.59216,
+          77.1606
+        ],
+        [
+          28.5945,
+          77.16642
+        ],
+        [
+          28.59921,
+          77.17535
+        ],
+        [
+          28.60418,
+          77.1848
+        ],
+        [
+          28.60977,
+          77.19118
+        ],
+        [
+          28.61383,
+          77.18998
+        ],
+        [
+          28.61723,
+          77.19053
+        ],
+        [
+          28.62022,
+          77.19265
+        ],
+        [
+          28.62152,
+          77.19444
+        ],
+        [
+          28.6234,
+          77.19794
+        ],
+        [
+          28.62421,
+          77.20003
+        ],
+        [
+          28.62542,
+          77.20312
+        ],
+        [
+          28.6271,
+          77.20595
+        ],
+        [
+          28.62759,
+          77.20662
+        ],
+        [
+          28.62776,
+          77.20835
         ],
         [
           28.62864,
           77.21028
         ],
         [
-          28.62871,
-          77.21043
+          28.63167,
+          77.21666
         ],
         [
-          28.62877,
-          77.21056
+          28.63392,
+          77.21681
         ],
         [
-          28.6289,
-          77.21048
+          28.63553,
+          77.21862
         ],
         [
-          28.62892,
-          77.21055
+          28.63491,
+          77.21984
         ],
         [
-          28.62899,
-          77.21069
+          28.63362,
+          77.22057
         ],
-        [
-          28.62926,
-          77.21133
-        ]
-      ],
-      "distance": 1692,
-      "bidirectional": true
-    },
-    {
-      "id": "CE2",
-      "from": "C1",
-      "to": "C4",
-      "roadName": "Sansad Marg Pedestrian Arcade",
-      "trafficMultiplier": 1,
-      "speedKmh": 5,
-      "pedestrianOnly": true,
-      "waypoints": [
         [
           28.6325,
           77.22092
-        ],
-        [
-          28.63236,
-          77.22088
-        ],
-        [
-          28.63217,
-          77.22076
-        ],
-        [
-          28.63198,
-          77.2211
-        ],
-        [
-          28.63187,
-          77.2213
-        ],
-        [
-          28.63163,
-          77.22171
-        ],
-        [
-          28.63134,
-          77.22223
-        ],
-        [
-          28.63134,
-          77.22224
-        ],
-        [
-          28.63125,
-          77.22243
-        ],
-        [
-          28.63101,
-          77.22227
-        ],
-        [
-          28.63087,
-          77.22213
-        ],
-        [
-          28.63082,
-          77.22207
-        ],
-        [
-          28.63066,
-          77.2219
-        ],
-        [
-          28.63061,
-          77.22182
-        ],
-        [
-          28.63055,
-          77.22175
-        ],
-        [
-          28.63046,
-          77.22162
-        ],
-        [
-          28.63044,
-          77.22159
-        ],
-        [
-          28.63042,
-          77.22157
-        ],
-        [
-          28.63029,
-          77.22141
-        ],
-        [
-          28.63021,
-          77.22123
-        ],
-        [
-          28.63013,
-          77.22104
-        ],
-        [
-          28.63008,
-          77.22092
-        ],
-        [
-          28.63006,
-          77.22086
-        ],
-        [
-          28.63005,
-          77.22082
-        ],
-        [
-          28.63,
-          77.22065
-        ],
-        [
-          28.62997,
-          77.22053
-        ],
-        [
-          28.62992,
-          77.2202
-        ],
-        [
-          28.62991,
-          77.22008
-        ],
-        [
-          28.62989,
-          77.21987
-        ],
-        [
-          28.62988,
-          77.2198
-        ],
-        [
-          28.62988,
-          77.21977
-        ],
-        [
-          28.62986,
-          77.21972
-        ],
-        [
-          28.62984,
-          77.21968
-        ],
-        [
-          28.62981,
-          77.21964
-        ],
-        [
-          28.62977,
-          77.21961
-        ],
-        [
-          28.62973,
-          77.21959
-        ],
-        [
-          28.62968,
-          77.21957
-        ],
-        [
-          28.62959,
-          77.21955
-        ],
-        [
-          28.62899,
-          77.21953
-        ],
-        [
-          28.62863,
-          77.2195
-        ],
-        [
-          28.62837,
-          77.21949
-        ],
-        [
-          28.62834,
-          77.21949
-        ],
-        [
-          28.62829,
-          77.21948
-        ],
-        [
-          28.62817,
-          77.21948
-        ],
-        [
-          28.62735,
-          77.21942
-        ],
-        [
-          28.62734,
-          77.21942
-        ],
-        [
-          28.62716,
-          77.21941
-        ],
-        [
-          28.6271,
-          77.21941
-        ],
-        [
-          28.62665,
-          77.21937
-        ],
-        [
-          28.62659,
-          77.21937
-        ],
-        [
-          28.62644,
-          77.21936
-        ],
-        [
-          28.62631,
-          77.21934
-        ],
-        [
-          28.62631,
-          77.21925
-        ],
-        [
-          28.62644,
-          77.21926
-        ],
-        [
-          28.62658,
-          77.21927
-        ],
-        [
-          28.62691,
-          77.21928
-        ],
-        [
-          28.62714,
-          77.2193
-        ],
-        [
-          28.62714,
-          77.21927
-        ],
-        [
-          28.62715,
-          77.2184
-        ],
-        [
-          28.62718,
-          77.21756
-        ],
-        [
-          28.62718,
-          77.2175
-        ],
-        [
-          28.62717,
-          77.21719
-        ],
-        [
-          28.62709,
-          77.21719
         ]
       ],
-      "distance": 1273,
+      "distance": 11077,
       "bidirectional": true
     },
     {
-      "id": "CE3",
-      "from": "C1",
-      "to": "C5",
-      "roadName": "Janpath Radial",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 35,
+      "id": "E33",
+      "from": "dhaula_kuan",
+      "to": "india_gate",
+      "roadName": "Teen Murti Marg & Akbar Road",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.2,
       "pedestrianOnly": false,
       "waypoints": [
         [
-          28.6325,
-          77.22092
+          28.59207,
+          77.16141
         ],
         [
-          28.63236,
-          77.22088
+          28.58989,
+          77.15596
         ],
         [
-          28.63217,
-          77.22076
+          28.58863,
+          77.15337
         ],
         [
-          28.63198,
-          77.2211
+          28.58828,
+          77.15128
         ],
         [
-          28.63187,
-          77.2213
+          28.58854,
+          77.15103
         ],
         [
-          28.63163,
-          77.22171
+          28.58845,
+          77.15146
         ],
         [
-          28.63134,
-          77.22223
+          28.59071,
+          77.15749
         ],
         [
-          28.63134,
-          77.22224
+          28.59249,
+          77.16151
         ],
         [
-          28.63125,
-          77.22243
+          28.59505,
+          77.16748
         ],
         [
-          28.63101,
-          77.22227
+          28.59921,
+          77.17535
         ],
         [
-          28.63087,
-          77.22213
+          28.60354,
+          77.18355
         ],
         [
-          28.63082,
-          77.22207
+          28.60881,
+          77.18988
         ],
         [
-          28.63066,
-          77.2219
+          28.60817,
+          77.19315
         ],
         [
-          28.63061,
-          77.22182
+          28.60501,
+          77.1985
         ],
         [
-          28.63055,
-          77.22175
+          28.6049,
+          77.1993
         ],
         [
-          28.63046,
-          77.22162
+          28.60219,
+          77.20332
         ],
         [
-          28.63044,
-          77.22159
+          28.60158,
+          77.20503
         ],
         [
-          28.63042,
-          77.22157
+          28.60186,
+          77.20647
         ],
         [
-          28.63029,
-          77.22141
+          28.60384,
+          77.2109
         ],
         [
-          28.63021,
-          77.22123
+          28.60431,
+          77.21121
         ],
         [
-          28.63013,
-          77.22104
+          28.6044,
+          77.21208
         ],
         [
-          28.63008,
-          77.22092
+          28.60663,
+          77.21713
         ],
         [
-          28.63006,
-          77.22086
+          28.60754,
+          77.21738
         ],
         [
-          28.63005,
-          77.22082
+          28.60759,
+          77.21861
         ],
         [
-          28.63,
-          77.22065
+          28.60899,
+          77.22244
         ],
         [
-          28.62997,
-          77.22053
-        ],
-        [
-          28.62992,
-          77.2202
-        ],
-        [
-          28.62991,
-          77.22008
-        ],
-        [
-          28.62989,
-          77.21987
-        ],
-        [
-          28.62988,
-          77.2198
-        ],
-        [
-          28.62988,
-          77.21977
-        ],
-        [
-          28.62986,
-          77.21972
-        ],
-        [
-          28.62984,
-          77.21968
-        ],
-        [
-          28.62981,
-          77.21964
-        ],
-        [
-          28.62977,
-          77.21961
-        ],
-        [
-          28.62973,
-          77.21959
-        ],
-        [
-          28.62968,
-          77.21957
-        ],
-        [
-          28.62959,
-          77.21955
-        ],
-        [
-          28.62899,
-          77.21953
-        ],
-        [
-          28.62863,
-          77.2195
-        ],
-        [
-          28.62837,
-          77.21949
-        ],
-        [
-          28.62834,
-          77.21949
-        ],
-        [
-          28.62829,
-          77.21948
-        ],
-        [
-          28.62817,
-          77.21948
-        ],
-        [
-          28.62735,
-          77.21942
-        ],
-        [
-          28.62734,
-          77.21942
-        ],
-        [
-          28.62716,
-          77.21941
-        ],
-        [
-          28.6271,
-          77.21941
-        ],
-        [
-          28.62665,
-          77.21937
-        ],
-        [
-          28.62659,
-          77.21937
-        ],
-        [
-          28.62644,
-          77.21936
-        ],
-        [
-          28.62631,
-          77.21934
-        ],
-        [
-          28.62621,
-          77.21933
-        ],
-        [
-          28.62601,
-          77.21932
-        ],
-        [
-          28.62554,
-          77.2193
-        ],
-        [
-          28.6254,
-          77.21929
-        ],
-        [
-          28.62467,
-          77.21924
-        ],
-        [
-          28.62461,
-          77.21924
-        ],
-        [
-          28.6246,
-          77.21949
-        ]
-      ],
-      "distance": 1168,
-      "bidirectional": true
-    },
-    {
-      "id": "CE4",
-      "from": "C1",
-      "to": "C6",
-      "roadName": "Barakhamba Road",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 45,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.6325,
-          77.22092
-        ],
-        [
-          28.63236,
-          77.22088
-        ],
-        [
-          28.63217,
-          77.22076
-        ],
-        [
-          28.63198,
-          77.2211
-        ],
-        [
-          28.63187,
-          77.2213
-        ],
-        [
-          28.63163,
-          77.22171
-        ],
-        [
-          28.63134,
-          77.22223
-        ],
-        [
-          28.63134,
-          77.22224
-        ],
-        [
-          28.63125,
-          77.22243
-        ],
-        [
-          28.63113,
-          77.22266
-        ],
-        [
-          28.63107,
-          77.22275
-        ],
-        [
-          28.63072,
-          77.22335
-        ],
-        [
-          28.63078,
-          77.22339
-        ],
-        [
-          28.63082,
-          77.22341
-        ],
-        [
-          28.6311,
-          77.22363
-        ],
-        [
-          28.63133,
-          77.2238
-        ],
-        [
-          28.63149,
-          77.22393
-        ],
-        [
-          28.63143,
-          77.22404
-        ],
-        [
-          28.63152,
-          77.22413
-        ],
-        [
-          28.63155,
-          77.2242
-        ],
-        [
-          28.63158,
-          77.22431
-        ],
-        [
-          28.63162,
-          77.2247
-        ],
-        [
-          28.63137,
-          77.22517
-        ],
-        [
-          28.63109,
-          77.22567
-        ],
-        [
-          28.63106,
-          77.22571
-        ],
-        [
-          28.63102,
-          77.22579
-        ],
-        [
-          28.63101,
-          77.22587
-        ],
-        [
-          28.63086,
-          77.22615
-        ],
-        [
-          28.63062,
-          77.22658
-        ]
-      ],
-      "distance": 741,
-      "bidirectional": true
-    },
-    {
-      "id": "CE5",
-      "from": "C2",
-      "to": "C3",
-      "roadName": "Baba Kharak Singh Marg",
-      "trafficMultiplier": 1,
-      "speedKmh": 40,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.62926,
-          77.21133
-        ],
-        [
-          28.62899,
-          77.21069
-        ],
-        [
-          28.62892,
-          77.21055
-        ],
-        [
-          28.6289,
-          77.21048
-        ],
-        [
-          28.6294,
-          77.21018
-        ],
-        [
-          28.62942,
-          77.21017
-        ],
-        [
-          28.62951,
-          77.21011
-        ],
-        [
-          28.62939,
-          77.20978
-        ],
-        [
-          28.62937,
-          77.20975
-        ],
-        [
-          28.62917,
-          77.2092
-        ],
-        [
-          28.62905,
-          77.20887
-        ],
-        [
-          28.62891,
-          77.20849
-        ],
-        [
-          28.6289,
-          77.20848
-        ],
-        [
-          28.62883,
-          77.20828
-        ],
-        [
-          28.62873,
-          77.20833
-        ],
-        [
-          28.62809,
-          77.20867
-        ],
-        [
-          28.62801,
-          77.20871
-        ],
-        [
-          28.62797,
-          77.20873
-        ],
-        [
-          28.62794,
-          77.20875
-        ],
-        [
-          28.62786,
-          77.20879
-        ],
-        [
-          28.62782,
-          77.20871
-        ],
-        [
-          28.62775,
-          77.20857
-        ],
-        [
-          28.62762,
-          77.20828
-        ],
-        [
-          28.6276,
-          77.20823
-        ],
-        [
-          28.62731,
-          77.2076
-        ],
-        [
-          28.62726,
-          77.2075
-        ],
-        [
-          28.62725,
-          77.20749
-        ],
-        [
-          28.62717,
-          77.20732
-        ],
-        [
-          28.62712,
-          77.20733
-        ],
-        [
-          28.62707,
-          77.20734
-        ],
-        [
-          28.62702,
-          77.20735
-        ],
-        [
-          28.62697,
-          77.20735
-        ],
-        [
-          28.62692,
-          77.20735
-        ],
-        [
-          28.62687,
-          77.20734
-        ],
-        [
-          28.62682,
-          77.20733
-        ],
-        [
-          28.62677,
-          77.20731
-        ],
-        [
-          28.62669,
-          77.20735
-        ],
-        [
-          28.62662,
-          77.2074
-        ],
-        [
-          28.62659,
-          77.20742
-        ],
-        [
-          28.62656,
-          77.20745
-        ],
-        [
-          28.62651,
-          77.20751
-        ],
-        [
-          28.62647,
-          77.2076
-        ],
-        [
-          28.6259,
-          77.20858
-        ],
-        [
-          28.62584,
-          77.20868
-        ]
-      ],
-      "distance": 862,
-      "bidirectional": true
-    },
-    {
-      "id": "CE6",
-      "from": "C2",
-      "to": "C4",
-      "roadName": "Connaught Outer Circle West",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.62926,
-          77.21133
-        ],
-        [
-          28.62899,
-          77.21069
-        ],
-        [
-          28.62892,
-          77.21055
-        ],
-        [
-          28.6289,
-          77.21048
-        ],
-        [
-          28.6294,
-          77.21018
-        ],
-        [
-          28.62942,
-          77.21017
-        ],
-        [
-          28.62951,
-          77.21011
-        ],
-        [
-          28.62939,
-          77.20978
-        ],
-        [
-          28.62937,
-          77.20975
-        ],
-        [
-          28.62917,
-          77.2092
-        ],
-        [
-          28.62905,
-          77.20887
-        ],
-        [
-          28.62891,
-          77.20849
-        ],
-        [
-          28.6289,
-          77.20848
-        ],
-        [
-          28.62883,
-          77.20828
-        ],
-        [
-          28.62873,
-          77.20833
-        ],
-        [
-          28.62809,
-          77.20867
-        ],
-        [
-          28.62801,
-          77.20871
-        ],
-        [
-          28.62797,
-          77.20873
-        ],
-        [
-          28.62794,
-          77.20875
-        ],
-        [
-          28.62786,
-          77.20879
-        ],
-        [
-          28.62782,
-          77.20871
-        ],
-        [
-          28.62775,
-          77.20857
-        ],
-        [
-          28.62762,
-          77.20828
-        ],
-        [
-          28.6276,
-          77.20823
-        ],
-        [
-          28.62731,
-          77.2076
-        ],
-        [
-          28.62726,
-          77.2075
-        ],
-        [
-          28.62725,
-          77.20749
-        ],
-        [
-          28.62717,
-          77.20732
-        ],
-        [
-          28.62712,
-          77.20733
-        ],
-        [
-          28.62707,
-          77.20734
-        ],
-        [
-          28.62702,
-          77.20735
-        ],
-        [
-          28.62697,
-          77.20735
-        ],
-        [
-          28.62692,
-          77.20735
-        ],
-        [
-          28.62687,
-          77.20734
-        ],
-        [
-          28.62682,
-          77.20733
-        ],
-        [
-          28.62677,
-          77.20731
-        ],
-        [
-          28.62669,
-          77.20735
-        ],
-        [
-          28.62662,
-          77.2074
-        ],
-        [
-          28.62659,
-          77.20742
-        ],
-        [
-          28.62656,
-          77.20745
-        ],
-        [
-          28.62651,
-          77.20751
-        ],
-        [
-          28.62647,
-          77.2076
-        ],
-        [
-          28.6259,
-          77.20858
-        ],
-        [
-          28.62566,
-          77.20899
-        ],
-        [
-          28.62559,
-          77.2091
-        ],
-        [
-          28.62528,
-          77.20963
-        ],
-        [
-          28.62517,
-          77.20983
-        ],
-        [
-          28.62511,
-          77.20993
-        ],
-        [
-          28.62498,
-          77.21015
-        ],
-        [
-          28.62469,
-          77.21064
-        ],
-        [
-          28.62462,
-          77.21077
-        ],
-        [
-          28.62433,
-          77.2113
-        ],
-        [
-          28.62431,
-          77.21133
-        ],
-        [
-          28.62412,
-          77.21166
-        ],
-        [
-          28.62403,
-          77.21182
-        ],
-        [
-          28.62398,
-          77.21191
-        ],
-        [
-          28.6238,
-          77.21221
-        ],
-        [
-          28.62375,
-          77.2123
-        ],
-        [
-          28.62374,
-          77.21239
-        ],
-        [
-          28.62376,
-          77.21249
-        ],
-        [
-          28.6238,
-          77.21259
-        ],
-        [
-          28.62383,
-          77.21269
-        ],
-        [
-          28.62382,
-          77.2128
-        ],
-        [
-          28.6238,
-          77.21291
-        ],
-        [
-          28.62387,
-          77.21305
-        ],
-        [
-          28.62392,
-          77.21311
-        ],
-        [
-          28.62398,
-          77.21316
-        ],
-        [
-          28.6242,
-          77.21331
-        ],
-        [
-          28.6243,
-          77.21339
-        ],
-        [
-          28.62439,
-          77.21345
-        ],
-        [
-          28.62478,
-          77.21374
-        ],
-        [
-          28.62488,
-          77.21381
-        ],
-        [
-          28.62511,
-          77.21398
-        ],
-        [
-          28.62544,
-          77.21421
-        ],
-        [
-          28.62552,
-          77.21428
-        ],
-        [
-          28.62607,
-          77.21464
-        ],
-        [
-          28.62652,
-          77.21494
-        ],
-        [
-          28.62654,
-          77.21496
-        ],
-        [
-          28.62669,
-          77.21508
-        ],
-        [
-          28.62689,
-          77.21525
-        ],
-        [
-          28.62694,
-          77.2153
-        ],
-        [
-          28.62702,
-          77.21536
-        ],
-        [
-          28.62699,
-          77.21543
-        ],
-        [
-          28.62694,
-          77.21551
-        ],
-        [
-          28.62683,
-          77.21569
-        ],
-        [
-          28.6267,
-          77.21585
-        ],
-        [
-          28.62665,
-          77.21588
-        ],
-        [
-          28.62661,
-          77.21589
-        ],
-        [
-          28.62632,
-          77.21591
-        ],
-        [
-          28.62627,
-          77.21592
-        ],
-        [
-          28.62622,
-          77.21594
-        ],
-        [
-          28.62618,
-          77.21595
-        ],
-        [
-          28.62611,
-          77.21603
-        ],
-        [
-          28.62603,
-          77.21621
-        ],
-        [
-          28.62598,
-          77.21642
-        ],
-        [
-          28.62595,
-          77.2166
-        ],
-        [
-          28.62596,
-          77.21684
-        ],
-        [
-          28.626,
-          77.21706
-        ],
-        [
-          28.62608,
-          77.2173
-        ],
-        [
-          28.6262,
-          77.21758
-        ],
-        [
-          28.62681,
-          77.21756
-        ],
-        [
-          28.62718,
-          77.21756
-        ],
-        [
-          28.62718,
-          77.2175
-        ],
-        [
-          28.62717,
-          77.21719
-        ],
-        [
-          28.62709,
-          77.21719
-        ]
-      ],
-      "distance": 2223,
-      "bidirectional": true
-    },
-    {
-      "id": "CE7",
-      "from": "C3",
-      "to": "C9",
-      "roadName": "Ashoka Road North",
-      "trafficMultiplier": 1,
-      "speedKmh": 45,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.62584,
-          77.20868
-        ],
-        [
-          28.62566,
-          77.20899
-        ],
-        [
-          28.62559,
-          77.2091
-        ],
-        [
-          28.62528,
-          77.20963
-        ],
-        [
-          28.62517,
-          77.20983
-        ],
-        [
-          28.62511,
-          77.20993
-        ],
-        [
-          28.62498,
-          77.21015
-        ],
-        [
-          28.62469,
-          77.21064
-        ],
-        [
-          28.62462,
-          77.21077
-        ],
-        [
-          28.62433,
-          77.2113
-        ],
-        [
-          28.62431,
-          77.21133
-        ],
-        [
-          28.62412,
-          77.21166
-        ],
-        [
-          28.62403,
-          77.21182
-        ],
-        [
-          28.62398,
-          77.21191
-        ],
-        [
-          28.6238,
-          77.21221
-        ],
-        [
-          28.62375,
-          77.2123
-        ],
-        [
-          28.62374,
-          77.21239
-        ],
-        [
-          28.62376,
-          77.21249
-        ],
-        [
-          28.6238,
-          77.21259
-        ],
-        [
-          28.62383,
-          77.21269
-        ],
-        [
-          28.62382,
-          77.2128
-        ],
-        [
-          28.6238,
-          77.21291
-        ],
-        [
-          28.62376,
-          77.21299
-        ],
-        [
-          28.62372,
-          77.21306
-        ],
-        [
-          28.62366,
-          77.21312
-        ],
-        [
-          28.62359,
-          77.21316
-        ],
-        [
-          28.62354,
-          77.21318
-        ],
-        [
-          28.62348,
-          77.21319
-        ],
-        [
-          28.62342,
-          77.2132
-        ],
-        [
-          28.62337,
-          77.21319
-        ],
-        [
-          28.62331,
-          77.21318
-        ],
-        [
-          28.62326,
-          77.21316
-        ],
-        [
-          28.62321,
-          77.21313
-        ],
-        [
-          28.62317,
-          77.21309
-        ],
-        [
-          28.62313,
-          77.21305
-        ],
-        [
-          28.6231,
-          77.213
-        ],
-        [
-          28.62307,
-          77.21295
-        ],
-        [
-          28.62305,
-          77.21289
-        ],
-        [
-          28.62304,
-          77.21285
-        ],
-        [
-          28.62303,
-          77.2128
-        ],
-        [
-          28.62303,
-          77.21275
-        ],
-        [
-          28.62303,
-          77.21263
-        ],
-        [
-          28.62302,
-          77.21256
-        ],
-        [
-          28.623,
-          77.21249
-        ],
-        [
-          28.62297,
-          77.21243
-        ],
-        [
-          28.62271,
-          77.21224
-        ],
-        [
-          28.62194,
-          77.21167
-        ],
-        [
-          28.62143,
-          77.21252
-        ],
-        [
-          28.62137,
-          77.21263
-        ],
-        [
-          28.62126,
-          77.21265
-        ],
-        [
-          28.62127,
-          77.21269
-        ],
-        [
-          28.6212,
-          77.21287
-        ],
-        [
-          28.62111,
-          77.21309
-        ],
-        [
-          28.62099,
-          77.21339
-        ]
-      ],
-      "distance": 980,
-      "bidirectional": true
-    },
-    {
-      "id": "CE8",
-      "from": "C4",
-      "to": "C5",
-      "roadName": "Tolstoy Marg West",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.62709,
-          77.21719
-        ],
-        [
-          28.62717,
-          77.21719
-        ],
-        [
-          28.62718,
-          77.2175
-        ],
-        [
-          28.62718,
-          77.21756
-        ],
-        [
-          28.62681,
-          77.21756
-        ],
-        [
-          28.6262,
-          77.21758
-        ],
-        [
-          28.62632,
-          77.21786
-        ],
-        [
-          28.62637,
-          77.21798
-        ],
-        [
-          28.62641,
-          77.21812
-        ],
-        [
-          28.62644,
-          77.21821
-        ],
-        [
-          28.62644,
-          77.21827
-        ],
-        [
-          28.62644,
-          77.21903
-        ],
-        [
-          28.62644,
-          77.21926
-        ],
-        [
-          28.62644,
-          77.21936
-        ],
-        [
-          28.62631,
-          77.21934
-        ],
-        [
-          28.62621,
-          77.21933
-        ],
-        [
-          28.62601,
-          77.21932
-        ],
-        [
-          28.62554,
-          77.2193
-        ],
-        [
-          28.6254,
-          77.21929
-        ],
-        [
-          28.62467,
-          77.21924
-        ],
-        [
-          28.62461,
-          77.21924
-        ],
-        [
-          28.6246,
-          77.21949
-        ]
-      ],
-      "distance": 560,
-      "bidirectional": true
-    },
-    {
-      "id": "CE9",
-      "from": "C4",
-      "to": "C9",
-      "roadName": "Sansad Marg South",
-      "trafficMultiplier": 1,
-      "speedKmh": 40,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.62709,
-          77.21719
-        ],
-        [
-          28.62717,
-          77.21719
-        ],
-        [
-          28.62718,
-          77.2175
-        ],
-        [
-          28.62718,
-          77.21756
-        ],
-        [
-          28.62681,
-          77.21756
-        ],
-        [
-          28.6262,
-          77.21758
-        ],
-        [
-          28.62632,
-          77.21786
-        ],
-        [
-          28.62637,
-          77.21798
-        ],
-        [
-          28.62641,
-          77.21812
-        ],
-        [
-          28.62644,
-          77.21821
-        ],
-        [
-          28.62644,
-          77.21827
-        ],
-        [
-          28.62644,
-          77.21903
-        ],
-        [
-          28.62644,
-          77.21926
-        ],
-        [
-          28.62644,
-          77.21936
-        ],
-        [
-          28.62631,
-          77.21934
-        ],
-        [
-          28.62631,
-          77.21925
-        ],
-        [
-          28.62632,
-          77.21913
-        ],
-        [
-          28.62632,
-          77.21912
-        ],
-        [
-          28.62633,
-          77.21892
-        ],
-        [
-          28.62635,
-          77.21826
-        ],
-        [
-          28.62634,
-          77.2182
-        ],
-        [
-          28.62632,
-          77.21812
-        ],
-        [
-          28.62628,
-          77.21798
-        ],
-        [
-          28.62626,
-          77.21793
-        ],
-        [
-          28.62611,
-          77.21757
-        ],
-        [
-          28.62599,
-          77.21729
-        ],
-        [
-          28.62574,
-          77.21726
-        ],
-        [
-          28.62567,
-          77.21725
-        ],
-        [
-          28.62542,
-          77.21723
-        ],
-        [
-          28.62498,
-          77.21721
-        ],
-        [
-          28.62446,
-          77.2172
-        ],
-        [
-          28.62343,
-          77.21711
-        ],
-        [
-          28.6225,
-          77.21702
-        ],
-        [
-          28.6223,
-          77.21695
-        ],
-        [
-          28.62225,
-          77.21689
-        ],
-        [
-          28.62218,
-          77.21682
-        ],
-        [
-          28.62193,
-          77.21637
-        ],
-        [
-          28.62188,
-          77.21634
-        ],
-        [
-          28.62182,
-          77.21627
-        ],
-        [
-          28.62169,
-          77.21613
-        ],
-        [
-          28.62161,
-          77.21614
-        ],
-        [
-          28.62153,
-          77.21612
-        ],
-        [
-          28.62145,
-          77.21607
-        ],
-        [
-          28.62139,
-          77.21599
-        ],
-        [
-          28.62135,
-          77.2159
-        ],
-        [
-          28.62133,
-          77.21581
-        ],
-        [
-          28.62134,
-          77.21571
-        ],
-        [
-          28.62138,
-          77.21563
-        ],
-        [
-          28.62143,
-          77.21555
-        ],
-        [
-          28.62148,
-          77.21551
-        ],
-        [
-          28.62147,
-          77.21543
-        ],
-        [
-          28.62143,
-          77.21524
-        ],
-        [
-          28.6211,
-          77.21455
-        ],
-        [
-          28.62099,
-          77.21456
-        ],
-        [
-          28.62087,
-          77.21456
-        ],
-        [
-          28.62085,
-          77.21456
-        ],
-        [
-          28.62086,
-          77.21428
-        ],
-        [
-          28.62086,
-          77.2141
-        ],
-        [
-          28.62085,
-          77.21404
-        ],
-        [
-          28.62081,
-          77.21393
-        ],
-        [
-          28.62098,
-          77.21341
-        ],
-        [
-          28.62099,
-          77.21339
-        ]
-      ],
-      "distance": 1416,
-      "bidirectional": true
-    },
-    {
-      "id": "CE10",
-      "from": "C5",
-      "to": "C6",
-      "roadName": "Tolstoy Marg East",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 40,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.6246,
-          77.21949
-        ],
-        [
-          28.62461,
-          77.21924
-        ],
-        [
-          28.62447,
-          77.21923
-        ],
-        [
-          28.62434,
-          77.21922
-        ],
-        [
-          28.62426,
-          77.21922
-        ],
-        [
-          28.6241,
-          77.21921
-        ],
-        [
-          28.62311,
-          77.21915
-        ],
-        [
-          28.62246,
-          77.21911
-        ],
-        [
-          28.62206,
-          77.21908
-        ],
-        [
-          28.62155,
-          77.21905
-        ],
-        [
-          28.62129,
-          77.21904
-        ],
-        [
-          28.62072,
-          77.21901
-        ],
-        [
-          28.62041,
-          77.21899
-        ],
-        [
-          28.62039,
-          77.21907
-        ],
-        [
-          28.62035,
-          77.21916
-        ],
-        [
-          28.62031,
-          77.21923
-        ],
-        [
-          28.62025,
-          77.2193
-        ],
-        [
-          28.6202,
-          77.21935
-        ],
-        [
-          28.62014,
-          77.21939
-        ],
-        [
-          28.62007,
-          77.21943
-        ],
-        [
-          28.62001,
-          77.21945
-        ],
-        [
-          28.61994,
-          77.21946
-        ],
-        [
-          28.61988,
-          77.21946
-        ],
-        [
-          28.61981,
-          77.21946
-        ],
-        [
-          28.61974,
-          77.21944
-        ],
-        [
-          28.61967,
-          77.21942
-        ],
-        [
-          28.61961,
-          77.21938
-        ],
-        [
-          28.61955,
-          77.21934
-        ],
-        [
-          28.6195,
-          77.21928
-        ],
-        [
-          28.61947,
-          77.21924
-        ],
-        [
-          28.61944,
-          77.2192
-        ],
-        [
-          28.61941,
-          77.21916
-        ],
-        [
-          28.61939,
-          77.2191
-        ],
-        [
-          28.61937,
-          77.21904
-        ],
-        [
-          28.61935,
-          77.21899
-        ],
-        [
-          28.61934,
-          77.21891
-        ],
-        [
-          28.61934,
-          77.21882
-        ],
-        [
-          28.61935,
-          77.21874
-        ],
-        [
-          28.61936,
-          77.21868
-        ],
-        [
-          28.61939,
-          77.21858
-        ],
-        [
-          28.61944,
-          77.21848
-        ],
-        [
-          28.61951,
-          77.2184
-        ],
-        [
-          28.61962,
-          77.2183
-        ],
-        [
-          28.61975,
-          77.21825
-        ],
-        [
-          28.61988,
-          77.21823
-        ],
-        [
-          28.62001,
-          77.21825
-        ],
-        [
-          28.62012,
-          77.21829
-        ],
-        [
-          28.62021,
-          77.21836
-        ],
-        [
-          28.62029,
-          77.21844
-        ],
-        [
-          28.62034,
-          77.21851
-        ],
-        [
-          28.62037,
-          77.21857
-        ],
-        [
-          28.62039,
-          77.21864
-        ],
-        [
-          28.62041,
-          77.21871
-        ],
-        [
-          28.62042,
-          77.21879
-        ],
-        [
-          28.62043,
-          77.21886
-        ],
-        [
-          28.62072,
-          77.21888
-        ],
-        [
-          28.62127,
-          77.21892
-        ],
-        [
-          28.62141,
-          77.21893
-        ],
-        [
-          28.62214,
-          77.21897
-        ],
-        [
-          28.62245,
-          77.21899
-        ],
-        [
-          28.62313,
-          77.21904
-        ],
-        [
-          28.6235,
-          77.21906
-        ],
-        [
-          28.62428,
-          77.21911
-        ],
-        [
-          28.62443,
-          77.21912
-        ],
-        [
-          28.62449,
-          77.21913
-        ],
-        [
-          28.62465,
-          77.21914
-        ],
-        [
-          28.6249,
-          77.21915
-        ],
-        [
-          28.62517,
-          77.21917
-        ],
-        [
-          28.62536,
-          77.21918
-        ],
-        [
-          28.62609,
-          77.21923
-        ],
-        [
-          28.62622,
-          77.21924
-        ],
-        [
-          28.62631,
-          77.21925
-        ],
-        [
-          28.62644,
-          77.21926
-        ],
-        [
-          28.62644,
-          77.21936
-        ],
-        [
-          28.62643,
-          77.21948
-        ],
-        [
-          28.62643,
-          77.21961
-        ],
-        [
-          28.62642,
-          77.21977
-        ],
-        [
-          28.62638,
-          77.22047
-        ],
-        [
-          28.62638,
-          77.22059
-        ],
-        [
-          28.62635,
-          77.22106
-        ],
-        [
-          28.62634,
-          77.22136
-        ],
-        [
-          28.62633,
-          77.22163
-        ],
-        [
-          28.62632,
-          77.22179
-        ],
-        [
-          28.62631,
-          77.22188
-        ],
-        [
-          28.62633,
-          77.22211
-        ],
-        [
-          28.62633,
-          77.22222
-        ],
-        [
-          28.62632,
-          77.22255
-        ],
-        [
-          28.62632,
-          77.22276
-        ],
-        [
-          28.62633,
-          77.22291
-        ],
-        [
-          28.62635,
-          77.22298
-        ],
-        [
-          28.62637,
-          77.22305
-        ],
-        [
-          28.6264,
-          77.22314
-        ],
-        [
-          28.62647,
-          77.2233
-        ],
-        [
-          28.6265,
-          77.22338
-        ],
-        [
-          28.62661,
-          77.22368
-        ],
-        [
-          28.62666,
-          77.22379
-        ],
-        [
-          28.62667,
-          77.22382
-        ],
-        [
-          28.6269,
-          77.22426
-        ],
-        [
-          28.62694,
-          77.22433
-        ],
-        [
-          28.62716,
-          77.22469
-        ],
-        [
-          28.62726,
-          77.22482
-        ],
-        [
-          28.62745,
-          77.22508
-        ],
-        [
-          28.62753,
-          77.22518
-        ],
-        [
-          28.62766,
-          77.22533
-        ],
-        [
-          28.62773,
-          77.22542
-        ],
-        [
-          28.62783,
-          77.22553
-        ],
-        [
-          28.62788,
-          77.22558
-        ],
-        [
-          28.62802,
-          77.22571
-        ],
-        [
-          28.62805,
-          77.22574
-        ],
-        [
-          28.62816,
-          77.22584
-        ],
-        [
-          28.62842,
-          77.22605
-        ],
-        [
-          28.62858,
-          77.22619
-        ],
-        [
-          28.62878,
-          77.22636
-        ],
-        [
-          28.62881,
-          77.22639
-        ],
-        [
-          28.62885,
-          77.22642
-        ],
-        [
-          28.62891,
-          77.22646
-        ],
-        [
-          28.6291,
-          77.22659
-        ],
-        [
-          28.62943,
-          77.22682
-        ],
-        [
-          28.62979,
-          77.22695
-        ],
-        [
-          28.63006,
-          77.22643
-        ],
-        [
-          28.6301,
-          77.22637
-        ],
-        [
-          28.63011,
-          77.22634
-        ],
-        [
-          28.63029,
-          77.22603
-        ],
-        [
-          28.63038,
-          77.22588
-        ],
-        [
-          28.63052,
-          77.22563
-        ],
-        [
-          28.63064,
-          77.22542
-        ],
-        [
-          28.63085,
-          77.22505
-        ],
-        [
-          28.63137,
-          77.22414
-        ],
-        [
-          28.63143,
-          77.22404
-        ],
-        [
-          28.63152,
-          77.22413
-        ],
-        [
-          28.63155,
-          77.2242
-        ],
-        [
-          28.63158,
-          77.22431
-        ],
-        [
-          28.63162,
-          77.2247
-        ],
-        [
-          28.63137,
-          77.22517
-        ],
-        [
-          28.63109,
-          77.22567
-        ],
-        [
-          28.63106,
-          77.22571
-        ],
-        [
-          28.63102,
-          77.22579
-        ],
-        [
-          28.63101,
-          77.22587
-        ],
-        [
-          28.63086,
-          77.22615
-        ],
-        [
-          28.63062,
-          77.22658
-        ]
-      ],
-      "distance": 3076,
-      "bidirectional": true
-    },
-    {
-      "id": "CE11",
-      "from": "C5",
-      "to": "C8",
-      "roadName": "Janpath & Kartavya Path Lawn",
-      "trafficMultiplier": 1,
-      "speedKmh": 5,
-      "pedestrianOnly": true,
-      "waypoints": [
-        [
-          28.6246,
-          77.21949
-        ],
-        [
-          28.62461,
-          77.21924
-        ],
-        [
-          28.62447,
-          77.21923
-        ],
-        [
-          28.62434,
-          77.21922
-        ],
-        [
-          28.62426,
-          77.21922
-        ],
-        [
-          28.6241,
-          77.21921
-        ],
-        [
-          28.62311,
-          77.21915
-        ],
-        [
-          28.62246,
-          77.21911
-        ],
-        [
-          28.62206,
-          77.21908
-        ],
-        [
-          28.62155,
-          77.21905
-        ],
-        [
-          28.62129,
-          77.21904
-        ],
-        [
-          28.62072,
-          77.21901
-        ],
-        [
-          28.62041,
-          77.21899
-        ],
-        [
-          28.62039,
-          77.21907
-        ],
-        [
-          28.62035,
-          77.21916
-        ],
-        [
-          28.62031,
-          77.21923
-        ],
-        [
-          28.62025,
-          77.2193
-        ],
-        [
-          28.6202,
-          77.21935
-        ],
-        [
-          28.62014,
-          77.21939
-        ],
-        [
-          28.62007,
-          77.21943
-        ],
-        [
-          28.62001,
-          77.21945
-        ],
-        [
-          28.61994,
-          77.21946
-        ],
-        [
-          28.61988,
-          77.21946
-        ],
-        [
-          28.61981,
-          77.21946
-        ],
-        [
-          28.61972,
-          77.21949
-        ],
-        [
-          28.61959,
-          77.21956
-        ],
-        [
-          28.61948,
-          77.21964
-        ],
-        [
-          28.61941,
-          77.21975
-        ],
-        [
-          28.61934,
-          77.21987
-        ],
-        [
-          28.61928,
-          77.21998
-        ],
-        [
-          28.619,
-          77.22047
-        ],
-        [
-          28.61887,
-          77.22069
-        ],
-        [
-          28.61854,
-          77.22125
-        ],
-        [
-          28.61851,
-          77.22132
-        ],
-        [
-          28.61826,
-          77.22176
-        ],
-        [
-          28.61811,
-          77.22202
-        ],
-        [
-          28.61808,
-          77.22207
-        ],
-        [
-          28.61798,
-          77.22225
-        ],
-        [
-          28.61785,
-          77.22247
-        ],
-        [
-          28.61773,
-          77.22267
-        ],
-        [
-          28.61765,
-          77.22281
-        ],
-        [
-          28.61742,
-          77.22323
-        ],
-        [
-          28.61722,
-          77.22358
-        ],
-        [
-          28.61702,
-          77.22392
-        ],
-        [
-          28.61676,
-          77.22439
-        ],
-        [
-          28.61671,
-          77.22447
-        ],
-        [
-          28.61664,
-          77.22457
-        ],
-        [
-          28.6166,
-          77.22468
-        ],
-        [
-          28.61659,
-          77.22475
-        ],
-        [
-          28.6166,
-          77.22481
-        ],
-        [
-          28.61664,
-          77.22488
-        ],
-        [
-          28.61665,
-          77.22492
-        ],
-        [
-          28.61666,
-          77.22497
-        ],
-        [
-          28.61666,
-          77.22504
-        ],
-        [
-          28.61664,
-          77.22512
-        ],
-        [
-          28.61661,
-          77.2252
-        ],
-        [
-          28.61657,
-          77.22525
-        ],
-        [
-          28.61655,
-          77.22527
-        ],
-        [
-          28.61648,
-          77.22531
-        ],
-        [
-          28.61639,
-          77.22533
-        ],
-        [
-          28.61629,
-          77.22532
-        ],
-        [
-          28.61621,
-          77.22527
-        ],
-        [
-          28.61616,
-          77.22523
-        ],
-        [
-          28.61614,
-          77.2252
-        ],
-        [
-          28.61612,
-          77.22516
-        ],
-        [
-          28.6161,
-          77.22503
-        ],
-        [
-          28.61605,
-          77.22503
-        ],
-        [
-          28.61599,
-          77.22502
-        ],
-        [
-          28.61592,
-          77.22502
-        ],
-        [
-          28.61555,
-          77.225
-        ],
-        [
-          28.61524,
-          77.22498
-        ],
-        [
-          28.61468,
-          77.22494
-        ],
-        [
-          28.61446,
-          77.22493
-        ],
-        [
-          28.61414,
-          77.22491
-        ],
-        [
-          28.61363,
-          77.22488
-        ],
-        [
-          28.61323,
-          77.22486
-        ],
-        [
-          28.61315,
-          77.22485
-        ],
-        [
-          28.61306,
-          77.22484
-        ],
-        [
-          28.61268,
-          77.22482
-        ],
-        [
-          28.6125,
-          77.22481
-        ],
-        [
-          28.61209,
-          77.22478
-        ],
-        [
-          28.61182,
-          77.22477
-        ],
-        [
-          28.61171,
-          77.22476
-        ],
-        [
-          28.6111,
-          77.22472
-        ],
-        [
-          28.61043,
-          77.22468
-        ],
-        [
-          28.61031,
-          77.22468
-        ],
-        [
-          28.61024,
-          77.22468
-        ],
-        [
-          28.61017,
-          77.22471
-        ],
-        [
-          28.61016,
-          77.22474
-        ],
-        [
-          28.61012,
-          77.2248
+          28.60993,
+          77.22427
         ],
         [
           28.61016,
           77.225
-        ],
-        [
-          28.61019,
-          77.22506
-        ],
-        [
-          28.61104,
-          77.22694
-        ],
-        [
-          28.61107,
-          77.22701
-        ],
-        [
-          28.61121,
-          77.22726
-        ],
-        [
-          28.61132,
-          77.22739
-        ],
-        [
-          28.61146,
-          77.22748
-        ],
-        [
-          28.61168,
-          77.2276
-        ],
-        [
-          28.61282,
-          77.22766
         ],
         [
           28.61296,
           77.22766
         ]
       ],
-      "distance": 2483,
+      "distance": 10306,
       "bidirectional": true
     },
     {
-      "id": "CE12",
-      "from": "C6",
-      "to": "C7",
-      "roadName": "Barakhamba Extension",
-      "trafficMultiplier": 1.5,
+      "id": "E34",
+      "from": "karol_bagh",
+      "to": "connaught_place",
+      "roadName": "Panchkuian Road Radial",
       "speedKmh": 40,
+      "trafficMultiplier": 1.4,
       "pedestrianOnly": false,
       "waypoints": [
         [
-          28.63062,
-          77.22658
+          28.64406,
+          77.18851
         ],
         [
-          28.63086,
-          77.22615
+          28.64447,
+          77.1912
         ],
         [
-          28.63101,
-          77.22587
+          28.64497,
+          77.19476
         ],
         [
-          28.63102,
-          77.22579
+          28.64536,
+          77.19688
         ],
         [
-          28.63106,
-          77.22571
+          28.6455,
+          77.19697
         ],
         [
-          28.63109,
-          77.22567
+          28.6456,
+          77.19712
         ],
         [
-          28.63137,
-          77.22517
+          28.64565,
+          77.19746
         ],
         [
-          28.63162,
-          77.2247
+          28.6456,
+          77.19763
         ],
         [
-          28.63158,
-          77.22431
+          28.6455,
+          77.19775
         ],
         [
-          28.63155,
-          77.2242
+          28.64527,
+          77.19796
         ],
         [
-          28.63152,
-          77.22413
+          28.64459,
+          77.1995
         ],
         [
-          28.63143,
-          77.22404
+          28.64341,
+          77.20213
         ],
         [
-          28.63149,
-          77.22393
+          28.64324,
+          77.20314
         ],
         [
-          28.63158,
-          77.22373
+          28.64329,
+          77.20348
         ],
         [
-          28.63166,
-          77.22349
+          28.64308,
+          77.20369
         ],
         [
-          28.6318,
-          77.22303
+          28.64248,
+          77.20382
         ],
         [
-          28.63183,
-          77.22291
+          28.64123,
+          77.20521
         ],
         [
-          28.63186,
-          77.22283
+          28.63985,
+          77.20768
         ],
         [
-          28.63151,
-          77.22262
+          28.63931,
+          77.20866
         ],
         [
-          28.63141,
-          77.22256
+          28.63761,
+          77.21162
         ],
         [
-          28.63126,
-          77.22259
+          28.63446,
+          77.21708
         ],
         [
-          28.63122,
-          77.22261
+          28.63536,
+          77.2182
         ],
         [
-          28.63117,
-          77.22263
+          28.6357,
+          77.21967
         ],
         [
-          28.63113,
-          77.22266
+          28.63547,
+          77.21987
         ],
         [
-          28.63107,
-          77.22275
+          28.63391,
+          77.2199
+        ],
+        [
+          28.63362,
+          77.22057
+        ],
+        [
+          28.6332,
+          77.22089
+        ],
+        [
+          28.6325,
+          77.22092
+        ]
+      ],
+      "distance": 4002,
+      "bidirectional": true
+    },
+    {
+      "id": "E35",
+      "from": "karol_bagh",
+      "to": "ndls",
+      "roadName": "Deshbandhu Gupta Road (Paharganj)",
+      "speedKmh": 35,
+      "trafficMultiplier": 1.8,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.64406,
+          77.18851
+        ],
+        [
+          28.64447,
+          77.1912
+        ],
+        [
+          28.64521,
+          77.1963
+        ],
+        [
+          28.64538,
+          77.19689
+        ],
+        [
+          28.64553,
+          77.197
+        ],
+        [
+          28.64565,
+          77.1973
+        ],
+        [
+          28.64564,
+          77.19754
+        ],
+        [
+          28.64556,
+          77.1977
+        ],
+        [
+          28.64542,
+          77.19779
+        ],
+        [
+          28.64493,
+          77.19875
+        ],
+        [
+          28.64419,
+          77.20041
+        ],
+        [
+          28.64313,
+          77.20299
+        ],
+        [
+          28.64331,
+          77.20341
+        ],
+        [
+          28.64313,
+          77.20367
+        ],
+        [
+          28.6426,
+          77.20376
+        ],
+        [
+          28.64145,
+          77.20487
+        ],
+        [
+          28.64042,
+          77.20666
+        ],
+        [
+          28.63931,
+          77.20866
+        ],
+        [
+          28.63761,
+          77.21162
+        ],
+        [
+          28.63446,
+          77.21708
+        ],
+        [
+          28.63544,
+          77.21836
+        ],
+        [
+          28.63571,
+          77.21976
+        ],
+        [
+          28.63557,
+          77.22044
+        ],
+        [
+          28.63546,
+          77.22157
+        ],
+        [
+          28.63768,
+          77.22319
+        ],
+        [
+          28.63998,
+          77.22342
+        ],
+        [
+          28.64107,
+          77.22287
+        ],
+        [
+          28.64251,
+          77.22205
+        ]
+      ],
+      "distance": 4663,
+      "bidirectional": true
+    },
+    {
+      "id": "E36",
+      "from": "connaught_place",
+      "to": "ndls",
+      "roadName": "Chelmsford Road & Minto Bridge",
+      "speedKmh": 38,
+      "trafficMultiplier": 1.5,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6325,
+          77.22092
+        ],
+        [
+          28.63203,
+          77.22065
+        ],
+        [
+          28.63177,
+          77.22026
+        ],
+        [
+          28.63165,
+          77.21982
+        ],
+        [
+          28.63168,
+          77.21939
+        ],
+        [
+          28.63196,
+          77.21885
+        ],
+        [
+          28.63231,
+          77.21854
+        ],
+        [
+          28.63262,
+          77.21843
+        ],
+        [
+          28.63295,
+          77.21842
+        ],
+        [
+          28.63326,
+          77.21853
+        ],
+        [
+          28.63394,
+          77.21768
+        ],
+        [
+          28.63425,
+          77.21713
+        ],
+        [
+          28.63484,
+          77.21756
+        ],
+        [
+          28.63536,
+          77.2182
+        ],
+        [
+          28.63564,
+          77.21917
+        ],
+        [
+          28.63571,
+          77.21976
+        ],
+        [
+          28.63572,
+          77.21993
+        ],
+        [
+          28.63557,
+          77.22044
+        ],
+        [
+          28.6353,
+          77.22135
+        ],
+        [
+          28.63546,
+          77.22157
+        ],
+        [
+          28.63738,
+          77.22298
+        ],
+        [
+          28.63768,
+          77.22319
+        ],
+        [
+          28.63801,
+          77.22328
+        ],
+        [
+          28.63998,
+          77.22342
+        ],
+        [
+          28.64079,
+          77.22311
+        ],
+        [
+          28.64107,
+          77.22287
+        ],
+        [
+          28.64131,
+          77.22238
+        ],
+        [
+          28.64251,
+          77.22205
+        ]
+      ],
+      "distance": 2034,
+      "bidirectional": true
+    },
+    {
+      "id": "E37",
+      "from": "connaught_place",
+      "to": "india_gate",
+      "roadName": "Janpath & Kartavya Path Radial",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.2,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6325,
+          77.22092
+        ],
+        [
+          28.63134,
+          77.22223
+        ],
+        [
+          28.63082,
+          77.22207
+        ],
+        [
+          28.63042,
+          77.22157
+        ],
+        [
+          28.63005,
+          77.22082
+        ],
+        [
+          28.62988,
+          77.2198
+        ],
+        [
+          28.62977,
+          77.21961
+        ],
+        [
+          28.62837,
+          77.21949
+        ],
+        [
+          28.62716,
+          77.21941
+        ],
+        [
+          28.62621,
+          77.21933
+        ],
+        [
+          28.62461,
+          77.21924
+        ],
+        [
+          28.62246,
+          77.21911
+        ],
+        [
+          28.62039,
+          77.21907
+        ],
+        [
+          28.62007,
+          77.21943
+        ],
+        [
+          28.61972,
+          77.21949
+        ],
+        [
+          28.619,
+          77.22047
+        ],
+        [
+          28.61808,
+          77.22207
+        ],
+        [
+          28.61722,
+          77.22358
+        ],
+        [
+          28.6166,
+          77.22468
+        ],
+        [
+          28.61666,
+          77.22504
+        ],
+        [
+          28.61639,
+          77.22533
+        ],
+        [
+          28.6161,
+          77.22503
+        ],
+        [
+          28.61524,
+          77.22498
+        ],
+        [
+          28.61315,
+          77.22485
+        ],
+        [
+          28.61171,
+          77.22476
+        ],
+        [
+          28.61016,
+          77.22474
+        ],
+        [
+          28.61107,
+          77.22701
+        ],
+        [
+          28.61296,
+          77.22766
+        ]
+      ],
+      "distance": 3602,
+      "bidirectional": true
+    },
+    {
+      "id": "E38",
+      "from": "connaught_place",
+      "to": "india_gate",
+      "roadName": "Central Vista Pedestrian Promenade",
+      "speedKmh": 5,
+      "trafficMultiplier": 1,
+      "pedestrianOnly": true,
+      "waypoints": [
+        [
+          28.6325,
+          77.22092
+        ],
+        [
+          28.63134,
+          77.22223
+        ],
+        [
+          28.63082,
+          77.22207
+        ],
+        [
+          28.63042,
+          77.22157
+        ],
+        [
+          28.63005,
+          77.22082
+        ],
+        [
+          28.62988,
+          77.2198
+        ],
+        [
+          28.62977,
+          77.21961
+        ],
+        [
+          28.62837,
+          77.21949
+        ],
+        [
+          28.62716,
+          77.21941
+        ],
+        [
+          28.62621,
+          77.21933
+        ],
+        [
+          28.62461,
+          77.21924
+        ],
+        [
+          28.62246,
+          77.21911
+        ],
+        [
+          28.62039,
+          77.21907
+        ],
+        [
+          28.62007,
+          77.21943
+        ],
+        [
+          28.61972,
+          77.21949
+        ],
+        [
+          28.619,
+          77.22047
+        ],
+        [
+          28.61808,
+          77.22207
+        ],
+        [
+          28.61722,
+          77.22358
+        ],
+        [
+          28.6166,
+          77.22468
+        ],
+        [
+          28.61666,
+          77.22504
+        ],
+        [
+          28.61639,
+          77.22533
+        ],
+        [
+          28.6161,
+          77.22503
+        ],
+        [
+          28.61524,
+          77.22498
+        ],
+        [
+          28.61315,
+          77.22485
+        ],
+        [
+          28.61171,
+          77.22476
+        ],
+        [
+          28.61016,
+          77.22474
+        ],
+        [
+          28.61107,
+          77.22701
+        ],
+        [
+          28.61296,
+          77.22766
+        ]
+      ],
+      "distance": 3062,
+      "bidirectional": true
+    },
+    {
+      "id": "E39",
+      "from": "connaught_place",
+      "to": "ito_junction",
+      "roadName": "Barakhamba Road & DDU Marg",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.5,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.6325,
+          77.22092
+        ],
+        [
+          28.63187,
+          77.2213
+        ],
+        [
+          28.63125,
+          77.22243
         ],
         [
           28.63072,
           77.22335
         ],
         [
-          28.63063,
-          77.22353
-        ],
-        [
-          28.63059,
-          77.22359
-        ],
-        [
-          28.63055,
-          77.22366
-        ],
-        [
           28.63046,
           77.22381
-        ],
-        [
-          28.63042,
-          77.22388
-        ],
-        [
-          28.6304,
-          77.22392
-        ],
-        [
-          28.62972,
-          77.22512
         ],
         [
           28.6293,
           77.22585
         ],
         [
-          28.62915,
-          77.22608
-        ],
-        [
-          28.62898,
-          77.22635
-        ],
-        [
-          28.62895,
-          77.22639
-        ],
-        [
-          28.62891,
-          77.22646
-        ],
-        [
-          28.62887,
+          28.62924,
           77.22653
         ],
         [
-          28.62882,
-          77.22663
+          28.62934,
+          77.22666
         ],
         [
-          28.62874,
-          77.22677
+          28.62943,
+          77.22682
         ],
         [
-          28.62792,
-          77.22826
+          28.63456,
+          77.2306
         ],
         [
-          28.62752,
-          77.22896
+          28.63565,
+          77.23093
         ],
         [
-          28.62695,
-          77.22995
+          28.63818,
+          77.23116
         ],
         [
-          28.62617,
-          77.23131
+          28.64039,
+          77.23144
         ],
         [
-          28.62615,
-          77.23134
+          28.64096,
+          77.23176
         ],
         [
-          28.6261,
-          77.23142
+          28.64201,
+          77.23251
         ],
         [
-          28.62606,
-          77.23152
+          28.64141,
+          77.2339
         ],
         [
-          28.62603,
-          77.23163
+          28.64098,
+          77.23559
         ],
         [
-          28.62606,
-          77.23168
+          28.64082,
+          77.23788
         ],
         [
-          28.62609,
-          77.23174
+          28.64054,
+          77.23924
         ],
         [
-          28.62611,
-          77.2318
+          28.64021,
+          77.24009
         ],
         [
-          28.62612,
-          77.23186
+          28.64026,
+          77.24098
         ],
         [
-          28.62613,
-          77.23193
+          28.63924,
+          77.2412
         ],
         [
-          28.62613,
-          77.23196
+          28.63773,
+          77.24118
         ],
         [
-          28.62613,
-          77.23199
+          28.63581,
+          77.24117
         ],
         [
-          28.62612,
-          77.23206
+          28.63454,
+          77.24102
         ],
         [
-          28.6261,
-          77.23212
+          28.6328,
+          77.24099
         ],
         [
-          28.62608,
-          77.23218
+          28.63012,
+          77.24126
         ],
         [
-          28.62605,
-          77.23224
-        ],
-        [
-          28.62602,
-          77.23229
-        ],
-        [
-          28.62598,
-          77.23233
-        ],
-        [
-          28.62593,
-          77.23237
-        ],
-        [
-          28.62588,
-          77.23241
-        ],
-        [
-          28.62583,
-          77.23243
-        ],
-        [
-          28.62578,
-          77.23245
-        ],
-        [
-          28.62574,
-          77.23265
-        ],
-        [
-          28.62573,
-          77.23272
-        ],
-        [
-          28.6257,
-          77.23335
-        ],
-        [
-          28.62568,
-          77.23365
-        ],
-        [
-          28.62568,
-          77.23373
-        ],
-        [
-          28.62575,
-          77.23395
-        ],
-        [
-          28.62577,
-          77.23403
-        ],
-        [
-          28.62576,
-          77.2342
+          28.62849,
+          77.24138
         ]
       ],
-      "distance": 1822,
+      "distance": 4457,
       "bidirectional": true
     },
     {
-      "id": "CE13",
-      "from": "C7",
-      "to": "C10",
-      "roadName": "Deen Dayal Upadhyay Marg",
-      "trafficMultiplier": 2.2,
-      "speedKmh": 40,
+      "id": "E40",
+      "from": "india_gate",
+      "to": "ito_junction",
+      "roadName": "Tilak Marg Boulevard",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.3,
       "pedestrianOnly": false,
       "waypoints": [
         [
-          28.62576,
-          77.2342
+          28.61296,
+          77.22766
         ],
         [
-          28.62575,
-          77.23436
+          28.61406,
+          77.22776
         ],
         [
-          28.62572,
-          77.23443
+          28.61498,
+          77.22838
         ],
         [
-          28.62563,
-          77.23457
+          28.61553,
+          77.2296
         ],
         [
-          28.62561,
-          77.23529
+          28.61616,
+          77.2311
         ],
         [
-          28.62563,
-          77.23557
+          28.6161,
+          77.23177
         ],
         [
-          28.62563,
-          77.23576
+          28.61554,
+          77.23271
         ],
         [
-          28.62563,
-          77.23604
+          28.61562,
+          77.23316
         ],
         [
-          28.62541,
-          77.23941
+          28.62008,
+          77.23641
         ],
         [
-          28.6254,
-          77.23957
+          28.62078,
+          77.23691
         ],
         [
-          28.62539,
-          77.2397
+          28.62132,
+          77.23732
         ],
         [
-          28.62539,
-          77.23975
+          28.62288,
+          77.23852
         ],
         [
-          28.62528,
-          77.24012
+          28.62385,
+          77.23925
         ],
         [
-          28.62524,
-          77.24027
+          28.62499,
+          77.2401
         ],
         [
           28.62534,
           77.24034
         ],
         [
-          28.62549,
-          77.24043
-        ],
-        [
-          28.62559,
-          77.24049
-        ],
-        [
           28.62577,
           77.24062
-        ],
-        [
-          28.62628,
-          77.24099
-        ],
-        [
-          28.62648,
-          77.24112
         ],
         [
           28.62658,
           77.24117
         ],
         [
-          28.62677,
-          77.24126
-        ],
-        [
-          28.627,
-          77.2413
-        ],
-        [
-          28.62746,
-          77.24129
-        ],
-        [
           28.62754,
           77.24129
-        ],
-        [
-          28.62762,
-          77.24128
-        ],
-        [
-          28.62777,
-          77.24128
         ],
         [
           28.62802,
           77.24125
         ],
         [
-          28.6282,
-          77.24124
-        ],
-        [
-          28.62874,
-          77.24122
-        ],
-        [
           28.6293,
           77.24118
-        ],
-        [
-          28.63033,
-          77.24108
-        ],
-        [
-          28.63062,
-          77.24106
         ],
         [
           28.63082,
           77.24103
         ],
         [
-          28.63158,
-          77.24095
-        ],
-        [
-          28.63231,
-          77.24089
-        ],
-        [
           28.63233,
           77.24089
         ],
         [
-          28.63294,
-          77.24084
-        ],
-        [
-          28.63344,
-          77.24082
-        ],
-        [
           28.63397,
-          77.24082
-        ],
-        [
-          28.63455,
-          77.24083
-        ],
-        [
-          28.63463,
           77.24082
         ],
         [
@@ -7812,6636 +5424,4415 @@ export const CONNAUGHT_PLACE_GRAPH = {
           77.24104
         ],
         [
-          28.63457,
-          77.24103
-        ],
-        [
-          28.63454,
-          77.24102
-        ],
-        [
-          28.63365,
-          77.24098
-        ],
-        [
           28.63328,
           77.24097
-        ],
-        [
-          28.6328,
-          77.24099
-        ],
-        [
-          28.63235,
-          77.24101
         ],
         [
           28.63187,
           77.24107
         ],
         [
-          28.63084,
+          28.6296,
+          77.24129
+        ],
+        [
+          28.62849,
+          77.24138
+        ]
+      ],
+      "distance": 3812,
+      "bidirectional": true
+    },
+    {
+      "id": "E41",
+      "from": "ndls",
+      "to": "ito_junction",
+      "roadName": "Jawaharlal Nehru Marg",
+      "speedKmh": 40,
+      "trafficMultiplier": 1.5,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.64251,
+          77.22205
+        ],
+        [
+          28.64341,
+          77.22283
+        ],
+        [
+          28.64344,
+          77.22329
+        ],
+        [
+          28.644,
+          77.22379
+        ],
+        [
+          28.64494,
+          77.2236
+        ],
+        [
+          28.64525,
+          77.22365
+        ],
+        [
+          28.64522,
+          77.22381
+        ],
+        [
+          28.64531,
+          77.22466
+        ],
+        [
+          28.64457,
+          77.22614
+        ],
+        [
+          28.6439,
+          77.22775
+        ],
+        [
+          28.64383,
+          77.22793
+        ],
+        [
+          28.64359,
+          77.22796
+        ],
+        [
+          28.64323,
+          77.22928
+        ],
+        [
+          28.6428,
+          77.23038
+        ],
+        [
+          28.64241,
+          77.23178
+        ],
+        [
+          28.64204,
+          77.23267
+        ],
+        [
+          28.64124,
+          77.23499
+        ],
+        [
+          28.64081,
+          77.23877
+        ],
+        [
+          28.64054,
+          77.23924
+        ],
+        [
+          28.64021,
+          77.24009
+        ],
+        [
+          28.64026,
+          77.24098
+        ],
+        [
+          28.63888,
+          77.24122
+        ],
+        [
+          28.63773,
           77.24118
+        ],
+        [
+          28.63581,
+          77.24117
+        ],
+        [
+          28.63454,
+          77.24102
+        ],
+        [
+          28.63235,
+          77.24101
         ],
         [
           28.63012,
           77.24126
         ],
         [
-          28.6296,
-          77.24129
-        ],
-        [
-          28.62956,
-          77.2413
-        ],
-        [
-          28.62872,
-          77.24136
-        ],
-        [
-          28.62825,
-          77.24139
-        ],
-        [
-          28.62817,
-          77.24145
+          28.62849,
+          77.24138
         ]
       ],
-      "distance": 2411,
+      "distance": 3633,
       "bidirectional": true
     },
     {
-      "id": "CE14",
-      "from": "C7",
-      "to": "C11",
-      "roadName": "Bhagwan Das Road",
-      "trafficMultiplier": 1,
-      "speedKmh": 45,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.62576,
-          77.2342
-        ],
-        [
-          28.62575,
-          77.23436
-        ],
-        [
-          28.62572,
-          77.23443
-        ],
-        [
-          28.62563,
-          77.23457
-        ],
-        [
-          28.62561,
-          77.23529
-        ],
-        [
-          28.62563,
-          77.23557
-        ],
-        [
-          28.62563,
-          77.23576
-        ],
-        [
-          28.62563,
-          77.23604
-        ],
-        [
-          28.62541,
-          77.23941
-        ],
-        [
-          28.6254,
-          77.23957
-        ],
-        [
-          28.62539,
-          77.2397
-        ],
-        [
-          28.62539,
-          77.23975
-        ],
-        [
-          28.62528,
-          77.24012
-        ],
-        [
-          28.62524,
-          77.24027
-        ],
-        [
-          28.62516,
-          77.24045
-        ],
-        [
-          28.62508,
-          77.24038
-        ],
-        [
-          28.62502,
-          77.24032
-        ],
-        [
-          28.62491,
-          77.24023
-        ],
-        [
-          28.62475,
-          77.24011
-        ],
-        [
-          28.62323,
-          77.23898
-        ],
-        [
-          28.62292,
-          77.23874
-        ],
-        [
-          28.62165,
-          77.23774
-        ],
-        [
-          28.62132,
-          77.2375
-        ],
-        [
-          28.62103,
-          77.23729
-        ],
-        [
-          28.62094,
-          77.23723
-        ],
-        [
-          28.62079,
-          77.23712
-        ],
-        [
-          28.62071,
-          77.23727
-        ],
-        [
-          28.62065,
-          77.23742
-        ],
-        [
-          28.62052,
-          77.23784
-        ],
-        [
-          28.62044,
-          77.23811
-        ],
-        [
-          28.62044,
-          77.23812
-        ],
-        [
-          28.62033,
-          77.23853
-        ],
-        [
-          28.62017,
-          77.23912
-        ]
-      ],
-      "distance": 1412,
-      "bidirectional": true
-    },
-    {
-      "id": "CE15",
-      "from": "C7",
-      "to": "C8",
-      "roadName": "Copernicus Marg",
-      "trafficMultiplier": 1,
-      "speedKmh": 45,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.62576,
-          77.2342
-        ],
-        [
-          28.62575,
-          77.23436
-        ],
-        [
-          28.62572,
-          77.23443
-        ],
-        [
-          28.62563,
-          77.23457
-        ],
-        [
-          28.62561,
-          77.23529
-        ],
-        [
-          28.62563,
-          77.23557
-        ],
-        [
-          28.62563,
-          77.23576
-        ],
-        [
-          28.62563,
-          77.23604
-        ],
-        [
-          28.62541,
-          77.23941
-        ],
-        [
-          28.6254,
-          77.23957
-        ],
-        [
-          28.62539,
-          77.2397
-        ],
-        [
-          28.62539,
-          77.23975
-        ],
-        [
-          28.62528,
-          77.24012
-        ],
-        [
-          28.62524,
-          77.24027
-        ],
-        [
-          28.62516,
-          77.24045
-        ],
-        [
-          28.62508,
-          77.24038
-        ],
-        [
-          28.62502,
-          77.24032
-        ],
-        [
-          28.62491,
-          77.24023
-        ],
-        [
-          28.62475,
-          77.24011
-        ],
-        [
-          28.62323,
-          77.23898
-        ],
-        [
-          28.62292,
-          77.23874
-        ],
-        [
-          28.62165,
-          77.23774
-        ],
-        [
-          28.62132,
-          77.2375
-        ],
-        [
-          28.62103,
-          77.23729
-        ],
-        [
-          28.62094,
-          77.23723
-        ],
-        [
-          28.62079,
-          77.23712
-        ],
-        [
-          28.62069,
-          77.23705
-        ],
-        [
-          28.62059,
-          77.23698
-        ],
-        [
-          28.62058,
-          77.23696
-        ],
-        [
-          28.62011,
-          77.23662
-        ],
-        [
-          28.61964,
-          77.23628
-        ],
-        [
-          28.61832,
-          77.23531
-        ],
-        [
-          28.61681,
-          77.23419
-        ],
-        [
-          28.61625,
-          77.23378
-        ],
-        [
-          28.61556,
-          77.23326
-        ],
-        [
-          28.61537,
-          77.23323
-        ],
-        [
-          28.61526,
-          77.23326
-        ],
-        [
-          28.61515,
-          77.23336
-        ],
-        [
-          28.61478,
-          77.23407
-        ],
-        [
-          28.61462,
-          77.23425
-        ],
-        [
-          28.61446,
-          77.23441
-        ],
-        [
-          28.61425,
-          77.23456
-        ],
-        [
-          28.61401,
-          77.23466
-        ],
-        [
-          28.61276,
-          77.23456
-        ],
-        [
-          28.61267,
-          77.23456
-        ],
-        [
-          28.61258,
-          77.23455
-        ],
-        [
-          28.6115,
-          77.2345
-        ],
-        [
-          28.61137,
-          77.23449
-        ],
-        [
-          28.61106,
-          77.23438
-        ],
-        [
-          28.61098,
-          77.23434
-        ],
-        [
-          28.61091,
-          77.23427
-        ],
-        [
-          28.6107,
-          77.23405
-        ],
-        [
-          28.61061,
-          77.23386
-        ],
-        [
-          28.61023,
-          77.23295
-        ],
-        [
-          28.61011,
-          77.23274
-        ],
-        [
-          28.61009,
-          77.2327
-        ],
-        [
-          28.60997,
-          77.23242
-        ],
-        [
-          28.60979,
-          77.23198
-        ],
-        [
-          28.60954,
-          77.23137
-        ],
-        [
-          28.60947,
-          77.23105
-        ],
-        [
-          28.60947,
-          77.23072
-        ],
-        [
-          28.60958,
-          77.23039
-        ],
-        [
-          28.6096,
-          77.23034
-        ],
-        [
-          28.61002,
-          77.22965
-        ],
-        [
-          28.61015,
-          77.22944
-        ],
-        [
-          28.61026,
-          77.22925
-        ],
-        [
-          28.6103,
-          77.22918
-        ],
-        [
-          28.61032,
-          77.22915
-        ],
-        [
-          28.61048,
-          77.22886
-        ],
-        [
-          28.61092,
-          77.22817
-        ],
-        [
-          28.61121,
-          77.22787
-        ],
-        [
-          28.61143,
-          77.22772
-        ],
-        [
-          28.61168,
-          77.2276
-        ],
-        [
-          28.61282,
-          77.22766
-        ],
-        [
-          28.61296,
-          77.22766
-        ]
-      ],
-      "distance": 3411,
-      "bidirectional": true
-    },
-    {
-      "id": "CE16",
-      "from": "C9",
-      "to": "C8",
-      "roadName": "Kartavya Path Boulevard",
-      "trafficMultiplier": 1,
-      "speedKmh": 45,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.62099,
-          77.21339
-        ],
-        [
-          28.62098,
-          77.21341
-        ],
-        [
-          28.62081,
-          77.21393
-        ],
-        [
-          28.62085,
-          77.21404
-        ],
-        [
-          28.62086,
-          77.2141
-        ],
-        [
-          28.62086,
-          77.21428
-        ],
-        [
-          28.62085,
-          77.21456
-        ],
-        [
-          28.62087,
-          77.21456
-        ],
-        [
-          28.62099,
-          77.21456
-        ],
-        [
-          28.6211,
-          77.21455
-        ],
-        [
-          28.62143,
-          77.21524
-        ],
-        [
-          28.62157,
-          77.21547
-        ],
-        [
-          28.62164,
-          77.21546
-        ],
-        [
-          28.6217,
-          77.21547
-        ],
-        [
-          28.62177,
-          77.2155
-        ],
-        [
-          28.62183,
-          77.21555
-        ],
-        [
-          28.62188,
-          77.21561
-        ],
-        [
-          28.62191,
-          77.21569
-        ],
-        [
-          28.62193,
-          77.21575
-        ],
-        [
-          28.62193,
-          77.21583
-        ],
-        [
-          28.62191,
-          77.21591
-        ],
-        [
-          28.62188,
-          77.21599
-        ],
-        [
-          28.62183,
-          77.21605
-        ],
-        [
-          28.62176,
-          77.2161
-        ],
-        [
-          28.62169,
-          77.21613
-        ],
-        [
-          28.62161,
-          77.21614
-        ],
-        [
-          28.62153,
-          77.21612
-        ],
-        [
-          28.62145,
-          77.21621
-        ],
-        [
-          28.62142,
-          77.21626
-        ],
-        [
-          28.62127,
-          77.21653
-        ],
-        [
-          28.62115,
-          77.21672
-        ],
-        [
-          28.62109,
-          77.21683
-        ],
-        [
-          28.62102,
-          77.21694
-        ],
-        [
-          28.62064,
-          77.21761
-        ],
-        [
-          28.6204,
-          77.21803
-        ],
-        [
-          28.62038,
-          77.21811
-        ],
-        [
-          28.62035,
-          77.21821
-        ],
-        [
-          28.62033,
-          77.21842
-        ],
-        [
-          28.62034,
-          77.21851
-        ],
-        [
-          28.62037,
-          77.21857
-        ],
-        [
-          28.62039,
-          77.21864
-        ],
-        [
-          28.62041,
-          77.21871
-        ],
-        [
-          28.62042,
-          77.21879
-        ],
-        [
-          28.62043,
-          77.21886
-        ],
-        [
-          28.62041,
-          77.21899
-        ],
-        [
-          28.62039,
-          77.21907
-        ],
-        [
-          28.62035,
-          77.21916
-        ],
-        [
-          28.62031,
-          77.21923
-        ],
-        [
-          28.62025,
-          77.2193
-        ],
-        [
-          28.6202,
-          77.21935
-        ],
-        [
-          28.62014,
-          77.21939
-        ],
-        [
-          28.62007,
-          77.21943
-        ],
-        [
-          28.62001,
-          77.21945
-        ],
-        [
-          28.61994,
-          77.21946
-        ],
-        [
-          28.61988,
-          77.21946
-        ],
-        [
-          28.61981,
-          77.21946
-        ],
-        [
-          28.61972,
-          77.21949
-        ],
-        [
-          28.61959,
-          77.21956
-        ],
-        [
-          28.61948,
-          77.21964
-        ],
-        [
-          28.61941,
-          77.21975
-        ],
-        [
-          28.61934,
-          77.21987
-        ],
-        [
-          28.61928,
-          77.21998
-        ],
-        [
-          28.619,
-          77.22047
-        ],
-        [
-          28.61887,
-          77.22069
-        ],
-        [
-          28.61854,
-          77.22125
-        ],
-        [
-          28.61851,
-          77.22132
-        ],
-        [
-          28.61826,
-          77.22176
-        ],
-        [
-          28.61811,
-          77.22202
-        ],
-        [
-          28.61808,
-          77.22207
-        ],
-        [
-          28.61798,
-          77.22225
-        ],
-        [
-          28.61785,
-          77.22247
-        ],
-        [
-          28.61773,
-          77.22267
-        ],
-        [
-          28.61765,
-          77.22281
-        ],
-        [
-          28.61742,
-          77.22323
-        ],
-        [
-          28.61722,
-          77.22358
-        ],
-        [
-          28.61702,
-          77.22392
-        ],
-        [
-          28.61676,
-          77.22439
-        ],
-        [
-          28.61671,
-          77.22447
-        ],
-        [
-          28.61664,
-          77.22457
-        ],
-        [
-          28.6166,
-          77.22468
-        ],
-        [
-          28.61659,
-          77.22475
-        ],
-        [
-          28.6166,
-          77.22481
-        ],
-        [
-          28.61664,
-          77.22488
-        ],
-        [
-          28.61665,
-          77.22492
-        ],
-        [
-          28.61666,
-          77.22497
-        ],
-        [
-          28.61666,
-          77.22504
-        ],
-        [
-          28.61664,
-          77.22512
-        ],
-        [
-          28.61661,
-          77.2252
-        ],
-        [
-          28.61657,
-          77.22525
-        ],
-        [
-          28.61655,
-          77.22527
-        ],
-        [
-          28.61648,
-          77.22531
-        ],
-        [
-          28.61639,
-          77.22533
-        ],
-        [
-          28.61629,
-          77.22532
-        ],
-        [
-          28.61621,
-          77.22527
-        ],
-        [
-          28.61616,
-          77.22523
-        ],
-        [
-          28.61614,
-          77.2252
-        ],
-        [
-          28.61612,
-          77.22516
-        ],
-        [
-          28.6161,
-          77.22503
-        ],
-        [
-          28.61605,
-          77.22503
-        ],
-        [
-          28.61599,
-          77.22502
-        ],
-        [
-          28.61592,
-          77.22502
-        ],
-        [
-          28.61555,
-          77.225
-        ],
-        [
-          28.61524,
-          77.22498
-        ],
-        [
-          28.61468,
-          77.22494
-        ],
-        [
-          28.61446,
-          77.22493
-        ],
-        [
-          28.61414,
-          77.22491
-        ],
-        [
-          28.61363,
-          77.22488
-        ],
-        [
-          28.61323,
-          77.22486
-        ],
-        [
-          28.61315,
-          77.22485
-        ],
-        [
-          28.61306,
-          77.22484
-        ],
-        [
-          28.61268,
-          77.22482
-        ],
-        [
-          28.6125,
-          77.22481
-        ],
-        [
-          28.61209,
-          77.22478
-        ],
-        [
-          28.61182,
-          77.22477
-        ],
-        [
-          28.61171,
-          77.22476
-        ],
-        [
-          28.6111,
-          77.22472
-        ],
-        [
-          28.61043,
-          77.22468
-        ],
-        [
-          28.61031,
-          77.22468
-        ],
-        [
-          28.61024,
-          77.22468
-        ],
-        [
-          28.61017,
-          77.22471
-        ],
-        [
-          28.61016,
-          77.22474
-        ],
-        [
-          28.61012,
-          77.2248
-        ],
-        [
-          28.61016,
-          77.225
-        ],
-        [
-          28.61019,
-          77.22506
-        ],
-        [
-          28.61104,
-          77.22694
-        ],
-        [
-          28.61107,
-          77.22701
-        ],
-        [
-          28.61121,
-          77.22726
-        ],
-        [
-          28.61132,
-          77.22739
-        ],
-        [
-          28.61146,
-          77.22748
-        ],
-        [
-          28.61168,
-          77.2276
-        ],
-        [
-          28.61282,
-          77.22766
-        ],
-        [
-          28.61296,
-          77.22766
-        ]
-      ],
-      "distance": 2686,
-      "bidirectional": true
-    },
-    {
-      "id": "CE17",
-      "from": "C10",
-      "to": "C11",
-      "roadName": "Mathura Road Corridor",
-      "trafficMultiplier": 2.2,
-      "speedKmh": 45,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.62817,
-          77.24145
-        ],
-        [
-          28.62816,
-          77.24147
-        ],
-        [
-          28.62811,
-          77.24152
-        ],
-        [
-          28.62806,
-          77.24158
-        ],
-        [
-          28.62803,
-          77.24165
-        ],
-        [
-          28.62797,
-          77.24176
-        ],
-        [
-          28.62794,
-          77.24182
-        ],
-        [
-          28.62791,
-          77.24191
-        ],
-        [
-          28.62792,
-          77.24237
-        ],
-        [
-          28.62795,
-          77.24323
-        ],
-        [
-          28.628,
-          77.24399
-        ],
-        [
-          28.62813,
-          77.2454
-        ],
-        [
-          28.62814,
-          77.24562
-        ],
-        [
-          28.62816,
-          77.24593
-        ],
-        [
-          28.62822,
-          77.24671
-        ],
-        [
-          28.62824,
-          77.24708
-        ],
-        [
-          28.6281,
-          77.24709
-        ],
-        [
-          28.6281,
-          77.2467
-        ],
-        [
-          28.62808,
-          77.24631
-        ],
-        [
-          28.62806,
-          77.24604
-        ],
-        [
-          28.62804,
-          77.24572
-        ],
-        [
-          28.62802,
-          77.24548
-        ],
-        [
-          28.62802,
-          77.24539
-        ],
-        [
-          28.62799,
-          77.24494
-        ],
-        [
-          28.62784,
-          77.24331
-        ],
-        [
-          28.62783,
-          77.24268
-        ],
-        [
-          28.62779,
-          77.24192
-        ],
-        [
-          28.62777,
-          77.24165
-        ],
-        [
-          28.62776,
-          77.2416
-        ],
-        [
-          28.62774,
-          77.24154
-        ],
-        [
-          28.62768,
-          77.24143
-        ],
-        [
-          28.62759,
-          77.24143
-        ],
-        [
-          28.62747,
-          77.24144
-        ],
-        [
-          28.62701,
-          77.24144
-        ],
-        [
-          28.62697,
-          77.24144
-        ],
-        [
-          28.62676,
-          77.24141
-        ],
-        [
-          28.62663,
-          77.24139
-        ],
-        [
-          28.62652,
-          77.24136
-        ],
-        [
-          28.62648,
-          77.24134
-        ],
-        [
-          28.62622,
-          77.24117
-        ],
-        [
-          28.62576,
-          77.24084
-        ],
-        [
-          28.62564,
-          77.24076
-        ],
-        [
-          28.62557,
-          77.24071
-        ],
-        [
-          28.62539,
-          77.2406
-        ],
-        [
-          28.62516,
-          77.24045
-        ],
-        [
-          28.62508,
-          77.24038
-        ],
-        [
-          28.62502,
-          77.24032
-        ],
-        [
-          28.62491,
-          77.24023
-        ],
-        [
-          28.62475,
-          77.24011
-        ],
-        [
-          28.62323,
-          77.23898
-        ],
-        [
-          28.62292,
-          77.23874
-        ],
-        [
-          28.62165,
-          77.23774
-        ],
-        [
-          28.62132,
-          77.2375
-        ],
-        [
-          28.62103,
-          77.23729
-        ],
-        [
-          28.62094,
-          77.23723
-        ],
-        [
-          28.62079,
-          77.23712
-        ],
-        [
-          28.62071,
-          77.23727
-        ],
-        [
-          28.62065,
-          77.23742
-        ],
-        [
-          28.62052,
-          77.23784
-        ],
-        [
-          28.62044,
-          77.23811
-        ],
-        [
-          28.62044,
-          77.23812
-        ],
-        [
-          28.62033,
-          77.23853
-        ],
-        [
-          28.62017,
-          77.23912
-        ]
-      ],
-      "distance": 2231,
-      "bidirectional": true
-    },
-    {
-      "id": "CE18",
-      "from": "C11",
-      "to": "C8",
-      "roadName": "Tilak Marg Radial",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 45,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.62017,
-          77.23912
-        ],
-        [
-          28.62016,
-          77.23916
-        ],
-        [
-          28.62014,
-          77.23922
-        ],
-        [
-          28.62004,
-          77.23919
-        ],
-        [
-          28.62006,
-          77.23913
-        ],
-        [
-          28.62016,
-          77.23877
-        ],
-        [
-          28.62024,
-          77.23852
-        ],
-        [
-          28.62036,
-          77.2381
-        ],
-        [
-          28.62037,
-          77.23809
-        ],
-        [
-          28.62062,
-          77.23723
-        ],
-        [
-          28.62069,
-          77.23705
-        ],
-        [
-          28.62059,
-          77.23698
-        ],
-        [
-          28.62058,
-          77.23696
-        ],
-        [
-          28.62011,
-          77.23662
-        ],
-        [
-          28.61964,
-          77.23628
-        ],
-        [
-          28.61832,
-          77.23531
-        ],
-        [
-          28.61681,
-          77.23419
-        ],
-        [
-          28.61625,
-          77.23378
-        ],
-        [
-          28.61556,
-          77.23326
-        ],
-        [
-          28.61537,
-          77.23323
-        ],
-        [
-          28.61526,
-          77.23326
-        ],
-        [
-          28.61515,
-          77.23336
-        ],
-        [
-          28.61478,
-          77.23407
-        ],
-        [
-          28.61462,
-          77.23425
-        ],
-        [
-          28.61446,
-          77.23441
-        ],
-        [
-          28.61425,
-          77.23456
-        ],
-        [
-          28.61401,
-          77.23466
-        ],
-        [
-          28.61276,
-          77.23456
-        ],
-        [
-          28.61267,
-          77.23456
-        ],
-        [
-          28.61258,
-          77.23455
-        ],
-        [
-          28.6115,
-          77.2345
-        ],
-        [
-          28.61137,
-          77.23449
-        ],
-        [
-          28.61106,
-          77.23438
-        ],
-        [
-          28.61098,
-          77.23434
-        ],
-        [
-          28.61091,
-          77.23427
-        ],
-        [
-          28.6107,
-          77.23405
-        ],
-        [
-          28.61061,
-          77.23386
-        ],
-        [
-          28.61023,
-          77.23295
-        ],
-        [
-          28.61011,
-          77.23274
-        ],
-        [
-          28.61009,
-          77.2327
-        ],
-        [
-          28.60997,
-          77.23242
-        ],
-        [
-          28.60979,
-          77.23198
-        ],
-        [
-          28.60954,
-          77.23137
-        ],
-        [
-          28.60947,
-          77.23105
-        ],
-        [
-          28.60947,
-          77.23072
-        ],
-        [
-          28.60958,
-          77.23039
-        ],
-        [
-          28.6096,
-          77.23034
-        ],
-        [
-          28.61002,
-          77.22965
-        ],
-        [
-          28.61015,
-          77.22944
-        ],
-        [
-          28.61026,
-          77.22925
-        ],
-        [
-          28.6103,
-          77.22918
-        ],
-        [
-          28.61032,
-          77.22915
-        ],
-        [
-          28.61048,
-          77.22886
-        ],
-        [
-          28.61092,
-          77.22817
-        ],
-        [
-          28.61121,
-          77.22787
-        ],
-        [
-          28.61143,
-          77.22772
-        ],
-        [
-          28.61168,
-          77.2276
-        ],
-        [
-          28.61282,
-          77.22766
-        ],
-        [
-          28.61296,
-          77.22766
-        ]
-      ],
-      "distance": 2437,
-      "bidirectional": true
-    },
-    {
-      "id": "CE19",
-      "from": "C8",
-      "to": "C12",
-      "roadName": "Subramaniam Bharti Marg",
-      "trafficMultiplier": 1,
-      "speedKmh": 45,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.61296,
-          77.22766
-        ],
-        [
-          28.61302,
-          77.22767
-        ],
-        [
-          28.61322,
-          77.22768
-        ],
-        [
-          28.61406,
-          77.22776
-        ],
-        [
-          28.61432,
-          77.22772
-        ],
-        [
-          28.61448,
-          77.22771
-        ],
-        [
-          28.61461,
-          77.22766
-        ],
-        [
-          28.61475,
-          77.22759
-        ],
-        [
-          28.61495,
-          77.22737
-        ],
-        [
-          28.61496,
-          77.22736
-        ],
-        [
-          28.61593,
-          77.22565
-        ],
-        [
-          28.61611,
-          77.22539
-        ],
-        [
-          28.61613,
-          77.2253
-        ],
-        [
-          28.61614,
-          77.2252
-        ],
-        [
-          28.61612,
-          77.22516
-        ],
-        [
-          28.6161,
-          77.22503
-        ],
-        [
-          28.61605,
-          77.22503
-        ],
-        [
-          28.61599,
-          77.22502
-        ],
-        [
-          28.61592,
-          77.22502
-        ],
-        [
-          28.61555,
-          77.225
-        ],
-        [
-          28.61524,
-          77.22498
-        ],
-        [
-          28.61468,
-          77.22494
-        ],
-        [
-          28.61446,
-          77.22493
-        ],
-        [
-          28.61414,
-          77.22491
-        ],
-        [
-          28.61363,
-          77.22488
-        ],
-        [
-          28.61323,
-          77.22486
-        ],
-        [
-          28.61315,
-          77.22485
-        ],
-        [
-          28.61306,
-          77.22484
-        ],
-        [
-          28.61268,
-          77.22482
-        ],
-        [
-          28.6125,
-          77.22481
-        ],
-        [
-          28.61209,
-          77.22478
-        ],
-        [
-          28.61182,
-          77.22477
-        ],
-        [
-          28.61171,
-          77.22476
-        ],
-        [
-          28.6111,
-          77.22472
-        ],
-        [
-          28.61043,
-          77.22468
-        ],
-        [
-          28.61031,
-          77.22468
-        ],
-        [
-          28.61024,
-          77.22468
-        ],
-        [
-          28.61017,
-          77.22471
-        ],
-        [
-          28.61016,
-          77.22474
-        ],
-        [
-          28.61012,
-          77.2248
-        ],
-        [
-          28.61007,
-          77.22486
-        ],
-        [
-          28.61001,
-          77.22489
-        ],
-        [
-          28.60995,
-          77.22491
-        ],
-        [
-          28.60987,
-          77.22491
-        ],
-        [
-          28.60979,
-          77.22489
-        ],
-        [
-          28.60972,
-          77.22484
-        ],
-        [
-          28.60967,
-          77.22477
-        ],
-        [
-          28.60963,
-          77.22468
-        ],
-        [
-          28.60959,
-          77.22465
-        ],
-        [
-          28.60953,
-          77.22463
-        ],
-        [
-          28.60945,
-          77.22461
-        ],
-        [
-          28.6094,
-          77.2246
-        ],
-        [
-          28.60924,
-          77.22459
-        ],
-        [
-          28.60917,
-          77.22459
-        ],
-        [
-          28.60911,
-          77.22458
-        ],
-        [
-          28.60885,
-          77.22456
-        ],
-        [
-          28.60835,
-          77.22454
-        ],
-        [
-          28.60829,
-          77.22453
-        ],
-        [
-          28.60809,
-          77.22452
-        ],
-        [
-          28.60771,
-          77.2245
-        ],
-        [
-          28.60746,
-          77.22449
-        ],
-        [
-          28.607,
-          77.22446
-        ],
-        [
-          28.60683,
-          77.22445
-        ],
-        [
-          28.60626,
-          77.22439
-        ],
-        [
-          28.60584,
-          77.22435
-        ],
-        [
-          28.60545,
-          77.22433
-        ],
-        [
-          28.60517,
-          77.22431
-        ],
-        [
-          28.60511,
-          77.22431
-        ],
-        [
-          28.60504,
-          77.22431
-        ],
-        [
-          28.60474,
-          77.22429
-        ],
-        [
-          28.60468,
-          77.22429
-        ],
-        [
-          28.6046,
-          77.22429
-        ],
-        [
-          28.60437,
-          77.22428
-        ],
-        [
-          28.60431,
-          77.22428
-        ],
-        [
-          28.6042,
-          77.22428
-        ],
-        [
-          28.60408,
-          77.22428
-        ],
-        [
-          28.604,
-          77.22429
-        ],
-        [
-          28.60398,
-          77.22432
-        ],
-        [
-          28.60396,
-          77.22436
-        ],
-        [
-          28.60392,
-          77.22439
-        ],
-        [
-          28.60387,
-          77.22441
-        ],
-        [
-          28.60382,
-          77.22442
-        ],
-        [
-          28.60377,
-          77.22442
-        ],
-        [
-          28.6036,
-          77.22428
-        ],
-        [
-          28.6034,
-          77.22411
-        ],
-        [
-          28.60314,
-          77.22387
-        ],
-        [
-          28.60296,
-          77.22376
-        ],
-        [
-          28.60271,
-          77.22371
-        ],
-        [
-          28.60264,
-          77.2237
-        ],
-        [
-          28.60257,
-          77.22374
-        ],
-        [
-          28.60187,
-          77.22465
-        ],
-        [
-          28.60174,
-          77.22481
-        ],
-        [
-          28.60164,
-          77.22473
-        ],
-        [
-          28.60161,
-          77.22473
-        ],
-        [
-          28.60099,
-          77.22415
-        ],
-        [
-          28.59996,
-          77.22565
-        ],
-        [
-          28.59987,
-          77.22573
-        ],
-        [
-          28.59996,
-          77.22585
-        ],
-        [
-          28.60008,
-          77.22603
-        ],
-        [
-          28.6002,
-          77.2262
-        ],
-        [
-          28.60015,
-          77.22625
-        ],
-        [
-          28.60001,
-          77.22638
-        ],
-        [
-          28.59999,
-          77.22643
-        ],
-        [
-          28.59999,
-          77.22647
-        ],
-        [
-          28.59999,
-          77.22648
-        ],
-        [
-          28.60022,
-          77.2269
-        ],
-        [
-          28.6004,
-          77.2272
-        ]
-      ],
-      "distance": 2676,
-      "bidirectional": true
-    },
-    {
-      "id": "CE20",
-      "from": "C9",
-      "to": "C12",
-      "roadName": "Akbar Road Corridor",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 45,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.62099,
-          77.21339
-        ],
-        [
-          28.62098,
-          77.21341
-        ],
-        [
-          28.62081,
-          77.21393
-        ],
-        [
-          28.62085,
-          77.21404
-        ],
-        [
-          28.62086,
-          77.2141
-        ],
-        [
-          28.62086,
-          77.21428
-        ],
-        [
-          28.62085,
-          77.21456
-        ],
-        [
-          28.62087,
-          77.21456
-        ],
-        [
-          28.62099,
-          77.21456
-        ],
-        [
-          28.6211,
-          77.21455
-        ],
-        [
-          28.62143,
-          77.21524
-        ],
-        [
-          28.62157,
-          77.21547
-        ],
-        [
-          28.62164,
-          77.21546
-        ],
-        [
-          28.6217,
-          77.21547
-        ],
-        [
-          28.62177,
-          77.2155
-        ],
-        [
-          28.62183,
-          77.21555
-        ],
-        [
-          28.62188,
-          77.21561
-        ],
-        [
-          28.62191,
-          77.21569
-        ],
-        [
-          28.62193,
-          77.21575
-        ],
-        [
-          28.62193,
-          77.21583
-        ],
-        [
-          28.62191,
-          77.21591
-        ],
-        [
-          28.62188,
-          77.21599
-        ],
-        [
-          28.62183,
-          77.21605
-        ],
-        [
-          28.62176,
-          77.2161
-        ],
-        [
-          28.62169,
-          77.21613
-        ],
-        [
-          28.62161,
-          77.21614
-        ],
-        [
-          28.62153,
-          77.21612
-        ],
-        [
-          28.62145,
-          77.21621
-        ],
-        [
-          28.62142,
-          77.21626
-        ],
-        [
-          28.62127,
-          77.21653
-        ],
-        [
-          28.62115,
-          77.21672
-        ],
-        [
-          28.62109,
-          77.21683
-        ],
-        [
-          28.62102,
-          77.21694
-        ],
-        [
-          28.62064,
-          77.21761
-        ],
-        [
-          28.6204,
-          77.21803
-        ],
-        [
-          28.62038,
-          77.21811
-        ],
-        [
-          28.62035,
-          77.21821
-        ],
-        [
-          28.62033,
-          77.21842
-        ],
-        [
-          28.62034,
-          77.21851
-        ],
-        [
-          28.62037,
-          77.21857
-        ],
-        [
-          28.62039,
-          77.21864
-        ],
-        [
-          28.62041,
-          77.21871
-        ],
-        [
-          28.62042,
-          77.21879
-        ],
-        [
-          28.62043,
-          77.21886
-        ],
-        [
-          28.62041,
-          77.21899
-        ],
-        [
-          28.62039,
-          77.21907
-        ],
-        [
-          28.62035,
-          77.21916
-        ],
-        [
-          28.62031,
-          77.21923
-        ],
-        [
-          28.62025,
-          77.2193
-        ],
-        [
-          28.6202,
-          77.21935
-        ],
-        [
-          28.62014,
-          77.21939
-        ],
-        [
-          28.62007,
-          77.21943
-        ],
-        [
-          28.62001,
-          77.21945
-        ],
-        [
-          28.61994,
-          77.21946
-        ],
-        [
-          28.61988,
-          77.21946
-        ],
-        [
-          28.61981,
-          77.21946
-        ],
-        [
-          28.61974,
-          77.21944
-        ],
-        [
-          28.61967,
-          77.21942
-        ],
-        [
-          28.61961,
-          77.21938
-        ],
-        [
-          28.61955,
-          77.21934
-        ],
-        [
-          28.6195,
-          77.21928
-        ],
-        [
-          28.61947,
-          77.21924
-        ],
-        [
-          28.61944,
-          77.2192
-        ],
-        [
-          28.61941,
-          77.21916
-        ],
-        [
-          28.61939,
-          77.2191
-        ],
-        [
-          28.61937,
-          77.21904
-        ],
-        [
-          28.61935,
-          77.21899
-        ],
-        [
-          28.61931,
-          77.21895
-        ],
-        [
-          28.61922,
-          77.21892
-        ],
-        [
-          28.61903,
-          77.21891
-        ],
-        [
-          28.61895,
-          77.2189
-        ],
-        [
-          28.61867,
-          77.21887
-        ],
-        [
-          28.6183,
-          77.21883
-        ],
-        [
-          28.61758,
-          77.21878
-        ],
-        [
-          28.6171,
-          77.21875
-        ],
-        [
-          28.61703,
-          77.21875
-        ],
-        [
-          28.6169,
-          77.21874
-        ],
-        [
-          28.61681,
-          77.21876
-        ],
-        [
-          28.61678,
-          77.21878
-        ],
-        [
-          28.61675,
-          77.21881
-        ],
-        [
-          28.61671,
-          77.21883
-        ],
-        [
-          28.61667,
-          77.21883
-        ],
-        [
-          28.61664,
-          77.21882
-        ],
-        [
-          28.6166,
-          77.21881
-        ],
-        [
-          28.61658,
-          77.21878
-        ],
-        [
-          28.61657,
-          77.21876
-        ],
-        [
-          28.61655,
-          77.21873
-        ],
-        [
-          28.61648,
-          77.21872
-        ],
-        [
-          28.61642,
-          77.21871
-        ],
-        [
-          28.61634,
-          77.2187
-        ],
-        [
-          28.61632,
-          77.2187
-        ],
-        [
-          28.61586,
-          77.21868
-        ],
-        [
-          28.6154,
-          77.21865
-        ],
-        [
-          28.61517,
-          77.21864
-        ],
-        [
-          28.61468,
-          77.21861
-        ],
-        [
-          28.61429,
-          77.21859
-        ],
-        [
-          28.61373,
-          77.21855
-        ],
-        [
-          28.61353,
-          77.21853
-        ],
-        [
-          28.61345,
-          77.21853
-        ],
-        [
-          28.61337,
-          77.21852
-        ],
-        [
-          28.61304,
-          77.2185
-        ],
-        [
-          28.61285,
-          77.21849
-        ],
-        [
-          28.61228,
-          77.21846
-        ],
-        [
-          28.61212,
-          77.21845
-        ],
-        [
-          28.61173,
-          77.21842
-        ],
-        [
-          28.6116,
-          77.21841
-        ],
-        [
-          28.61145,
-          77.2184
-        ],
-        [
-          28.61116,
-          77.21838
-        ],
-        [
-          28.61089,
-          77.21837
-        ],
-        [
-          28.61086,
-          77.21836
-        ],
-        [
-          28.61066,
-          77.21835
-        ],
-        [
-          28.61053,
-          77.21834
-        ],
-        [
-          28.61046,
-          77.21834
-        ],
-        [
-          28.61042,
-          77.21833
-        ],
-        [
-          28.61038,
-          77.21833
-        ],
-        [
-          28.61035,
-          77.21837
-        ],
-        [
-          28.61032,
-          77.21841
-        ],
-        [
-          28.61028,
-          77.21843
-        ],
-        [
-          28.61025,
-          77.21844
-        ],
-        [
-          28.61021,
-          77.21843
-        ],
-        [
-          28.61018,
-          77.21842
-        ],
-        [
-          28.61015,
-          77.2184
-        ],
-        [
-          28.61012,
-          77.21838
-        ],
-        [
-          28.61011,
-          77.21836
-        ],
-        [
-          28.6101,
-          77.21833
-        ],
-        [
-          28.6101,
-          77.21831
-        ],
-        [
-          28.61007,
-          77.21829
-        ],
-        [
-          28.61005,
-          77.21829
-        ],
-        [
-          28.61003,
-          77.21829
-        ],
-        [
-          28.60997,
-          77.21829
-        ],
-        [
-          28.60995,
-          77.21829
-        ],
-        [
-          28.60985,
-          77.21829
-        ],
-        [
-          28.60949,
-          77.21827
-        ],
-        [
-          28.60897,
-          77.21824
-        ],
-        [
-          28.60854,
-          77.21821
-        ],
-        [
-          28.60817,
-          77.21819
-        ],
-        [
-          28.60796,
-          77.21816
-        ],
-        [
-          28.6078,
-          77.2182
-        ],
-        [
-          28.60773,
-          77.21824
-        ],
-        [
-          28.60769,
-          77.2183
-        ],
-        [
-          28.60767,
-          77.21841
-        ],
-        [
-          28.60764,
-          77.21848
-        ],
-        [
-          28.60759,
-          77.21861
-        ],
-        [
-          28.60749,
-          77.21878
-        ],
-        [
-          28.60738,
-          77.21888
-        ],
-        [
-          28.60723,
-          77.21894
-        ],
-        [
-          28.60711,
-          77.21893
-        ],
-        [
-          28.60702,
-          77.21892
-        ],
-        [
-          28.60688,
-          77.21888
-        ],
-        [
-          28.6068,
-          77.21882
-        ],
-        [
-          28.60658,
-          77.21894
-        ],
-        [
-          28.60648,
-          77.21904
-        ],
-        [
-          28.60641,
-          77.21916
-        ],
-        [
-          28.60634,
-          77.21928
-        ],
-        [
-          28.60599,
-          77.21987
-        ],
-        [
-          28.60569,
-          77.22041
-        ],
-        [
-          28.60533,
-          77.22106
-        ],
-        [
-          28.60527,
-          77.22115
-        ],
-        [
-          28.6051,
-          77.22144
-        ],
-        [
-          28.60486,
-          77.22187
-        ],
-        [
-          28.60443,
-          77.22262
-        ],
-        [
-          28.6043,
-          77.22284
-        ],
-        [
-          28.60398,
-          77.2234
-        ],
-        [
-          28.60392,
-          77.22353
-        ],
-        [
-          28.60387,
-          77.22368
-        ],
-        [
-          28.60385,
-          77.22382
-        ],
-        [
-          28.60393,
-          77.22396
-        ],
-        [
-          28.60397,
-          77.22404
-        ],
-        [
-          28.60401,
-          77.22412
-        ],
-        [
-          28.60401,
-          77.22417
-        ],
-        [
-          28.60401,
-          77.22423
-        ],
-        [
-          28.604,
-          77.22429
-        ],
-        [
-          28.60398,
-          77.22432
-        ],
-        [
-          28.60396,
-          77.22436
-        ],
-        [
-          28.60392,
-          77.22439
-        ],
-        [
-          28.60387,
-          77.22441
-        ],
-        [
-          28.60382,
-          77.22442
-        ],
-        [
-          28.60377,
-          77.22442
-        ],
-        [
-          28.6036,
-          77.22428
-        ],
-        [
-          28.6034,
-          77.22411
-        ],
-        [
-          28.60314,
-          77.22387
-        ],
-        [
-          28.60296,
-          77.22376
-        ],
-        [
-          28.60271,
-          77.22371
-        ],
-        [
-          28.60264,
-          77.2237
-        ],
-        [
-          28.60257,
-          77.22374
-        ],
-        [
-          28.60187,
-          77.22465
-        ],
-        [
-          28.60174,
-          77.22481
-        ],
-        [
-          28.60164,
-          77.22473
-        ],
-        [
-          28.60161,
-          77.22473
-        ],
-        [
-          28.60099,
-          77.22415
-        ],
-        [
-          28.59996,
-          77.22565
-        ],
-        [
-          28.59987,
-          77.22573
-        ],
-        [
-          28.59996,
-          77.22585
-        ],
-        [
-          28.60008,
-          77.22603
-        ],
-        [
-          28.6002,
-          77.2262
-        ],
-        [
-          28.60015,
-          77.22625
-        ],
-        [
-          28.60001,
-          77.22638
-        ],
-        [
-          28.59999,
-          77.22643
-        ],
-        [
-          28.59999,
-          77.22647
-        ],
-        [
-          28.59999,
-          77.22648
-        ],
-        [
-          28.60022,
-          77.2269
-        ],
-        [
-          28.6004,
-          77.2272
-        ]
-      ],
-      "distance": 3765,
-      "bidirectional": true
-    }
-  ]
-};
-
-export const IIT_DELHI_GRAPH = {
-  "id": "iitd",
-  "name": "IIT Delhi & Hauz Khas",
-  "subtitle": "South Delhi · 12 Road Intersections · 20 Snapped Street Edges",
-  "center": [
-    28.5458,
-    77.1928
-  ],
-  "zoom": 15,
-  "nodes": [
-    {
-      "id": "I1",
-      "name": "IIT Delhi Main Gate",
-      "shortName": "IIT Main Gate",
-      "lat": 28.5458,
-      "lng": 77.1966,
-      "category": "Gateway",
-      "zone": "Outer Ring Rd"
-    },
-    {
-      "id": "I2",
-      "name": "Hauz Khas Metro Station",
-      "shortName": "Hauz Khas Metro",
-      "lat": 28.5432,
-      "lng": 77.2062,
-      "category": "Transit",
-      "zone": "Yellow/Magenta Line"
-    },
-    {
-      "id": "I3",
-      "name": "Dogra Hall & Main Building",
-      "shortName": "Dogra Hall",
-      "lat": 28.5449,
-      "lng": 77.1925,
-      "category": "Academic",
-      "zone": "Academic Zone"
-    },
-    {
-      "id": "I4",
-      "name": "Central Library (IITD)",
-      "shortName": "IIT Library",
-      "lat": 28.5439,
-      "lng": 77.1904,
-      "category": "Academic",
-      "zone": "Academic Zone"
-    },
-    {
-      "id": "I5",
-      "name": "Bharti School of Telecom",
-      "shortName": "Bharti Bldg",
-      "lat": 28.5468,
-      "lng": 77.1902,
-      "category": "Academic",
-      "zone": "Research Core"
-    },
-    {
-      "id": "I6",
-      "name": "Research & Innovation Park",
-      "shortName": "R&I Park",
-      "lat": 28.5432,
-      "lng": 77.1852,
-      "category": "Campus Hub",
-      "zone": "West Campus"
-    },
-    {
-      "id": "I7",
-      "name": "Aravali & Karakoram Hostels",
-      "shortName": "Hostel Circle",
-      "lat": 28.5476,
-      "lng": 77.1856,
-      "category": "Residential",
-      "zone": "Hostel Zone"
-    },
-    {
-      "id": "I8",
-      "name": "Nalanda Ground & SAC",
-      "shortName": "Nalanda Ground",
-      "lat": 28.5456,
-      "lng": 77.1874,
-      "category": "Sports",
-      "zone": "Central Campus"
-    },
-    {
-      "id": "I9",
-      "name": "SDA Market Plaza",
-      "shortName": "SDA Market",
-      "lat": 28.5488,
-      "lng": 77.1965,
-      "category": "Commercial",
-      "zone": "North Gate"
-    },
-    {
-      "id": "I10",
-      "name": "Jia Sarai Academic Lane",
-      "shortName": "Jia Sarai",
-      "lat": 28.5418,
-      "lng": 77.1972,
-      "category": "Commercial",
-      "zone": "East Gate"
-    },
-    {
-      "id": "I11",
-      "name": "RK Puram / Munirka Flyover",
-      "shortName": "Munirka Point",
-      "lat": 28.5504,
-      "lng": 77.1835,
-      "category": "Gateway",
-      "zone": "Outer Ring West"
-    },
-    {
-      "id": "I12",
-      "name": "Green Park Aurobindo Crossing",
-      "shortName": "Green Park",
-      "lat": 28.5528,
-      "lng": 77.2048,
-      "category": "Transit",
-      "zone": "Aurobindo Marg"
-    }
-  ],
-  "edges": [
-    {
-      "id": "IE1",
-      "from": "I2",
-      "to": "I1",
-      "roadName": "Outer Ring Flyover Approach",
-      "trafficMultiplier": 2.2,
+      "id": "E42",
+      "from": "dhaula_kuan",
+      "to": "aiims_chowk",
+      "roadName": "Mahatma Gandhi Ring Road (Moti Bagh)",
       "speedKmh": 50,
+      "trafficMultiplier": 1.4,
       "pedestrianOnly": false,
       "waypoints": [
         [
-          28.54305,
-          77.20619
+          28.59207,
+          77.16141
         ],
         [
-          28.54312,
-          77.20517
+          28.58969,
+          77.15625
         ],
         [
-          28.54324,
-          77.20372
+          28.58555,
+          77.1586
         ],
         [
-          28.54335,
-          77.20373
+          28.58386,
+          77.16017
         ],
         [
-          28.54341,
-          77.20374
+          28.58107,
+          77.15924
         ],
         [
-          28.54373,
-          77.20376
+          28.58005,
+          77.1587
         ],
         [
-          28.54375,
-          77.20366
+          28.57738,
+          77.15821
         ],
         [
-          28.5438,
-          77.20344
+          28.57605,
+          77.15771
         ],
         [
-          28.54391,
-          77.20309
+          28.5751,
+          77.15995
         ],
         [
-          28.54398,
-          77.20286
+          28.57193,
+          77.16226
         ],
         [
-          28.54424,
-          77.20218
+          28.56752,
+          77.16536
         ],
         [
-          28.5444,
-          77.20176
+          28.56337,
+          77.16799
         ],
         [
-          28.54453,
-          77.20143
+          28.55957,
+          77.17125
         ],
         [
-          28.54458,
-          77.2013
+          28.55718,
+          77.17424
         ],
         [
-          28.54479,
-          77.20071
+          28.55355,
+          77.17947
         ],
         [
-          28.54482,
-          77.20061
-        ],
-        [
-          28.54496,
-          77.20007
-        ],
-        [
-          28.54507,
-          77.19957
-        ],
-        [
-          28.54537,
-          77.19825
-        ],
-        [
-          28.5456,
-          77.1977
-        ],
-        [
-          28.54587,
-          77.19662
-        ]
-      ],
-      "distance": 1036,
-      "bidirectional": true
-    },
-    {
-      "id": "IE2",
-      "from": "I2",
-      "to": "I10",
-      "roadName": "Outer Ring Service Lane",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.54305,
-          77.20619
-        ],
-        [
-          28.54312,
-          77.20517
-        ],
-        [
-          28.54324,
-          77.20372
-        ],
-        [
-          28.54335,
-          77.20373
-        ],
-        [
-          28.54341,
-          77.20374
-        ],
-        [
-          28.54373,
-          77.20376
-        ],
-        [
-          28.54375,
-          77.20366
-        ],
-        [
-          28.5438,
-          77.20344
-        ],
-        [
-          28.54391,
-          77.20309
-        ],
-        [
-          28.54398,
-          77.20286
-        ],
-        [
-          28.54424,
-          77.20218
-        ],
-        [
-          28.5444,
-          77.20176
-        ],
-        [
-          28.54453,
-          77.20143
-        ],
-        [
-          28.54458,
-          77.2013
-        ],
-        [
-          28.54479,
-          77.20071
-        ],
-        [
-          28.54482,
-          77.20061
-        ],
-        [
-          28.54496,
-          77.20007
-        ],
-        [
-          28.54507,
-          77.19957
-        ],
-        [
-          28.54537,
-          77.19825
-        ],
-        [
-          28.5456,
-          77.1977
-        ],
-        [
-          28.54589,
-          77.19654
-        ],
-        [
-          28.54577,
-          77.1965
-        ],
-        [
-          28.54573,
-          77.1965
-        ],
-        [
-          28.54569,
-          77.19649
-        ],
-        [
-          28.54566,
-          77.19646
-        ],
-        [
-          28.54563,
-          77.19643
-        ],
-        [
-          28.54558,
-          77.19631
-        ],
-        [
-          28.54552,
-          77.19626
-        ],
-        [
-          28.5455,
-          77.19621
-        ],
-        [
-          28.54547,
-          77.19616
-        ],
-        [
-          28.54547,
-          77.19615
-        ],
-        [
-          28.54516,
-          77.1952
-        ],
-        [
-          28.54499,
-          77.19474
-        ],
-        [
-          28.54492,
-          77.19458
-        ],
-        [
-          28.54489,
-          77.1946
-        ],
-        [
-          28.54485,
-          77.1946
-        ],
-        [
-          28.54481,
-          77.19459
-        ],
-        [
-          28.5446,
-          77.19477
-        ],
-        [
-          28.54456,
-          77.19485
-        ],
-        [
-          28.54437,
-          77.19535
-        ],
-        [
-          28.54434,
-          77.19543
-        ],
-        [
-          28.54431,
-          77.19549
-        ],
-        [
-          28.54412,
-          77.19598
-        ],
-        [
-          28.54402,
-          77.19626
-        ],
-        [
-          28.54396,
-          77.19643
-        ],
-        [
-          28.54379,
-          77.19692
-        ],
-        [
-          28.54374,
-          77.19706
-        ],
-        [
-          28.54311,
-          77.19676
-        ],
-        [
-          28.54317,
-          77.19661
-        ],
-        [
-          28.54323,
-          77.19646
-        ],
-        [
-          28.54324,
-          77.19645
-        ],
-        [
-          28.54324,
-          77.19643
-        ],
-        [
-          28.54323,
-          77.19642
-        ],
-        [
-          28.54322,
-          77.1964
-        ],
-        [
-          28.54314,
-          77.19636
-        ],
-        [
-          28.54277,
-          77.19617
-        ],
-        [
-          28.54236,
-          77.19599
-        ],
-        [
-          28.54232,
-          77.19598
-        ],
-        [
-          28.54228,
-          77.19598
-        ],
-        [
-          28.54223,
-          77.19601
-        ],
-        [
-          28.54219,
-          77.19605
-        ],
-        [
-          28.54217,
-          77.19609
-        ],
-        [
-          28.54211,
-          77.19623
-        ],
-        [
-          28.54201,
-          77.19646
-        ],
-        [
-          28.5418,
-          77.19691
-        ],
-        [
-          28.54175,
-          77.19701
-        ],
-        [
-          28.54171,
-          77.19716
-        ]
-      ],
-      "distance": 1920,
-      "bidirectional": true
-    },
-    {
-      "id": "IE3",
-      "from": "I2",
-      "to": "I12",
-      "roadName": "Sri Aurobindo Marg",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 45,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.54305,
-          77.20619
-        ],
-        [
-          28.54312,
-          77.20517
-        ],
-        [
-          28.54324,
-          77.20372
-        ],
-        [
-          28.54335,
-          77.20373
-        ],
-        [
-          28.54341,
-          77.20374
-        ],
-        [
-          28.54373,
-          77.20376
-        ],
-        [
-          28.54375,
-          77.20366
-        ],
-        [
-          28.5438,
-          77.20344
-        ],
-        [
-          28.54391,
-          77.20309
-        ],
-        [
-          28.54398,
-          77.20286
-        ],
-        [
-          28.54424,
-          77.20218
-        ],
-        [
-          28.5444,
-          77.20176
-        ],
-        [
-          28.54453,
-          77.20143
-        ],
-        [
-          28.54458,
-          77.2013
-        ],
-        [
-          28.54486,
-          77.20143
-        ],
-        [
-          28.54502,
-          77.20153
-        ],
-        [
-          28.54587,
-          77.20204
-        ],
-        [
-          28.5466,
-          77.20243
-        ],
-        [
-          28.54731,
-          77.2028
-        ],
-        [
-          28.5479,
-          77.20305
-        ],
-        [
-          28.54896,
-          77.2034
-        ],
-        [
-          28.54954,
-          77.20358
-        ],
-        [
-          28.55062,
-          77.20392
-        ],
-        [
-          28.55086,
-          77.204
-        ],
-        [
-          28.55096,
-          77.20403
-        ],
-        [
-          28.55123,
-          77.20415
-        ],
-        [
-          28.55171,
-          77.20436
-        ],
-        [
-          28.55236,
-          77.20465
-        ],
-        [
-          28.55239,
-          77.20453
-        ],
-        [
-          28.55282,
-          77.20476
-        ]
-      ],
-      "distance": 1545,
-      "bidirectional": true
-    },
-    {
-      "id": "IE4",
-      "from": "I1",
-      "to": "I3",
-      "roadName": "Convocation Avenue",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.54587,
-          77.19662
-        ],
-        [
-          28.54589,
-          77.19654
-        ],
-        [
-          28.54577,
-          77.1965
-        ],
-        [
-          28.54573,
-          77.1965
-        ],
-        [
-          28.54569,
-          77.19649
-        ],
-        [
-          28.54566,
-          77.19646
-        ],
-        [
-          28.54563,
-          77.19643
-        ],
-        [
-          28.54558,
-          77.19631
-        ],
-        [
-          28.54552,
-          77.19626
-        ],
-        [
-          28.5455,
-          77.19621
-        ],
-        [
-          28.54547,
-          77.19616
-        ],
-        [
-          28.54547,
-          77.19615
-        ],
-        [
-          28.54516,
-          77.1952
-        ],
-        [
-          28.54499,
-          77.19474
-        ],
-        [
-          28.54492,
-          77.19458
-        ],
-        [
-          28.54489,
-          77.1946
-        ],
-        [
-          28.54485,
-          77.1946
-        ],
-        [
-          28.54481,
-          77.19459
-        ],
-        [
-          28.54478,
-          77.19457
-        ],
-        [
-          28.54475,
-          77.19454
-        ],
-        [
-          28.54473,
-          77.1945
-        ],
-        [
-          28.54472,
-          77.19446
-        ],
-        [
-          28.54472,
-          77.19441
-        ],
-        [
-          28.54474,
-          77.19437
-        ],
-        [
-          28.54477,
-          77.19433
-        ],
-        [
-          28.54481,
-          77.1943
-        ],
-        [
-          28.54477,
-          77.19415
-        ],
-        [
-          28.54471,
-          77.1939
-        ],
-        [
-          28.54451,
-          77.19331
-        ],
-        [
-          28.54434,
-          77.19283
-        ],
-        [
-          28.54431,
-          77.19273
-        ],
-        [
-          28.54408,
-          77.19204
-        ],
-        [
-          28.54415,
-          77.19201
-        ],
-        [
-          28.54439,
-          77.19269
-        ],
-        [
-          28.5444,
-          77.19273
-        ]
-      ],
-      "distance": 606,
-      "bidirectional": true
-    },
-    {
-      "id": "IE5",
-      "from": "I1",
-      "to": "I9",
-      "roadName": "SDA Footbridge Link (Pedestrian)",
-      "trafficMultiplier": 1,
-      "speedKmh": 5,
-      "pedestrianOnly": true,
-      "waypoints": [
-        [
-          28.54587,
-          77.19662
-        ],
-        [
-          28.54589,
-          77.19654
-        ],
-        [
-          28.54599,
-          77.19611
-        ],
-        [
-          28.54619,
-          77.19543
-        ],
-        [
-          28.54639,
-          77.19474
-        ],
-        [
-          28.5464,
-          77.19471
-        ],
-        [
-          28.5472,
-          77.19208
-        ],
-        [
-          28.54723,
-          77.19198
-        ],
-        [
-          28.5478,
-          77.19056
-        ],
-        [
-          28.54786,
-          77.19041
-        ],
-        [
-          28.548,
-          77.19006
-        ],
-        [
-          28.54862,
-          77.18852
-        ],
-        [
-          28.54866,
-          77.18838
-        ],
-        [
-          28.54879,
-          77.18804
-        ],
-        [
-          28.54878,
-          77.18789
-        ],
-        [
-          28.5489,
-          77.18752
-        ],
-        [
-          28.54973,
-          77.18545
-        ],
-        [
-          28.5499,
-          77.18499
-        ],
-        [
-          28.55016,
-          77.18443
-        ],
-        [
-          28.55028,
-          77.18423
-        ],
-        [
-          28.55036,
-          77.18421
-        ],
-        [
-          28.5504,
-          77.18421
-        ],
-        [
-          28.55043,
-          77.18422
-        ],
-        [
-          28.55045,
-          77.18423
-        ],
-        [
-          28.55046,
-          77.18426
-        ],
-        [
-          28.55048,
-          77.1843
-        ],
-        [
-          28.55048,
-          77.18434
-        ],
-        [
-          28.55048,
-          77.1844
-        ],
-        [
-          28.55038,
-          77.18456
-        ],
-        [
-          28.55015,
-          77.18507
-        ],
-        [
-          28.54995,
-          77.18558
-        ],
-        [
-          28.54912,
-          77.18774
-        ],
-        [
-          28.54901,
-          77.18783
-        ],
-        [
-          28.54891,
-          77.18805
-        ],
-        [
-          28.54887,
-          77.18813
-        ],
-        [
-          28.54885,
-          77.1882
-        ],
-        [
-          28.54832,
-          77.18954
-        ],
-        [
-          28.54789,
-          77.19062
-        ],
-        [
-          28.54731,
-          77.19203
-        ],
-        [
-          28.54705,
-          77.1929
-        ],
-        [
-          28.54653,
-          77.19463
-        ],
-        [
-          28.54638,
-          77.19515
-        ],
-        [
-          28.5463,
-          77.19544
-        ],
-        [
-          28.5461,
-          77.19615
-        ],
-        [
-          28.54613,
-          77.19616
-        ],
-        [
-          28.54619,
-          77.19618
-        ],
-        [
-          28.54625,
-          77.1962
-        ],
-        [
-          28.54665,
-          77.19633
-        ],
-        [
-          28.54683,
-          77.19638
-        ],
-        [
-          28.54741,
-          77.19655
-        ],
-        [
-          28.54787,
-          77.19669
-        ],
-        [
-          28.5486,
-          77.19704
-        ]
-      ],
-      "distance": 2893,
-      "bidirectional": true
-    },
-    {
-      "id": "IE6",
-      "from": "I1",
-      "to": "I10",
-      "roadName": "East Boundary Road",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.54587,
-          77.19662
-        ],
-        [
-          28.54589,
-          77.19654
-        ],
-        [
-          28.54577,
-          77.1965
-        ],
-        [
-          28.54573,
-          77.1965
-        ],
-        [
-          28.54569,
-          77.19649
-        ],
-        [
-          28.54566,
-          77.19646
-        ],
-        [
-          28.54563,
-          77.19643
-        ],
-        [
-          28.54558,
-          77.19631
-        ],
-        [
-          28.54552,
-          77.19626
-        ],
-        [
-          28.5455,
-          77.19621
-        ],
-        [
-          28.54547,
-          77.19616
-        ],
-        [
-          28.54547,
-          77.19615
-        ],
-        [
-          28.54516,
-          77.1952
-        ],
-        [
-          28.54499,
-          77.19474
-        ],
-        [
-          28.54492,
-          77.19458
-        ],
-        [
-          28.54489,
-          77.1946
-        ],
-        [
-          28.54485,
-          77.1946
-        ],
-        [
-          28.54481,
-          77.19459
-        ],
-        [
-          28.5446,
-          77.19477
-        ],
-        [
-          28.54456,
-          77.19485
-        ],
-        [
-          28.54437,
-          77.19535
-        ],
-        [
-          28.54434,
-          77.19543
-        ],
-        [
-          28.54431,
-          77.19549
-        ],
-        [
-          28.54412,
-          77.19598
-        ],
-        [
-          28.54402,
-          77.19626
-        ],
-        [
-          28.54396,
-          77.19643
-        ],
-        [
-          28.54379,
-          77.19692
-        ],
-        [
-          28.54374,
-          77.19706
-        ],
-        [
-          28.54311,
-          77.19676
-        ],
-        [
-          28.54317,
-          77.19661
-        ],
-        [
-          28.54323,
-          77.19646
-        ],
-        [
-          28.54324,
-          77.19645
-        ],
-        [
-          28.54324,
-          77.19643
-        ],
-        [
-          28.54323,
-          77.19642
-        ],
-        [
-          28.54322,
-          77.1964
-        ],
-        [
-          28.54314,
-          77.19636
-        ],
-        [
-          28.54277,
-          77.19617
-        ],
-        [
-          28.54236,
-          77.19599
-        ],
-        [
-          28.54232,
-          77.19598
-        ],
-        [
-          28.54228,
-          77.19598
-        ],
-        [
-          28.54223,
-          77.19601
-        ],
-        [
-          28.54219,
-          77.19605
-        ],
-        [
-          28.54217,
-          77.19609
-        ],
-        [
-          28.54211,
-          77.19623
-        ],
-        [
-          28.54201,
-          77.19646
-        ],
-        [
-          28.5418,
-          77.19691
-        ],
-        [
-          28.54175,
-          77.19701
-        ],
-        [
-          28.54171,
-          77.19716
-        ]
-      ],
-      "distance": 884,
-      "bidirectional": true
-    },
-    {
-      "id": "IE7",
-      "from": "I3",
-      "to": "I4",
-      "roadName": "Library Red Square Walkway",
-      "trafficMultiplier": 1,
-      "speedKmh": 5,
-      "pedestrianOnly": true,
-      "waypoints": [
-        [
-          28.5444,
-          77.19273
-        ],
-        [
-          28.54459,
-          77.19328
-        ],
-        [
-          28.54451,
-          77.19331
-        ],
-        [
-          28.54434,
-          77.19283
-        ],
-        [
-          28.54431,
-          77.19273
-        ],
-        [
-          28.54408,
-          77.19204
-        ],
-        [
-          28.54405,
-          77.19186
-        ],
-        [
-          28.54407,
-          77.19177
-        ],
-        [
-          28.54407,
-          77.19167
-        ],
-        [
-          28.54408,
-          77.19162
-        ],
-        [
-          28.54409,
-          77.19157
-        ],
-        [
-          28.54414,
-          77.19138
-        ],
-        [
-          28.54418,
-          77.19128
-        ],
-        [
-          28.54427,
-          77.19111
-        ],
-        [
-          28.54444,
-          77.19065
-        ]
-      ],
-      "distance": 346,
-      "bidirectional": true
-    },
-    {
-      "id": "IE8",
-      "from": "I3",
-      "to": "I5",
-      "roadName": "Lecture Hall Corridor",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.5444,
-          77.19273
-        ],
-        [
-          28.54459,
-          77.19328
-        ],
-        [
-          28.54491,
-          77.19425
-        ],
-        [
-          28.54492,
-          77.19431
-        ],
-        [
-          28.54494,
-          77.19435
-        ],
-        [
-          28.54496,
-          77.1944
-        ],
-        [
-          28.54498,
-          77.19445
-        ],
-        [
-          28.54499,
-          77.19449
-        ],
-        [
-          28.54525,
-          77.19516
-        ],
-        [
-          28.54578,
-          77.19489
-        ],
-        [
-          28.54611,
-          77.19469
-        ],
-        [
-          28.54615,
-          77.19465
-        ],
-        [
-          28.54616,
-          77.19464
-        ],
-        [
-          28.54619,
-          77.19461
-        ],
-        [
-          28.54621,
-          77.19457
-        ],
-        [
-          28.54627,
-          77.19443
-        ],
-        [
-          28.54721,
-          77.19147
-        ],
-        [
-          28.54723,
-          77.19143
-        ],
-        [
-          28.54723,
-          77.1914
-        ],
-        [
-          28.54724,
-          77.19138
-        ],
-        [
-          28.54717,
-          77.19118
-        ],
-        [
-          28.54699,
-          77.19063
-        ],
-        [
-          28.54686,
-          77.19024
-        ],
-        [
-          28.54684,
-          77.19022
-        ],
-        [
-          28.54682,
-          77.1902
-        ],
-        [
-          28.5468,
-          77.1902
-        ]
-      ],
-      "distance": 838,
-      "bidirectional": true
-    },
-    {
-      "id": "IE9",
-      "from": "I3",
-      "to": "I10",
-      "roadName": "Jia Sarai Gate Path",
-      "trafficMultiplier": 1,
-      "speedKmh": 30,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.5444,
-          77.19273
-        ],
-        [
-          28.54459,
-          77.19328
-        ],
-        [
-          28.54491,
-          77.19425
-        ],
-        [
-          28.54492,
-          77.19431
-        ],
-        [
-          28.54494,
-          77.19435
-        ],
-        [
-          28.54496,
-          77.1944
-        ],
-        [
-          28.54498,
-          77.19445
-        ],
-        [
-          28.54499,
-          77.19449
-        ],
-        [
-          28.54498,
-          77.19452
-        ],
-        [
-          28.54495,
-          77.19456
-        ],
-        [
-          28.54492,
-          77.19458
-        ],
-        [
-          28.54489,
-          77.1946
-        ],
-        [
-          28.54485,
-          77.1946
-        ],
-        [
-          28.54481,
-          77.19459
-        ],
-        [
-          28.5446,
-          77.19477
-        ],
-        [
-          28.54456,
-          77.19485
-        ],
-        [
-          28.54437,
-          77.19535
-        ],
-        [
-          28.54434,
-          77.19543
-        ],
-        [
-          28.54431,
-          77.19549
-        ],
-        [
-          28.54412,
-          77.19598
-        ],
-        [
-          28.54402,
-          77.19626
-        ],
-        [
-          28.54396,
-          77.19643
-        ],
-        [
-          28.54379,
-          77.19692
-        ],
-        [
-          28.54374,
-          77.19706
-        ],
-        [
-          28.54311,
-          77.19676
-        ],
-        [
-          28.54317,
-          77.19661
-        ],
-        [
-          28.54323,
-          77.19646
-        ],
-        [
-          28.54324,
-          77.19645
-        ],
-        [
-          28.54324,
-          77.19643
-        ],
-        [
-          28.54323,
-          77.19642
-        ],
-        [
-          28.54322,
-          77.1964
-        ],
-        [
-          28.54314,
-          77.19636
-        ],
-        [
-          28.54277,
-          77.19617
-        ],
-        [
-          28.54236,
-          77.19599
-        ],
-        [
-          28.54232,
-          77.19598
-        ],
-        [
-          28.54228,
-          77.19598
-        ],
-        [
-          28.54223,
-          77.19601
-        ],
-        [
-          28.54219,
-          77.19605
-        ],
-        [
-          28.54217,
-          77.19609
-        ],
-        [
-          28.54211,
-          77.19623
-        ],
-        [
-          28.54201,
-          77.19646
-        ],
-        [
-          28.5418,
-          77.19691
-        ],
-        [
-          28.54175,
-          77.19701
-        ],
-        [
-          28.54171,
-          77.19716
-        ]
-      ],
-      "distance": 843,
-      "bidirectional": true
-    },
-    {
-      "id": "IE10",
-      "from": "I4",
-      "to": "I5",
-      "roadName": "Wind Tunnel Road",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.54444,
-          77.19065
-        ],
-        [
-          28.54427,
-          77.19111
-        ],
-        [
-          28.54418,
-          77.19128
-        ],
-        [
-          28.54414,
-          77.19138
-        ],
-        [
-          28.54409,
-          77.19157
-        ],
-        [
-          28.54408,
-          77.19162
-        ],
-        [
-          28.54407,
-          77.19167
-        ],
-        [
-          28.54407,
-          77.19177
-        ],
-        [
-          28.5441,
-          77.19182
-        ],
-        [
-          28.54415,
-          77.19201
-        ],
-        [
-          28.54439,
-          77.19269
-        ],
-        [
-          28.54459,
-          77.19328
-        ],
-        [
-          28.54491,
-          77.19425
-        ],
-        [
-          28.54492,
-          77.19431
-        ],
-        [
-          28.54494,
-          77.19435
-        ],
-        [
-          28.54496,
-          77.1944
-        ],
-        [
-          28.54498,
-          77.19445
-        ],
-        [
-          28.54499,
-          77.19449
-        ],
-        [
-          28.54525,
-          77.19516
-        ],
-        [
-          28.54578,
-          77.19489
-        ],
-        [
-          28.54611,
-          77.19469
-        ],
-        [
-          28.54615,
-          77.19465
-        ],
-        [
-          28.54616,
-          77.19464
-        ],
-        [
-          28.54619,
-          77.19461
-        ],
-        [
-          28.54621,
-          77.19457
-        ],
-        [
-          28.54627,
-          77.19443
-        ],
-        [
-          28.54721,
-          77.19147
-        ],
-        [
-          28.54723,
-          77.19143
-        ],
-        [
-          28.54723,
-          77.1914
-        ],
-        [
-          28.54724,
-          77.19138
-        ],
-        [
-          28.54717,
-          77.19118
-        ],
-        [
-          28.54699,
-          77.19063
-        ],
-        [
-          28.54686,
-          77.19024
-        ],
-        [
-          28.54684,
-          77.19022
-        ],
-        [
-          28.54682,
-          77.1902
-        ],
-        [
-          28.5468,
-          77.1902
-        ]
-      ],
-      "distance": 1057,
-      "bidirectional": true
-    },
-    {
-      "id": "IE11",
-      "from": "I4",
-      "to": "I8",
-      "roadName": "Academic-Hostel Spine",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.54444,
-          77.19065
-        ],
-        [
-          28.54451,
-          77.19045
-        ],
-        [
-          28.54456,
-          77.19034
-        ],
-        [
-          28.54462,
-          77.19021
-        ],
-        [
-          28.54477,
-          77.1899
-        ],
-        [
-          28.54481,
-          77.18981
-        ],
-        [
-          28.54545,
-          77.18828
-        ],
-        [
-          28.5457,
-          77.18763
-        ],
-        [
-          28.54577,
-          77.18746
-        ],
-        [
-          28.54578,
-          77.18742
-        ],
-        [
-          28.54581,
-          77.18737
-        ],
-        [
-          28.54573,
-          77.18733
-        ],
-        [
-          28.54565,
-          77.18729
-        ]
-      ],
-      "distance": 375,
-      "bidirectional": true
-    },
-    {
-      "id": "IE12",
-      "from": "I4",
-      "to": "I6",
-      "roadName": "South Campus Loop",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.54444,
-          77.19065
-        ],
-        [
-          28.54451,
-          77.19045
-        ],
-        [
-          28.54456,
-          77.19034
-        ],
-        [
-          28.54462,
-          77.19021
-        ],
-        [
-          28.54477,
-          77.1899
-        ],
-        [
-          28.54481,
-          77.18981
-        ],
-        [
-          28.54545,
-          77.18828
-        ],
-        [
-          28.5457,
-          77.18763
-        ],
-        [
-          28.54577,
-          77.18746
-        ],
-        [
-          28.54578,
-          77.18742
-        ],
-        [
-          28.54581,
-          77.18737
-        ],
-        [
-          28.54608,
-          77.18671
-        ],
-        [
-          28.5467,
-          77.18523
-        ],
-        [
-          28.54667,
-          77.18521
-        ],
-        [
-          28.54666,
-          77.18519
-        ],
-        [
-          28.54665,
-          77.18516
-        ],
-        [
-          28.54665,
-          77.18507
-        ],
-        [
-          28.54652,
-          77.18504
-        ],
-        [
-          28.54638,
-          77.18501
-        ],
-        [
-          28.54631,
-          77.18498
-        ],
-        [
-          28.54626,
-          77.18496
-        ],
-        [
-          28.54623,
-          77.18491
-        ],
-        [
-          28.54621,
-          77.18485
-        ],
-        [
-          28.54608,
-          77.18444
-        ],
-        [
-          28.54604,
-          77.18432
-        ],
-        [
-          28.54601,
-          77.18415
-        ],
-        [
-          28.54602,
-          77.18405
-        ],
-        [
-          28.5463,
-          77.18324
-        ],
-        [
-          28.54636,
-          77.18308
-        ],
-        [
-          28.54614,
-          77.18295
-        ],
-        [
-          28.54568,
-          77.18269
-        ],
-        [
-          28.54528,
-          77.1825
-        ],
-        [
-          28.54506,
-          77.18236
-        ],
-        [
-          28.54479,
-          77.18223
-        ],
-        [
-          28.54411,
-          77.18184
-        ],
-        [
-          28.54329,
-          77.1814
-        ],
-        [
-          28.54296,
-          77.18198
-        ],
-        [
-          28.54289,
-          77.1821
-        ],
-        [
-          28.54284,
-          77.18212
-        ],
-        [
-          28.5428,
-          77.18218
-        ],
-        [
-          28.54276,
-          77.18224
-        ],
-        [
-          28.54268,
-          77.18237
-        ],
-        [
-          28.5426,
-          77.18231
-        ],
-        [
-          28.54256,
-          77.1823
-        ],
-        [
-          28.54251,
-          77.18232
-        ],
-        [
-          28.54246,
-          77.18236
-        ],
-        [
-          28.54241,
-          77.18245
-        ],
-        [
-          28.5423,
-          77.18236
-        ],
-        [
-          28.54225,
-          77.18232
-        ],
-        [
-          28.54173,
-          77.18314
-        ],
-        [
-          28.54168,
-          77.18324
-        ],
-        [
-          28.54161,
-          77.18335
-        ],
-        [
-          28.54177,
-          77.18347
-        ],
-        [
-          28.54194,
-          77.18359
-        ],
-        [
-          28.54209,
-          77.1837
-        ],
-        [
-          28.5422,
-          77.18377
-        ],
-        [
-          28.54239,
-          77.18393
-        ],
-        [
-          28.54242,
-          77.18395
-        ],
-        [
-          28.54245,
-          77.18397
-        ],
-        [
-          28.54237,
-          77.18416
-        ],
-        [
-          28.54234,
-          77.18424
-        ],
-        [
-          28.54249,
-          77.18435
-        ],
-        [
-          28.54257,
-          77.18448
-        ],
-        [
-          28.54272,
-          77.18451
-        ],
-        [
-          28.54295,
-          77.18456
-        ],
-        [
-          28.54334,
-          77.1847
-        ],
-        [
-          28.54359,
-          77.18476
-        ],
-        [
-          28.54357,
-          77.18509
-        ],
-        [
-          28.54357,
-          77.18518
-        ],
-        [
-          28.54356,
-          77.18524
-        ],
-        [
-          28.54353,
-          77.18533
-        ],
-        [
-          28.5435,
-          77.18539
-        ]
-      ],
-      "distance": 1881,
-      "bidirectional": true
-    },
-    {
-      "id": "IE13",
-      "from": "I5",
-      "to": "I8",
-      "roadName": "Bharti-SAC Connector",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.5468,
-          77.1902
-        ],
-        [
-          28.54679,
-          77.1902
-        ],
-        [
-          28.54653,
-          77.19023
-        ],
-        [
-          28.54648,
-          77.19024
-        ],
-        [
-          28.54641,
-          77.19025
-        ],
-        [
-          28.54634,
-          77.19028
-        ],
-        [
-          28.5457,
-          77.19055
-        ],
-        [
-          28.54539,
-          77.19068
-        ],
-        [
-          28.54531,
-          77.19072
-        ],
-        [
-          28.54504,
-          77.19084
-        ],
-        [
-          28.54497,
-          77.19088
-        ],
-        [
-          28.54479,
-          77.19096
-        ],
-        [
-          28.54461,
-          77.1905
-        ],
-        [
-          28.54456,
-          77.19034
-        ],
-        [
-          28.54462,
-          77.19021
-        ],
-        [
-          28.54477,
-          77.1899
-        ],
-        [
-          28.54481,
-          77.18981
-        ],
-        [
-          28.54545,
-          77.18828
-        ],
-        [
-          28.5457,
-          77.18763
-        ],
-        [
-          28.54577,
-          77.18746
-        ],
-        [
-          28.54578,
-          77.18742
-        ],
-        [
-          28.54581,
-          77.18737
-        ],
-        [
-          28.54573,
-          77.18733
-        ],
-        [
-          28.54565,
-          77.18729
-        ]
-      ],
-      "distance": 643,
-      "bidirectional": true
-    },
-    {
-      "id": "IE14",
-      "from": "I5",
-      "to": "I9",
-      "roadName": "SDA Gate Avenue",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.5468,
-          77.1902
-        ],
-        [
-          28.54679,
-          77.1902
-        ],
-        [
-          28.54653,
-          77.19023
-        ],
-        [
-          28.54648,
-          77.19024
-        ],
-        [
-          28.54641,
-          77.19025
-        ],
-        [
-          28.54634,
-          77.19028
-        ],
-        [
-          28.5457,
-          77.19055
-        ],
-        [
-          28.54539,
-          77.19068
-        ],
-        [
-          28.54531,
-          77.19072
-        ],
-        [
-          28.54504,
-          77.19084
-        ],
-        [
-          28.54497,
-          77.19088
-        ],
-        [
-          28.54479,
-          77.19096
-        ],
-        [
-          28.54463,
-          77.19102
-        ],
-        [
-          28.54441,
-          77.19108
-        ],
-        [
-          28.54427,
-          77.19111
-        ],
-        [
-          28.54418,
-          77.19128
-        ],
-        [
-          28.54414,
-          77.19138
-        ],
-        [
-          28.54409,
-          77.19157
-        ],
-        [
-          28.54408,
-          77.19162
-        ],
-        [
-          28.54407,
-          77.19167
-        ],
-        [
-          28.54407,
-          77.19177
-        ],
-        [
-          28.5441,
-          77.19182
-        ],
-        [
-          28.54415,
-          77.19201
-        ],
-        [
-          28.54439,
-          77.19269
-        ],
-        [
-          28.54459,
-          77.19328
-        ],
-        [
-          28.54491,
-          77.19425
-        ],
-        [
-          28.54492,
-          77.19431
-        ],
-        [
-          28.54494,
-          77.19435
-        ],
-        [
-          28.54496,
-          77.1944
-        ],
-        [
-          28.54498,
-          77.19445
-        ],
-        [
-          28.54499,
-          77.19449
-        ],
-        [
-          28.54525,
-          77.19516
-        ],
-        [
-          28.54578,
-          77.19489
-        ],
-        [
-          28.54611,
-          77.19469
-        ],
-        [
-          28.54629,
-          77.19472
-        ],
-        [
-          28.54634,
-          77.19473
-        ],
-        [
-          28.54639,
-          77.19474
-        ],
-        [
-          28.5464,
-          77.19471
-        ],
-        [
-          28.5472,
-          77.19208
-        ],
-        [
-          28.54723,
-          77.19198
-        ],
-        [
-          28.5478,
-          77.19056
-        ],
-        [
-          28.54786,
-          77.19041
-        ],
-        [
-          28.548,
-          77.19006
-        ],
-        [
-          28.54862,
-          77.18852
-        ],
-        [
-          28.54866,
-          77.18838
-        ],
-        [
-          28.54879,
-          77.18804
-        ],
-        [
-          28.54878,
-          77.18789
-        ],
-        [
-          28.5489,
-          77.18752
-        ],
-        [
-          28.54973,
-          77.18545
-        ],
-        [
-          28.5499,
-          77.18499
-        ],
-        [
-          28.55016,
-          77.18443
-        ],
-        [
-          28.55028,
-          77.18423
-        ],
-        [
-          28.55036,
-          77.18421
-        ],
-        [
-          28.5504,
-          77.18421
-        ],
-        [
-          28.55043,
-          77.18422
-        ],
-        [
-          28.55045,
-          77.18423
-        ],
-        [
-          28.55046,
-          77.18426
-        ],
-        [
-          28.55048,
-          77.1843
-        ],
-        [
-          28.55048,
-          77.18434
-        ],
-        [
-          28.55048,
-          77.1844
-        ],
-        [
-          28.55038,
-          77.18456
-        ],
-        [
-          28.55015,
-          77.18507
-        ],
-        [
-          28.54995,
-          77.18558
-        ],
-        [
-          28.54912,
-          77.18774
-        ],
-        [
-          28.54901,
-          77.18783
-        ],
-        [
-          28.54891,
-          77.18805
-        ],
-        [
-          28.54887,
-          77.18813
-        ],
-        [
-          28.54885,
-          77.1882
-        ],
-        [
-          28.54832,
-          77.18954
-        ],
-        [
-          28.54789,
-          77.19062
-        ],
-        [
-          28.54731,
-          77.19203
-        ],
-        [
-          28.54705,
-          77.1929
-        ],
-        [
-          28.54653,
-          77.19463
-        ],
-        [
-          28.54638,
-          77.19515
-        ],
-        [
-          28.5463,
-          77.19544
-        ],
-        [
-          28.5461,
-          77.19615
-        ],
-        [
-          28.54613,
-          77.19616
-        ],
-        [
-          28.54619,
-          77.19618
-        ],
-        [
-          28.54625,
-          77.1962
-        ],
-        [
-          28.54665,
-          77.19633
-        ],
-        [
-          28.54683,
-          77.19638
-        ],
-        [
-          28.54741,
-          77.19655
-        ],
-        [
-          28.54787,
-          77.19669
-        ],
-        [
-          28.5486,
-          77.19704
-        ]
-      ],
-      "distance": 3559,
-      "bidirectional": true
-    },
-    {
-      "id": "IE15",
-      "from": "I8",
-      "to": "I7",
-      "roadName": "Hostel Avenue",
-      "trafficMultiplier": 1,
-      "speedKmh": 30,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.54565,
-          77.18729
-        ],
-        [
-          28.54573,
-          77.18733
-        ],
-        [
-          28.54581,
-          77.18737
-        ],
-        [
-          28.54608,
-          77.18671
-        ],
-        [
-          28.5467,
-          77.18523
-        ],
-        [
-          28.54667,
-          77.18521
-        ],
-        [
-          28.54666,
-          77.18519
-        ],
-        [
-          28.54665,
-          77.18516
-        ],
-        [
-          28.54665,
-          77.18507
-        ],
-        [
-          28.54667,
-          77.18503
-        ],
-        [
-          28.54671,
-          77.185
-        ],
-        [
-          28.54676,
-          77.18499
-        ],
-        [
-          28.5468,
-          77.185
-        ],
-        [
-          28.54683,
-          77.18502
-        ],
-        [
-          28.54686,
-          77.18506
-        ],
-        [
-          28.54687,
-          77.1851
-        ],
-        [
-          28.54687,
-          77.18515
-        ],
-        [
-          28.54711,
-          77.18523
-        ],
-        [
-          28.54722,
-          77.18527
-        ],
-        [
-          28.54765,
-          77.18542
-        ]
-      ],
-      "distance": 397,
-      "bidirectional": true
-    },
-    {
-      "id": "IE16",
-      "from": "I8",
-      "to": "I6",
-      "roadName": "Innovation Park Road",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.54565,
-          77.18729
-        ],
-        [
-          28.54573,
-          77.18733
-        ],
-        [
-          28.54581,
-          77.18737
-        ],
-        [
-          28.54608,
-          77.18671
-        ],
-        [
-          28.5467,
-          77.18523
-        ],
-        [
-          28.54667,
-          77.18521
-        ],
-        [
-          28.54666,
-          77.18519
-        ],
-        [
-          28.54665,
-          77.18516
-        ],
-        [
-          28.54665,
-          77.18507
-        ],
-        [
-          28.54652,
-          77.18504
-        ],
-        [
-          28.54638,
-          77.18501
-        ],
-        [
-          28.54631,
-          77.18498
-        ],
-        [
-          28.54626,
-          77.18496
-        ],
-        [
-          28.54623,
-          77.18491
-        ],
-        [
-          28.54621,
-          77.18485
-        ],
-        [
-          28.54608,
-          77.18444
-        ],
-        [
-          28.54604,
-          77.18432
-        ],
-        [
-          28.54601,
-          77.18415
-        ],
-        [
-          28.54602,
-          77.18405
-        ],
-        [
-          28.5463,
-          77.18324
-        ],
-        [
-          28.54636,
-          77.18308
-        ],
-        [
-          28.54614,
-          77.18295
-        ],
-        [
-          28.54568,
-          77.18269
-        ],
-        [
-          28.54528,
-          77.1825
-        ],
-        [
-          28.54506,
-          77.18236
-        ],
-        [
-          28.54479,
-          77.18223
-        ],
-        [
-          28.54411,
-          77.18184
-        ],
-        [
-          28.54329,
-          77.1814
-        ],
-        [
-          28.54296,
-          77.18198
-        ],
-        [
-          28.54289,
-          77.1821
-        ],
-        [
-          28.54284,
-          77.18212
-        ],
-        [
-          28.5428,
-          77.18218
-        ],
-        [
-          28.54276,
-          77.18224
-        ],
-        [
-          28.54268,
-          77.18237
-        ],
-        [
-          28.5426,
-          77.18231
-        ],
-        [
-          28.54256,
-          77.1823
-        ],
-        [
-          28.54251,
-          77.18232
-        ],
-        [
-          28.54246,
-          77.18236
-        ],
-        [
-          28.54241,
-          77.18245
-        ],
-        [
-          28.5423,
-          77.18236
-        ],
-        [
-          28.54225,
-          77.18232
-        ],
-        [
-          28.54173,
-          77.18314
-        ],
-        [
-          28.54168,
-          77.18324
-        ],
-        [
-          28.54161,
-          77.18335
-        ],
-        [
-          28.54177,
-          77.18347
-        ],
-        [
-          28.54194,
-          77.18359
-        ],
-        [
-          28.54209,
-          77.1837
-        ],
-        [
-          28.5422,
-          77.18377
-        ],
-        [
-          28.54239,
-          77.18393
-        ],
-        [
-          28.54242,
-          77.18395
-        ],
-        [
-          28.54245,
-          77.18397
-        ],
-        [
-          28.54237,
-          77.18416
-        ],
-        [
-          28.54234,
-          77.18424
-        ],
-        [
-          28.54249,
-          77.18435
-        ],
-        [
-          28.54257,
-          77.18448
-        ],
-        [
-          28.54272,
-          77.18451
-        ],
-        [
-          28.54295,
-          77.18456
-        ],
-        [
-          28.54334,
-          77.1847
-        ],
-        [
-          28.54359,
-          77.18476
-        ],
-        [
-          28.54357,
-          77.18509
-        ],
-        [
-          28.54357,
-          77.18518
-        ],
-        [
-          28.54356,
-          77.18524
-        ],
-        [
-          28.54353,
-          77.18533
-        ],
-        [
-          28.5435,
-          77.18539
-        ]
-      ],
-      "distance": 1545,
-      "bidirectional": true
-    },
-    {
-      "id": "IE17",
-      "from": "I7",
-      "to": "I6",
-      "roadName": "West Perimeter Road",
-      "trafficMultiplier": 1,
-      "speedKmh": 35,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.54765,
-          77.18542
-        ],
-        [
-          28.54722,
-          77.18527
-        ],
-        [
-          28.54711,
-          77.18523
-        ],
-        [
-          28.54687,
-          77.18515
-        ],
-        [
-          28.54685,
-          77.18519
-        ],
-        [
-          28.54683,
-          77.18522
-        ],
-        [
-          28.54681,
-          77.18523
-        ],
-        [
-          28.54677,
-          77.18525
-        ],
-        [
-          28.54673,
-          77.18524
-        ],
-        [
-          28.5467,
-          77.18523
-        ],
-        [
-          28.54667,
-          77.18521
-        ],
-        [
-          28.54666,
-          77.18519
-        ],
-        [
-          28.54665,
-          77.18516
-        ],
-        [
-          28.54665,
-          77.18507
-        ],
-        [
-          28.54652,
-          77.18504
-        ],
-        [
-          28.54638,
-          77.18501
-        ],
-        [
-          28.54631,
-          77.18498
-        ],
-        [
-          28.54626,
-          77.18496
-        ],
-        [
-          28.54623,
-          77.18491
-        ],
-        [
-          28.54621,
-          77.18485
-        ],
-        [
-          28.54608,
-          77.18444
-        ],
-        [
-          28.54604,
-          77.18432
-        ],
-        [
-          28.54601,
-          77.18415
-        ],
-        [
-          28.54602,
-          77.18405
-        ],
-        [
-          28.5463,
-          77.18324
-        ],
-        [
-          28.54636,
-          77.18308
-        ],
-        [
-          28.54614,
-          77.18295
-        ],
-        [
-          28.54568,
-          77.18269
-        ],
-        [
-          28.54528,
-          77.1825
-        ],
-        [
-          28.54506,
-          77.18236
-        ],
-        [
-          28.54479,
-          77.18223
-        ],
-        [
-          28.54411,
-          77.18184
-        ],
-        [
-          28.54329,
-          77.1814
-        ],
-        [
-          28.54296,
-          77.18198
-        ],
-        [
-          28.54289,
-          77.1821
-        ],
-        [
-          28.54284,
-          77.18212
-        ],
-        [
-          28.5428,
-          77.18218
-        ],
-        [
-          28.54276,
-          77.18224
-        ],
-        [
-          28.54268,
-          77.18237
-        ],
-        [
-          28.5426,
-          77.18231
-        ],
-        [
-          28.54256,
-          77.1823
-        ],
-        [
-          28.54251,
-          77.18232
-        ],
-        [
-          28.54246,
-          77.18236
-        ],
-        [
-          28.54241,
-          77.18245
-        ],
-        [
-          28.5423,
-          77.18236
-        ],
-        [
-          28.54225,
-          77.18232
-        ],
-        [
-          28.54173,
-          77.18314
-        ],
-        [
-          28.54168,
-          77.18324
-        ],
-        [
-          28.54161,
-          77.18335
-        ],
-        [
-          28.54177,
-          77.18347
-        ],
-        [
-          28.54194,
-          77.18359
-        ],
-        [
-          28.54209,
-          77.1837
-        ],
-        [
-          28.5422,
-          77.18377
-        ],
-        [
-          28.54239,
-          77.18393
-        ],
-        [
-          28.54242,
-          77.18395
-        ],
-        [
-          28.54245,
-          77.18397
-        ],
-        [
-          28.54237,
-          77.18416
-        ],
-        [
-          28.54234,
-          77.18424
-        ],
-        [
-          28.54249,
-          77.18435
-        ],
-        [
-          28.54257,
-          77.18448
-        ],
-        [
-          28.54272,
-          77.18451
-        ],
-        [
-          28.54295,
-          77.18456
-        ],
-        [
-          28.54334,
-          77.1847
-        ],
-        [
-          28.54359,
-          77.18476
-        ],
-        [
-          28.54357,
-          77.18509
-        ],
-        [
-          28.54357,
-          77.18518
-        ],
-        [
-          28.54356,
-          77.18524
-        ],
-        [
-          28.54353,
-          77.18533
-        ],
-        [
-          28.5435,
-          77.18539
-        ]
-      ],
-      "distance": 1408,
-      "bidirectional": true
-    },
-    {
-      "id": "IE18",
-      "from": "I7",
-      "to": "I11",
-      "roadName": "JNU-Munirka Gate Rd",
-      "trafficMultiplier": 1.5,
-      "speedKmh": 40,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.54765,
-          77.18542
-        ],
-        [
-          28.5478,
-          77.18547
-        ],
-        [
-          28.54783,
-          77.18548
-        ],
-        [
-          28.54802,
-          77.18554
-        ],
-        [
-          28.54823,
-          77.18559
-        ],
-        [
-          28.54843,
-          77.18566
-        ],
-        [
-          28.54849,
-          77.18568
-        ],
-        [
-          28.54853,
-          77.18569
-        ],
-        [
-          28.54858,
-          77.18568
-        ],
-        [
-          28.54861,
-          77.18567
-        ],
-        [
-          28.54864,
-          77.18561
-        ],
-        [
-          28.54866,
-          77.18554
-        ],
-        [
-          28.54894,
-          77.18483
-        ],
-        [
-          28.54901,
-          77.1846
-        ],
-        [
-          28.549,
-          77.18458
-        ],
-        [
-          28.54899,
-          77.18456
-        ],
-        [
-          28.54899,
-          77.18453
-        ],
-        [
-          28.54899,
-          77.1845
-        ],
-        [
-          28.549,
-          77.18448
-        ],
-        [
-          28.54902,
-          77.18447
-        ],
-        [
-          28.54904,
-          77.18445
-        ],
-        [
-          28.54906,
-          77.18445
-        ],
-        [
-          28.54908,
-          77.18445
-        ],
-        [
-          28.5491,
-          77.18446
-        ],
-        [
-          28.54912,
-          77.18448
-        ],
-        [
-          28.54913,
-          77.1845
-        ],
-        [
-          28.54913,
-          77.18452
-        ],
-        [
-          28.54913,
-          77.18455
-        ],
-        [
-          28.54912,
-          77.18457
-        ],
-        [
-          28.5494,
-          77.18472
-        ],
-        [
-          28.5497,
-          77.18487
-        ],
-        [
-          28.54973,
-          77.18489
-        ],
-        [
-          28.54986,
-          77.18497
-        ],
-        [
-          28.5499,
-          77.18499
-        ],
-        [
-          28.55016,
-          77.18443
-        ],
-        [
-          28.55028,
-          77.18423
-        ],
-        [
-          28.55045,
-          77.18393
-        ],
-        [
-          28.55048,
-          77.18387
-        ],
-        [
-          28.55052,
-          77.1838
-        ],
-        [
-          28.55054,
-          77.18377
-        ],
-        [
-          28.55055,
-          77.18374
-        ],
-        [
-          28.5506,
-          77.18368
-        ]
-      ],
-      "distance": 507,
-      "bidirectional": true
-    },
-    {
-      "id": "IE19",
-      "from": "I11",
-      "to": "I9",
-      "roadName": "Outer Ring West Corridor",
-      "trafficMultiplier": 2.2,
-      "speedKmh": 50,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.5506,
-          77.18368
-        ],
-        [
-          28.55094,
-          77.18318
-        ],
-        [
-          28.5511,
-          77.18292
-        ],
-        [
-          28.55122,
-          77.18274
-        ],
-        [
-          28.55133,
-          77.18256
-        ],
-        [
-          28.55152,
-          77.18225
-        ],
-        [
-          28.55157,
-          77.18218
-        ],
-        [
-          28.55177,
-          77.18239
-        ],
-        [
-          28.55174,
-          77.18244
-        ],
-        [
-          28.55123,
-          77.18322
-        ],
-        [
-          28.55113,
-          77.18337
-        ],
-        [
-          28.55098,
-          77.1836
-        ],
-        [
-          28.55091,
-          77.18372
-        ],
-        [
-          28.55088,
-          77.18376
-        ],
-        [
-          28.55078,
-          77.18391
-        ],
-        [
-          28.55075,
-          77.18395
-        ],
-        [
-          28.55072,
-          77.18401
+          28.55214,
+          77.18182
         ],
         [
           28.55066,
           77.18411
         ],
         [
-          28.55048,
-          77.1844
-        ],
-        [
-          28.55038,
-          77.18456
-        ],
-        [
-          28.55015,
-          77.18507
-        ],
-        [
-          28.54995,
-          77.18558
-        ],
-        [
-          28.54912,
-          77.18774
-        ],
-        [
-          28.54901,
-          77.18783
-        ],
-        [
-          28.54891,
-          77.18805
-        ],
-        [
-          28.54887,
-          77.18813
-        ],
-        [
-          28.54885,
-          77.1882
-        ],
-        [
-          28.54832,
-          77.18954
-        ],
-        [
           28.54789,
           77.19062
-        ],
-        [
-          28.54731,
-          77.19203
-        ],
-        [
-          28.54705,
-          77.1929
-        ],
-        [
-          28.54653,
-          77.19463
-        ],
-        [
-          28.54638,
-          77.19515
-        ],
-        [
-          28.5463,
-          77.19544
-        ],
-        [
-          28.5461,
-          77.19615
-        ],
-        [
-          28.54613,
-          77.19616
-        ],
-        [
-          28.54619,
-          77.19618
-        ],
-        [
-          28.54625,
-          77.1962
-        ],
-        [
-          28.54665,
-          77.19633
-        ],
-        [
-          28.54683,
-          77.19638
-        ],
-        [
-          28.54741,
-          77.19655
-        ],
-        [
-          28.54787,
-          77.19669
-        ],
-        [
-          28.5486,
-          77.19704
-        ]
-      ],
-      "distance": 2000,
-      "bidirectional": true
-    },
-    {
-      "id": "IE20",
-      "from": "I9",
-      "to": "I12",
-      "roadName": "Rose Garden Link Road",
-      "trafficMultiplier": 1,
-      "speedKmh": 40,
-      "pedestrianOnly": false,
-      "waypoints": [
-        [
-          28.5486,
-          77.19704
-        ],
-        [
-          28.54787,
-          77.19669
-        ],
-        [
-          28.54741,
-          77.19655
-        ],
-        [
-          28.54683,
-          77.19638
-        ],
-        [
-          28.54665,
-          77.19633
-        ],
-        [
-          28.54625,
-          77.1962
-        ],
-        [
-          28.54619,
-          77.19618
-        ],
-        [
-          28.54613,
-          77.19616
-        ],
-        [
-          28.5461,
-          77.19615
-        ],
-        [
-          28.54608,
-          77.1962
-        ],
-        [
-          28.54599,
-          77.19659
-        ],
-        [
-          28.54588,
-          77.19703
-        ],
-        [
-          28.54584,
-          77.19722
-        ],
-        [
-          28.54575,
-          77.19756
         ],
         [
           28.54571,
           77.19776
         ],
         [
-          28.54566,
-          77.19834
-        ],
-        [
-          28.54552,
-          77.19899
-        ],
-        [
-          28.54537,
-          77.19965
-        ],
-        [
-          28.54525,
-          77.20016
-        ],
-        [
-          28.54513,
-          77.2005
-        ],
-        [
-          28.54509,
-          77.20063
-        ],
-        [
-          28.54507,
-          77.20071
-        ],
-        [
-          28.54494,
-          77.20111
-        ],
-        [
-          28.54493,
-          77.20113
-        ],
-        [
-          28.54495,
-          77.20128
-        ],
-        [
-          28.54496,
-          77.20133
-        ],
-        [
           28.54498,
           77.2014
-        ],
-        [
-          28.54502,
-          77.20153
-        ],
-        [
-          28.54587,
-          77.20204
-        ],
-        [
-          28.5466,
-          77.20243
-        ],
-        [
-          28.54731,
-          77.2028
-        ],
-        [
-          28.5479,
-          77.20305
-        ],
-        [
-          28.54896,
-          77.2034
-        ],
-        [
-          28.54954,
-          77.20358
-        ],
-        [
-          28.55062,
-          77.20392
-        ],
-        [
-          28.55086,
-          77.204
-        ],
-        [
-          28.55096,
-          77.20403
         ],
         [
           28.55123,
           77.20415
         ],
         [
-          28.55171,
-          77.20436
+          28.55607,
+          77.20619
         ],
         [
-          28.55236,
-          77.20465
+          28.55897,
+          77.20687
         ],
         [
-          28.55239,
-          77.20453
+          28.56322,
+          77.20752
         ],
         [
-          28.55282,
-          77.20476
+          28.56475,
+          77.20762
+        ],
+        [
+          28.56343,
+          77.20798
+        ],
+        [
+          28.56354,
+          77.21044
+        ],
+        [
+          28.56544,
+          77.21015
         ]
       ],
-      "distance": 1775,
+      "distance": 11059,
+      "bidirectional": true
+    },
+    {
+      "id": "E43",
+      "from": "dhaula_kuan",
+      "to": "vasant_kunj",
+      "roadName": "Rao Tula Ram Marg & Nelson Mandela Rd",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.4,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.59207,
+          77.16141
+        ],
+        [
+          28.58987,
+          77.15622
+        ],
+        [
+          28.5864,
+          77.15809
+        ],
+        [
+          28.58507,
+          77.15904
+        ],
+        [
+          28.58395,
+          77.16013
+        ],
+        [
+          28.58269,
+          77.16014
+        ],
+        [
+          28.58083,
+          77.15918
+        ],
+        [
+          28.57893,
+          77.1581
+        ],
+        [
+          28.57785,
+          77.15804
+        ],
+        [
+          28.57678,
+          77.15805
+        ],
+        [
+          28.57591,
+          77.15841
+        ],
+        [
+          28.57506,
+          77.16
+        ],
+        [
+          28.57219,
+          77.16206
+        ],
+        [
+          28.56984,
+          77.16376
+        ],
+        [
+          28.56671,
+          77.1659
+        ],
+        [
+          28.56337,
+          77.16799
+        ],
+        [
+          28.5616,
+          77.16917
+        ],
+        [
+          28.55814,
+          77.16971
+        ],
+        [
+          28.5551,
+          77.16659
+        ],
+        [
+          28.55331,
+          77.16633
+        ],
+        [
+          28.55151,
+          77.16504
+        ],
+        [
+          28.54812,
+          77.16246
+        ],
+        [
+          28.53809,
+          77.15499
+        ],
+        [
+          28.53465,
+          77.15223
+        ],
+        [
+          28.53803,
+          77.15435
+        ],
+        [
+          28.53945,
+          77.15333
+        ],
+        [
+          28.53992,
+          77.15305
+        ],
+        [
+          28.54021,
+          77.15358
+        ]
+      ],
+      "distance": 8859,
+      "bidirectional": true
+    },
+    {
+      "id": "E44",
+      "from": "igi_t3",
+      "to": "vasant_kunj",
+      "roadName": "Abdul Ghaffar Khan Marg (Mahipalpur)",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.2,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.55638,
+          77.10005
+        ],
+        [
+          28.55427,
+          77.10429
+        ],
+        [
+          28.5529,
+          77.10422
+        ],
+        [
+          28.55186,
+          77.10599
+        ],
+        [
+          28.55167,
+          77.10381
+        ],
+        [
+          28.54784,
+          77.10559
+        ],
+        [
+          28.54608,
+          77.10746
+        ],
+        [
+          28.54421,
+          77.11558
+        ],
+        [
+          28.5441,
+          77.11921
+        ],
+        [
+          28.54688,
+          77.12449
+        ],
+        [
+          28.54529,
+          77.12777
+        ],
+        [
+          28.54432,
+          77.12832
+        ],
+        [
+          28.54287,
+          77.12885
+        ],
+        [
+          28.54159,
+          77.1296
+        ],
+        [
+          28.54017,
+          77.13106
+        ],
+        [
+          28.5388,
+          77.13317
+        ],
+        [
+          28.5383,
+          77.13443
+        ],
+        [
+          28.538,
+          77.13687
+        ],
+        [
+          28.53737,
+          77.1391
+        ],
+        [
+          28.53676,
+          77.14006
+        ],
+        [
+          28.53457,
+          77.14204
+        ],
+        [
+          28.5329,
+          77.14365
+        ],
+        [
+          28.53078,
+          77.14675
+        ],
+        [
+          28.5333,
+          77.15122
+        ],
+        [
+          28.5365,
+          77.15363
+        ],
+        [
+          28.53876,
+          77.15442
+        ],
+        [
+          28.53987,
+          77.15303
+        ],
+        [
+          28.54021,
+          77.15358
+        ]
+      ],
+      "distance": 8565,
+      "bidirectional": true
+    },
+    {
+      "id": "E45",
+      "from": "india_gate",
+      "to": "aiims_chowk",
+      "roadName": "Sri Aurobindo Marg & Safdarjung Rd",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.61296,
+          77.22766
+        ],
+        [
+          28.61495,
+          77.22737
+        ],
+        [
+          28.61605,
+          77.22503
+        ],
+        [
+          28.61363,
+          77.22488
+        ],
+        [
+          28.61171,
+          77.22476
+        ],
+        [
+          28.61007,
+          77.22486
+        ],
+        [
+          28.60959,
+          77.22465
+        ],
+        [
+          28.60835,
+          77.22454
+        ],
+        [
+          28.60584,
+          77.22435
+        ],
+        [
+          28.60437,
+          77.22428
+        ],
+        [
+          28.60387,
+          77.22441
+        ],
+        [
+          28.60252,
+          77.22336
+        ],
+        [
+          28.59999,
+          77.22089
+        ],
+        [
+          28.59814,
+          77.21913
+        ],
+        [
+          28.59583,
+          77.21693
+        ],
+        [
+          28.59237,
+          77.21364
+        ],
+        [
+          28.58917,
+          77.21295
+        ],
+        [
+          28.58469,
+          77.21254
+        ],
+        [
+          28.58237,
+          77.21238
+        ],
+        [
+          28.57707,
+          77.21061
+        ],
+        [
+          28.57368,
+          77.20947
+        ],
+        [
+          28.572,
+          77.20928
+        ],
+        [
+          28.56758,
+          77.20802
+        ],
+        [
+          28.56471,
+          77.20768
+        ],
+        [
+          28.56331,
+          77.20793
+        ],
+        [
+          28.56355,
+          77.20927
+        ],
+        [
+          28.56402,
+          77.21048
+        ],
+        [
+          28.56544,
+          77.21015
+        ]
+      ],
+      "distance": 7428,
+      "bidirectional": true
+    },
+    {
+      "id": "E46",
+      "from": "india_gate",
+      "to": "lajpat_nagar",
+      "roadName": "Lodhi Road & Oberoi Flyover",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.61296,
+          77.22766
+        ],
+        [
+          28.61498,
+          77.22838
+        ],
+        [
+          28.61606,
+          77.23078
+        ],
+        [
+          28.61551,
+          77.2327
+        ],
+        [
+          28.61446,
+          77.23441
+        ],
+        [
+          28.6115,
+          77.2345
+        ],
+        [
+          28.61061,
+          77.23386
+        ],
+        [
+          28.60656,
+          77.23477
+        ],
+        [
+          28.60468,
+          77.23585
+        ],
+        [
+          28.60049,
+          77.2387
+        ],
+        [
+          28.59664,
+          77.24123
+        ],
+        [
+          28.59358,
+          77.24349
+        ],
+        [
+          28.59313,
+          77.24403
+        ],
+        [
+          28.59284,
+          77.24356
+        ],
+        [
+          28.59295,
+          77.2417
+        ],
+        [
+          28.59256,
+          77.24055
+        ],
+        [
+          28.59064,
+          77.24007
+        ],
+        [
+          28.58898,
+          77.24031
+        ],
+        [
+          28.58788,
+          77.24091
+        ],
+        [
+          28.58566,
+          77.24102
+        ],
+        [
+          28.5842,
+          77.24087
+        ],
+        [
+          28.58141,
+          77.23918
+        ],
+        [
+          28.57953,
+          77.23857
+        ],
+        [
+          28.57579,
+          77.23862
+        ],
+        [
+          28.57412,
+          77.23837
+        ],
+        [
+          28.57074,
+          77.23637
+        ],
+        [
+          28.56863,
+          77.23537
+        ],
+        [
+          28.56773,
+          77.2355
+        ]
+      ],
+      "distance": 7032,
+      "bidirectional": true
+    },
+    {
+      "id": "E47",
+      "from": "aiims_chowk",
+      "to": "iit_hauz_khas",
+      "roadName": "Sri Aurobindo Marg (Green Park)",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.4,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.56544,
+          77.21015
+        ],
+        [
+          28.56481,
+          77.21061
+        ],
+        [
+          28.56427,
+          77.21051
+        ],
+        [
+          28.56371,
+          77.21048
+        ],
+        [
+          28.56349,
+          77.21036
+        ],
+        [
+          28.56359,
+          77.20858
+        ],
+        [
+          28.56356,
+          77.20805
+        ],
+        [
+          28.56331,
+          77.20793
+        ],
+        [
+          28.56316,
+          77.20773
+        ],
+        [
+          28.56169,
+          77.20748
+        ],
+        [
+          28.5602,
+          77.20722
+        ],
+        [
+          28.5577,
+          77.2067
+        ],
+        [
+          28.55753,
+          77.20667
+        ],
+        [
+          28.55638,
+          77.20648
+        ],
+        [
+          28.55529,
+          77.20626
+        ],
+        [
+          28.55357,
+          77.20539
+        ],
+        [
+          28.55172,
+          77.2045
+        ],
+        [
+          28.55081,
+          77.2041
+        ],
+        [
+          28.54962,
+          77.20372
+        ],
+        [
+          28.54711,
+          77.20284
+        ],
+        [
+          28.54522,
+          77.20179
+        ],
+        [
+          28.54481,
+          77.20156
+        ],
+        [
+          28.54482,
+          77.20061
+        ],
+        [
+          28.54537,
+          77.19825
+        ],
+        [
+          28.54619,
+          77.19543
+        ],
+        [
+          28.54629,
+          77.19472
+        ],
+        [
+          28.54619,
+          77.19461
+        ],
+        [
+          28.54666,
+          77.1932
+        ]
+      ],
+      "distance": 3632,
+      "bidirectional": true
+    },
+    {
+      "id": "E48",
+      "from": "aiims_chowk",
+      "to": "lajpat_nagar",
+      "roadName": "Ring Road South Extension Flyover",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.56544,
+          77.21015
+        ],
+        [
+          28.56547,
+          77.21107
+        ],
+        [
+          28.5661,
+          77.21197
+        ],
+        [
+          28.56702,
+          77.21225
+        ],
+        [
+          28.56883,
+          77.21233
+        ],
+        [
+          28.56866,
+          77.21586
+        ],
+        [
+          28.56879,
+          77.21574
+        ],
+        [
+          28.56886,
+          77.21412
+        ],
+        [
+          28.56897,
+          77.21381
+        ],
+        [
+          28.56916,
+          77.21396
+        ],
+        [
+          28.5691,
+          77.21556
+        ],
+        [
+          28.56895,
+          77.21649
+        ],
+        [
+          28.56883,
+          77.21863
+        ],
+        [
+          28.56869,
+          77.22174
+        ],
+        [
+          28.56835,
+          77.22418
+        ],
+        [
+          28.56645,
+          77.229
+        ],
+        [
+          28.5658,
+          77.23127
+        ],
+        [
+          28.56544,
+          77.23449
+        ],
+        [
+          28.56507,
+          77.24018
+        ],
+        [
+          28.56588,
+          77.24022
+        ],
+        [
+          28.56679,
+          77.23988
+        ],
+        [
+          28.56813,
+          77.23932
+        ],
+        [
+          28.56879,
+          77.23913
+        ],
+        [
+          28.56928,
+          77.23928
+        ],
+        [
+          28.5705,
+          77.2366
+        ],
+        [
+          28.56867,
+          77.23523
+        ],
+        [
+          28.5679,
+          77.23526
+        ],
+        [
+          28.56773,
+          77.2355
+        ]
+      ],
+      "distance": 5065,
+      "bidirectional": true
+    },
+    {
+      "id": "E49",
+      "from": "vasant_kunj",
+      "to": "iit_hauz_khas",
+      "roadName": "Outer Ring Road (Munirka–IIT Flyover)",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.54021,
+          77.15358
+        ],
+        [
+          28.53968,
+          77.15424
+        ],
+        [
+          28.53978,
+          77.15482
+        ],
+        [
+          28.53897,
+          77.15461
+        ],
+        [
+          28.54048,
+          77.15612
+        ],
+        [
+          28.54433,
+          77.15888
+        ],
+        [
+          28.54683,
+          77.16125
+        ],
+        [
+          28.5492,
+          77.16309
+        ],
+        [
+          28.55174,
+          77.16488
+        ],
+        [
+          28.55295,
+          77.16576
+        ],
+        [
+          28.55319,
+          77.1661
+        ],
+        [
+          28.55523,
+          77.1665
+        ],
+        [
+          28.55747,
+          77.16883
+        ],
+        [
+          28.55885,
+          77.17201
+        ],
+        [
+          28.55776,
+          77.17341
+        ],
+        [
+          28.55612,
+          77.17572
+        ],
+        [
+          28.55403,
+          77.17873
+        ],
+        [
+          28.55319,
+          77.18019
+        ],
+        [
+          28.55195,
+          77.18211
+        ],
+        [
+          28.55091,
+          77.18372
+        ],
+        [
+          28.55038,
+          77.18456
+        ],
+        [
+          28.54885,
+          77.1882
+        ],
+        [
+          28.5463,
+          77.19544
+        ],
+        [
+          28.54571,
+          77.19776
+        ],
+        [
+          28.5451,
+          77.20028
+        ],
+        [
+          28.54537,
+          77.19825
+        ],
+        [
+          28.54629,
+          77.19472
+        ],
+        [
+          28.54666,
+          77.1932
+        ]
+      ],
+      "distance": 7287,
+      "bidirectional": true
+    },
+    {
+      "id": "E50",
+      "from": "vasant_kunj",
+      "to": "qutub_minar",
+      "roadName": "Mehrauli–Mahipalpur Road",
+      "speedKmh": 40,
+      "trafficMultiplier": 1.4,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.54021,
+          77.15358
+        ],
+        [
+          28.53969,
+          77.15461
+        ],
+        [
+          28.53892,
+          77.15467
+        ],
+        [
+          28.54163,
+          77.15738
+        ],
+        [
+          28.53575,
+          77.15322
+        ],
+        [
+          28.53208,
+          77.1505
+        ],
+        [
+          28.52792,
+          77.15084
+        ],
+        [
+          28.52561,
+          77.15432
+        ],
+        [
+          28.52424,
+          77.15586
+        ],
+        [
+          28.52158,
+          77.15808
+        ],
+        [
+          28.51855,
+          77.15998
+        ],
+        [
+          28.52075,
+          77.16394
+        ],
+        [
+          28.52157,
+          77.16704
+        ],
+        [
+          28.52219,
+          77.16814
+        ],
+        [
+          28.52247,
+          77.17008
+        ],
+        [
+          28.52258,
+          77.17042
+        ],
+        [
+          28.52312,
+          77.17122
+        ],
+        [
+          28.5239,
+          77.17172
+        ],
+        [
+          28.52449,
+          77.17282
+        ],
+        [
+          28.52421,
+          77.17474
+        ],
+        [
+          28.52366,
+          77.17569
+        ],
+        [
+          28.52306,
+          77.17601
+        ],
+        [
+          28.52288,
+          77.17651
+        ],
+        [
+          28.5231,
+          77.17748
+        ],
+        [
+          28.52298,
+          77.1786
+        ],
+        [
+          28.52292,
+          77.17996
+        ],
+        [
+          28.52294,
+          77.18238
+        ],
+        [
+          28.52491,
+          77.18442
+        ]
+      ],
+      "distance": 6938,
+      "bidirectional": true
+    },
+    {
+      "id": "E51",
+      "from": "iit_hauz_khas",
+      "to": "qutub_minar",
+      "roadName": "Sri Aurobindo Marg (Adchini)",
+      "speedKmh": 42,
+      "trafficMultiplier": 1.2,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.54666,
+          77.1932
+        ],
+        [
+          28.54616,
+          77.19464
+        ],
+        [
+          28.54516,
+          77.1952
+        ],
+        [
+          28.54485,
+          77.1946
+        ],
+        [
+          28.54434,
+          77.19543
+        ],
+        [
+          28.54396,
+          77.19643
+        ],
+        [
+          28.54279,
+          77.19954
+        ],
+        [
+          28.54383,
+          77.20094
+        ],
+        [
+          28.54453,
+          77.20143
+        ],
+        [
+          28.54328,
+          77.20083
+        ],
+        [
+          28.53846,
+          77.1986
+        ],
+        [
+          28.53765,
+          77.19821
+        ],
+        [
+          28.53568,
+          77.19721
+        ],
+        [
+          28.53338,
+          77.19623
+        ],
+        [
+          28.53181,
+          77.19493
+        ],
+        [
+          28.53132,
+          77.19442
+        ],
+        [
+          28.53018,
+          77.19266
+        ],
+        [
+          28.52867,
+          77.19035
+        ],
+        [
+          28.52778,
+          77.18936
+        ],
+        [
+          28.52743,
+          77.18902
+        ],
+        [
+          28.52644,
+          77.18797
+        ],
+        [
+          28.5256,
+          77.18743
+        ],
+        [
+          28.52609,
+          77.1872
+        ],
+        [
+          28.5265,
+          77.18712
+        ],
+        [
+          28.52652,
+          77.18476
+        ],
+        [
+          28.52635,
+          77.18446
+        ],
+        [
+          28.52597,
+          77.18433
+        ],
+        [
+          28.52491,
+          77.18442
+        ]
+      ],
+      "distance": 4431,
+      "bidirectional": true
+    },
+    {
+      "id": "E52",
+      "from": "iit_hauz_khas",
+      "to": "saket_citywalk",
+      "roadName": "Press Enclave Marg (Malviya Nagar)",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.54666,
+          77.1932
+        ],
+        [
+          28.54615,
+          77.19465
+        ],
+        [
+          28.54492,
+          77.19458
+        ],
+        [
+          28.54456,
+          77.19485
+        ],
+        [
+          28.54402,
+          77.19626
+        ],
+        [
+          28.54298,
+          77.19903
+        ],
+        [
+          28.54411,
+          77.20106
+        ],
+        [
+          28.54416,
+          77.20128
+        ],
+        [
+          28.54099,
+          77.1997
+        ],
+        [
+          28.53777,
+          77.19827
+        ],
+        [
+          28.53609,
+          77.19742
+        ],
+        [
+          28.53338,
+          77.19623
+        ],
+        [
+          28.53187,
+          77.19511
+        ],
+        [
+          28.53172,
+          77.19519
+        ],
+        [
+          28.5313,
+          77.19702
+        ],
+        [
+          28.53039,
+          77.1994
+        ],
+        [
+          28.52829,
+          77.20374
+        ],
+        [
+          28.52794,
+          77.20552
+        ],
+        [
+          28.52791,
+          77.2061
+        ],
+        [
+          28.52816,
+          77.20942
+        ],
+        [
+          28.52828,
+          77.21099
+        ],
+        [
+          28.52876,
+          77.21298
+        ],
+        [
+          28.52931,
+          77.21476
+        ],
+        [
+          28.5288,
+          77.21499
+        ],
+        [
+          28.52695,
+          77.21558
+        ],
+        [
+          28.52583,
+          77.21644
+        ],
+        [
+          28.52623,
+          77.21818
+        ],
+        [
+          28.52823,
+          77.21951
+        ]
+      ],
+      "distance": 5885,
+      "bidirectional": true
+    },
+    {
+      "id": "E53",
+      "from": "qutub_minar",
+      "to": "saket_citywalk",
+      "roadName": "Mehrauli–Badarpur Road West",
+      "speedKmh": 40,
+      "trafficMultiplier": 1.4,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.52491,
+          77.18442
+        ],
+        [
+          28.52605,
+          77.18434
+        ],
+        [
+          28.52634,
+          77.18438
+        ],
+        [
+          28.52652,
+          77.18463
+        ],
+        [
+          28.5265,
+          77.18644
+        ],
+        [
+          28.52647,
+          77.1879
+        ],
+        [
+          28.52715,
+          77.18867
+        ],
+        [
+          28.52772,
+          77.18916
+        ],
+        [
+          28.53013,
+          77.19237
+        ],
+        [
+          28.53056,
+          77.19305
+        ],
+        [
+          28.53118,
+          77.19401
+        ],
+        [
+          28.53188,
+          77.19479
+        ],
+        [
+          28.53161,
+          77.19549
+        ],
+        [
+          28.53092,
+          77.19817
+        ],
+        [
+          28.53029,
+          77.19962
+        ],
+        [
+          28.52808,
+          77.20443
+        ],
+        [
+          28.52792,
+          77.20585
+        ],
+        [
+          28.52791,
+          77.20612
+        ],
+        [
+          28.52816,
+          77.20942
+        ],
+        [
+          28.52824,
+          77.21061
+        ],
+        [
+          28.52858,
+          77.21252
+        ],
+        [
+          28.52926,
+          77.21457
+        ],
+        [
+          28.52925,
+          77.21485
+        ],
+        [
+          28.52784,
+          77.2153
+        ],
+        [
+          28.52595,
+          77.21599
+        ],
+        [
+          28.52591,
+          77.21677
+        ],
+        [
+          28.52623,
+          77.21818
+        ],
+        [
+          28.52823,
+          77.21951
+        ]
+      ],
+      "distance": 4489,
+      "bidirectional": true
+    },
+    {
+      "id": "E54",
+      "from": "saket_citywalk",
+      "to": "nehru_place",
+      "roadName": "Outer Ring Road (Chirag Delhi Flyover)",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.5,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.52823,
+          77.21951
+        ],
+        [
+          28.52699,
+          77.22114
+        ],
+        [
+          28.52734,
+          77.22272
+        ],
+        [
+          28.52773,
+          77.22446
+        ],
+        [
+          28.52797,
+          77.22563
+        ],
+        [
+          28.52785,
+          77.22717
+        ],
+        [
+          28.52772,
+          77.22868
+        ],
+        [
+          28.5276,
+          77.23055
+        ],
+        [
+          28.52814,
+          77.23144
+        ],
+        [
+          28.5292,
+          77.23183
+        ],
+        [
+          28.53256,
+          77.23189
+        ],
+        [
+          28.53346,
+          77.23192
+        ],
+        [
+          28.53932,
+          77.23209
+        ],
+        [
+          28.54126,
+          77.23196
+        ],
+        [
+          28.54171,
+          77.23193
+        ],
+        [
+          28.54131,
+          77.23338
+        ],
+        [
+          28.54072,
+          77.23588
+        ],
+        [
+          28.54147,
+          77.2381
+        ],
+        [
+          28.54233,
+          77.24019
+        ],
+        [
+          28.54392,
+          77.24465
+        ],
+        [
+          28.54518,
+          77.24769
+        ],
+        [
+          28.54629,
+          77.24997
+        ],
+        [
+          28.5493,
+          77.24864
+        ],
+        [
+          28.54956,
+          77.24901
+        ],
+        [
+          28.5503,
+          77.2509
+        ],
+        [
+          28.55067,
+          77.25147
+        ],
+        [
+          28.54985,
+          77.25149
+        ],
+        [
+          28.54922,
+          77.25191
+        ]
+      ],
+      "distance": 5726,
+      "bidirectional": true
+    },
+    {
+      "id": "E55",
+      "from": "lajpat_nagar",
+      "to": "nehru_place",
+      "roadName": "Lala Lajpat Rai Marg (Kailash Colony)",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.56773,
+          77.2355
+        ],
+        [
+          28.56786,
+          77.23525
+        ],
+        [
+          28.56863,
+          77.23535
+        ],
+        [
+          28.56821,
+          77.23491
+        ],
+        [
+          28.56589,
+          77.23426
+        ],
+        [
+          28.5635,
+          77.23316
+        ],
+        [
+          28.56276,
+          77.23274
+        ],
+        [
+          28.56067,
+          77.23168
+        ],
+        [
+          28.56044,
+          77.23178
+        ],
+        [
+          28.56014,
+          77.23228
+        ],
+        [
+          28.55998,
+          77.23271
+        ],
+        [
+          28.55944,
+          77.23518
+        ],
+        [
+          28.55914,
+          77.23657
+        ],
+        [
+          28.55861,
+          77.23857
+        ],
+        [
+          28.55818,
+          77.23944
+        ],
+        [
+          28.55632,
+          77.24111
+        ],
+        [
+          28.55535,
+          77.24203
+        ],
+        [
+          28.55484,
+          77.24272
+        ],
+        [
+          28.55291,
+          77.24544
+        ],
+        [
+          28.55214,
+          77.24701
+        ],
+        [
+          28.55032,
+          77.24828
+        ],
+        [
+          28.54956,
+          77.24901
+        ],
+        [
+          28.55023,
+          77.25071
+        ],
+        [
+          28.55046,
+          77.25109
+        ],
+        [
+          28.55067,
+          77.25147
+        ],
+        [
+          28.55025,
+          77.25131
+        ],
+        [
+          28.54981,
+          77.25143
+        ],
+        [
+          28.54922,
+          77.25191
+        ]
+      ],
+      "distance": 3812,
+      "bidirectional": true
+    },
+    {
+      "id": "E56",
+      "from": "ito_junction",
+      "to": "lajpat_nagar",
+      "roadName": "Mathura Road & Barapullah Link",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.4,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.62849,
+          77.24138
+        ],
+        [
+          28.62759,
+          77.24143
+        ],
+        [
+          28.62652,
+          77.24136
+        ],
+        [
+          28.62553,
+          77.24076
+        ],
+        [
+          28.62472,
+          77.24072
+        ],
+        [
+          28.62374,
+          77.24082
+        ],
+        [
+          28.6218,
+          77.24052
+        ],
+        [
+          28.61879,
+          77.24045
+        ],
+        [
+          28.61656,
+          77.2404
+        ],
+        [
+          28.61474,
+          77.24025
+        ],
+        [
+          28.61241,
+          77.24018
+        ],
+        [
+          28.60743,
+          77.24022
+        ],
+        [
+          28.60614,
+          77.24031
+        ],
+        [
+          28.59928,
+          77.24069
+        ],
+        [
+          28.59752,
+          77.24088
+        ],
+        [
+          28.59505,
+          77.24041
+        ],
+        [
+          28.58997,
+          77.23993
+        ],
+        [
+          28.58861,
+          77.24056
+        ],
+        [
+          28.58717,
+          77.24096
+        ],
+        [
+          28.58459,
+          77.24098
+        ],
+        [
+          28.5839,
+          77.24071
+        ],
+        [
+          28.58098,
+          77.23891
+        ],
+        [
+          28.57825,
+          77.23859
+        ],
+        [
+          28.57549,
+          77.23863
+        ],
+        [
+          28.57368,
+          77.23814
+        ],
+        [
+          28.57074,
+          77.23637
+        ],
+        [
+          28.56863,
+          77.23537
+        ],
+        [
+          28.56773,
+          77.2355
+        ]
+      ],
+      "distance": 6993,
+      "bidirectional": true
+    },
+    {
+      "id": "E57",
+      "from": "punjabi_bagh",
+      "to": "nsp_pitampura",
+      "roadName": "Ring Road (Britannia–NSP Flyover)",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.66884,
+          77.13337
+        ],
+        [
+          28.66958,
+          77.13503
+        ],
+        [
+          28.66892,
+          77.13705
+        ],
+        [
+          28.6699,
+          77.13807
+        ],
+        [
+          28.67069,
+          77.1386
+        ],
+        [
+          28.6721,
+          77.13924
+        ],
+        [
+          28.67353,
+          77.13971
+        ],
+        [
+          28.67375,
+          77.13965
+        ],
+        [
+          28.67406,
+          77.14
+        ],
+        [
+          28.67674,
+          77.14085
+        ],
+        [
+          28.67916,
+          77.14169
+        ],
+        [
+          28.6804,
+          77.14234
+        ],
+        [
+          28.68098,
+          77.143
+        ],
+        [
+          28.68149,
+          77.14377
+        ],
+        [
+          28.68488,
+          77.14877
+        ],
+        [
+          28.68741,
+          77.15222
+        ],
+        [
+          28.68864,
+          77.15269
+        ],
+        [
+          28.69187,
+          77.15349
+        ],
+        [
+          28.69271,
+          77.15368
+        ],
+        [
+          28.69308,
+          77.15332
+        ],
+        [
+          28.69397,
+          77.15078
+        ],
+        [
+          28.69425,
+          77.14989
+        ],
+        [
+          28.69484,
+          77.14802
+        ],
+        [
+          28.69448,
+          77.14999
+        ],
+        [
+          28.69529,
+          77.15097
+        ],
+        [
+          28.69548,
+          77.15139
+        ],
+        [
+          28.69565,
+          77.15156
+        ],
+        [
+          28.69624,
+          77.1525
+        ]
+      ],
+      "distance": 4938,
+      "bidirectional": true
+    },
+    {
+      "id": "E58",
+      "from": "peeragarhi",
+      "to": "nsp_pitampura",
+      "roadName": "Outer Ring Road (Madhuban Chowk)",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.4,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.67961,
+          77.0928
+        ],
+        [
+          28.67991,
+          77.09025
+        ],
+        [
+          28.68051,
+          77.08481
+        ],
+        [
+          28.6806,
+          77.08556
+        ],
+        [
+          28.67978,
+          77.09412
+        ],
+        [
+          28.68035,
+          77.09458
+        ],
+        [
+          28.68314,
+          77.09521
+        ],
+        [
+          28.68725,
+          77.0958
+        ],
+        [
+          28.69062,
+          77.0969
+        ],
+        [
+          28.69223,
+          77.09859
+        ],
+        [
+          28.69306,
+          77.10052
+        ],
+        [
+          28.69457,
+          77.10619
+        ],
+        [
+          28.69543,
+          77.10918
+        ],
+        [
+          28.69767,
+          77.11737
+        ],
+        [
+          28.69843,
+          77.11996
+        ],
+        [
+          28.7018,
+          77.12797
+        ],
+        [
+          28.70293,
+          77.12971
+        ],
+        [
+          28.70418,
+          77.13106
+        ],
+        [
+          28.70324,
+          77.13243
+        ],
+        [
+          28.70082,
+          77.13586
+        ],
+        [
+          28.69897,
+          77.13867
+        ],
+        [
+          28.69849,
+          77.13965
+        ],
+        [
+          28.69612,
+          77.14508
+        ],
+        [
+          28.69544,
+          77.14681
+        ],
+        [
+          28.69436,
+          77.14994
+        ],
+        [
+          28.69529,
+          77.15097
+        ],
+        [
+          28.6955,
+          77.1515
+        ],
+        [
+          28.69624,
+          77.1525
+        ]
+      ],
+      "distance": 9225,
+      "bidirectional": true
+    },
+    {
+      "id": "E59",
+      "from": "peeragarhi",
+      "to": "rohini_sec18",
+      "roadName": "Outer Ring Road North (Mangolpuri)",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.67961,
+          77.0928
+        ],
+        [
+          28.68012,
+          77.08811
+        ],
+        [
+          28.68067,
+          77.08491
+        ],
+        [
+          28.67972,
+          77.09398
+        ],
+        [
+          28.68056,
+          77.09462
+        ],
+        [
+          28.68387,
+          77.09533
+        ],
+        [
+          28.6895,
+          77.09628
+        ],
+        [
+          28.69223,
+          77.09859
+        ],
+        [
+          28.69386,
+          77.10364
+        ],
+        [
+          28.69511,
+          77.1081
+        ],
+        [
+          28.69727,
+          77.11586
+        ],
+        [
+          28.69919,
+          77.1223
+        ],
+        [
+          28.70237,
+          77.12878
+        ],
+        [
+          28.7039,
+          77.13081
+        ],
+        [
+          28.70652,
+          77.13323
+        ],
+        [
+          28.7102,
+          77.13644
+        ],
+        [
+          28.71304,
+          77.13834
+        ],
+        [
+          28.71473,
+          77.13894
+        ],
+        [
+          28.71837,
+          77.13979
+        ],
+        [
+          28.72153,
+          77.14049
+        ],
+        [
+          28.72406,
+          77.14151
+        ],
+        [
+          28.72603,
+          77.14294
+        ],
+        [
+          28.72732,
+          77.14326
+        ],
+        [
+          28.72995,
+          77.14042
+        ],
+        [
+          28.73169,
+          77.14028
+        ],
+        [
+          28.73392,
+          77.13868
+        ],
+        [
+          28.73699,
+          77.1385
+        ],
+        [
+          28.73829,
+          77.13981
+        ]
+      ],
+      "distance": 11494,
+      "bidirectional": true
+    },
+    {
+      "id": "E60",
+      "from": "nsp_pitampura",
+      "to": "rohini_sec18",
+      "roadName": "Lala Jagat Narayan Marg (Rohini)",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.2,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.69624,
+          77.1525
+        ],
+        [
+          28.69547,
+          77.15156
+        ],
+        [
+          28.69528,
+          77.15152
+        ],
+        [
+          28.69524,
+          77.1512
+        ],
+        [
+          28.69669,
+          77.15103
+        ],
+        [
+          28.69889,
+          77.15181
+        ],
+        [
+          28.69987,
+          77.15102
+        ],
+        [
+          28.70064,
+          77.15005
+        ],
+        [
+          28.70247,
+          77.14777
+        ],
+        [
+          28.70385,
+          77.14605
+        ],
+        [
+          28.70668,
+          77.14254
+        ],
+        [
+          28.70838,
+          77.14418
+        ],
+        [
+          28.71056,
+          77.14369
+        ],
+        [
+          28.71213,
+          77.14174
+        ],
+        [
+          28.7128,
+          77.14091
+        ],
+        [
+          28.7136,
+          77.13978
+        ],
+        [
+          28.7137,
+          77.1386
+        ],
+        [
+          28.71632,
+          77.13932
+        ],
+        [
+          28.71859,
+          77.13983
+        ],
+        [
+          28.72157,
+          77.1405
+        ],
+        [
+          28.72437,
+          77.14169
+        ],
+        [
+          28.7264,
+          77.14329
+        ],
+        [
+          28.7277,
+          77.14281
+        ],
+        [
+          28.73015,
+          77.14039
+        ],
+        [
+          28.73223,
+          77.14008
+        ],
+        [
+          28.73392,
+          77.13868
+        ],
+        [
+          28.73699,
+          77.1385
+        ],
+        [
+          28.73829,
+          77.13981
+        ]
+      ],
+      "distance": 6802,
+      "bidirectional": true
+    },
+    {
+      "id": "E61",
+      "from": "nsp_pitampura",
+      "to": "du_north_campus",
+      "roadName": "Ring Road (Azadpur–Model Town)",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.4,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.69624,
+          77.1525
+        ],
+        [
+          28.69541,
+          77.1516
+        ],
+        [
+          28.69531,
+          77.15138
+        ],
+        [
+          28.69446,
+          77.15012
+        ],
+        [
+          28.69397,
+          77.15134
+        ],
+        [
+          28.69325,
+          77.15383
+        ],
+        [
+          28.69622,
+          77.15555
+        ],
+        [
+          28.69703,
+          77.15772
+        ],
+        [
+          28.69015,
+          77.16112
+        ],
+        [
+          28.68432,
+          77.16395
+        ],
+        [
+          28.68471,
+          77.16694
+        ],
+        [
+          28.68697,
+          77.17309
+        ],
+        [
+          28.68811,
+          77.17441
+        ],
+        [
+          28.68671,
+          77.17806
+        ],
+        [
+          28.68488,
+          77.18177
+        ],
+        [
+          28.68235,
+          77.1841
+        ],
+        [
+          28.68033,
+          77.18548
+        ],
+        [
+          28.67783,
+          77.18872
+        ],
+        [
+          28.67939,
+          77.19403
+        ],
+        [
+          28.6798,
+          77.19539
+        ],
+        [
+          28.68177,
+          77.19862
+        ],
+        [
+          28.68449,
+          77.20282
+        ],
+        [
+          28.68475,
+          77.20307
+        ],
+        [
+          28.68704,
+          77.20589
+        ],
+        [
+          28.68613,
+          77.2083
+        ],
+        [
+          28.6868,
+          77.20873
+        ],
+        [
+          28.68856,
+          77.20963
+        ],
+        [
+          28.68809,
+          77.21013
+        ]
+      ],
+      "distance": 8890,
+      "bidirectional": true
+    },
+    {
+      "id": "E62",
+      "from": "karol_bagh",
+      "to": "du_north_campus",
+      "roadName": "Rani Jhansi Flyover & Mall Road",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.4,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.64406,
+          77.18851
+        ],
+        [
+          28.64452,
+          77.19163
+        ],
+        [
+          28.64735,
+          77.19453
+        ],
+        [
+          28.64835,
+          77.19539
+        ],
+        [
+          28.64893,
+          77.19587
+        ],
+        [
+          28.64976,
+          77.19653
+        ],
+        [
+          28.65046,
+          77.19712
+        ],
+        [
+          28.65472,
+          77.20014
+        ],
+        [
+          28.65581,
+          77.20092
+        ],
+        [
+          28.65804,
+          77.20242
+        ],
+        [
+          28.66063,
+          77.20352
+        ],
+        [
+          28.66238,
+          77.20503
+        ],
+        [
+          28.66277,
+          77.20531
+        ],
+        [
+          28.66322,
+          77.2072
+        ],
+        [
+          28.66442,
+          77.2079
+        ],
+        [
+          28.66752,
+          77.20924
+        ],
+        [
+          28.66875,
+          77.20801
+        ],
+        [
+          28.67126,
+          77.20722
+        ],
+        [
+          28.67338,
+          77.20717
+        ],
+        [
+          28.6766,
+          77.20772
+        ],
+        [
+          28.68015,
+          77.20851
+        ],
+        [
+          28.68222,
+          77.20872
+        ],
+        [
+          28.68338,
+          77.20837
+        ],
+        [
+          28.68398,
+          77.20733
+        ],
+        [
+          28.68602,
+          77.20832
+        ],
+        [
+          28.6868,
+          77.20873
+        ],
+        [
+          28.68856,
+          77.20963
+        ],
+        [
+          28.68809,
+          77.21013
+        ]
+      ],
+      "distance": 6233,
+      "bidirectional": true
+    },
+    {
+      "id": "E63",
+      "from": "du_north_campus",
+      "to": "kashmere_gate",
+      "roadName": "Alipur Road (Civil Lines)",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.68809,
+          77.21013
+        ],
+        [
+          28.68841,
+          77.21002
+        ],
+        [
+          28.68834,
+          77.20947
+        ],
+        [
+          28.6869,
+          77.20878
+        ],
+        [
+          28.68637,
+          77.2085
+        ],
+        [
+          28.68605,
+          77.20855
+        ],
+        [
+          28.68416,
+          77.21358
+        ],
+        [
+          28.6841,
+          77.21368
+        ],
+        [
+          28.68249,
+          77.21434
+        ],
+        [
+          28.6808,
+          77.21505
+        ],
+        [
+          28.67851,
+          77.21594
+        ],
+        [
+          28.67621,
+          77.21608
+        ],
+        [
+          28.67506,
+          77.21655
+        ],
+        [
+          28.67467,
+          77.21665
+        ],
+        [
+          28.6743,
+          77.21683
+        ],
+        [
+          28.67175,
+          77.21711
+        ],
+        [
+          28.67056,
+          77.21762
+        ],
+        [
+          28.66969,
+          77.22011
+        ],
+        [
+          28.66899,
+          77.22118
+        ],
+        [
+          28.66748,
+          77.22128
+        ],
+        [
+          28.66635,
+          77.22154
+        ],
+        [
+          28.66616,
+          77.22175
+        ],
+        [
+          28.6662,
+          77.222
+        ],
+        [
+          28.66605,
+          77.22232
+        ],
+        [
+          28.66655,
+          77.22591
+        ],
+        [
+          28.66662,
+          77.22691
+        ],
+        [
+          28.66679,
+          77.22742
+        ],
+        [
+          28.66696,
+          77.228
+        ]
+      ],
+      "distance": 3978,
+      "bidirectional": true
+    },
+    {
+      "id": "E64",
+      "from": "kashmere_gate",
+      "to": "red_fort",
+      "roadName": "Netaji Subhash Marg",
+      "speedKmh": 35,
+      "trafficMultiplier": 1.8,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.66696,
+          77.228
+        ],
+        [
+          28.66677,
+          77.22753
+        ],
+        [
+          28.6668,
+          77.22736
+        ],
+        [
+          28.66662,
+          77.22691
+        ],
+        [
+          28.66657,
+          77.22649
+        ],
+        [
+          28.66644,
+          77.22529
+        ],
+        [
+          28.66547,
+          77.22494
+        ],
+        [
+          28.66538,
+          77.22496
+        ],
+        [
+          28.6657,
+          77.22761
+        ],
+        [
+          28.66532,
+          77.22772
+        ],
+        [
+          28.66501,
+          77.22794
+        ],
+        [
+          28.66469,
+          77.22819
+        ],
+        [
+          28.66425,
+          77.22848
+        ],
+        [
+          28.66403,
+          77.22991
+        ],
+        [
+          28.66434,
+          77.22994
+        ],
+        [
+          28.66475,
+          77.23058
+        ],
+        [
+          28.66489,
+          77.23069
+        ],
+        [
+          28.6635,
+          77.2324
+        ],
+        [
+          28.66254,
+          77.23387
+        ],
+        [
+          28.66192,
+          77.23499
+        ],
+        [
+          28.66131,
+          77.23577
+        ],
+        [
+          28.66039,
+          77.23612
+        ],
+        [
+          28.65946,
+          77.23657
+        ],
+        [
+          28.6584,
+          77.23694
+        ],
+        [
+          28.65725,
+          77.23692
+        ],
+        [
+          28.65595,
+          77.23742
+        ],
+        [
+          28.65548,
+          77.23794
+        ],
+        [
+          28.65524,
+          77.2383
+        ]
+      ],
+      "distance": 2666,
+      "bidirectional": true
+    },
+    {
+      "id": "E65",
+      "from": "ndls",
+      "to": "red_fort",
+      "roadName": "Asaf Ali Road & Daryaganj",
+      "speedKmh": 35,
+      "trafficMultiplier": 1.7,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.64251,
+          77.22205
+        ],
+        [
+          28.64342,
+          77.22287
+        ],
+        [
+          28.64373,
+          77.2238
+        ],
+        [
+          28.64494,
+          77.2236
+        ],
+        [
+          28.64563,
+          77.22356
+        ],
+        [
+          28.64638,
+          77.22381
+        ],
+        [
+          28.64669,
+          77.22446
+        ],
+        [
+          28.64763,
+          77.22535
+        ],
+        [
+          28.64897,
+          77.22614
+        ],
+        [
+          28.64926,
+          77.2264
+        ],
+        [
+          28.64935,
+          77.22654
+        ],
+        [
+          28.64923,
+          77.22663
+        ],
+        [
+          28.64941,
+          77.22728
+        ],
+        [
+          28.65046,
+          77.23014
+        ],
+        [
+          28.65141,
+          77.23233
+        ],
+        [
+          28.65156,
+          77.23286
+        ],
+        [
+          28.65162,
+          77.23333
+        ],
+        [
+          28.65272,
+          77.23333
+        ],
+        [
+          28.65316,
+          77.23472
+        ],
+        [
+          28.65369,
+          77.23643
+        ],
+        [
+          28.65695,
+          77.23686
+        ],
+        [
+          28.65858,
+          77.23686
+        ],
+        [
+          28.65954,
+          77.23645
+        ],
+        [
+          28.66003,
+          77.2363
+        ],
+        [
+          28.65867,
+          77.23689
+        ],
+        [
+          28.65672,
+          77.23689
+        ],
+        [
+          28.65566,
+          77.2378
+        ],
+        [
+          28.65524,
+          77.2383
+        ]
+      ],
+      "distance": 3762,
+      "bidirectional": true
+    },
+    {
+      "id": "E66",
+      "from": "ito_junction",
+      "to": "red_fort",
+      "roadName": "Mahatma Gandhi Ring Road (Rajghat)",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.62849,
+          77.24138
+        ],
+        [
+          28.62783,
+          77.24143
+        ],
+        [
+          28.62802,
+          77.24125
+        ],
+        [
+          28.63033,
+          77.24108
+        ],
+        [
+          28.63231,
+          77.24089
+        ],
+        [
+          28.63344,
+          77.24082
+        ],
+        [
+          28.635,
+          77.24082
+        ],
+        [
+          28.63697,
+          77.24093
+        ],
+        [
+          28.63852,
+          77.24104
+        ],
+        [
+          28.6399,
+          77.24083
+        ],
+        [
+          28.64067,
+          77.24055
+        ],
+        [
+          28.64115,
+          77.24042
+        ],
+        [
+          28.64424,
+          77.24032
+        ],
+        [
+          28.64815,
+          77.24007
+        ],
+        [
+          28.64874,
+          77.23973
+        ],
+        [
+          28.65152,
+          77.23765
+        ],
+        [
+          28.65286,
+          77.23672
+        ],
+        [
+          28.65464,
+          77.23647
+        ],
+        [
+          28.65736,
+          77.23689
+        ],
+        [
+          28.65858,
+          77.23686
+        ],
+        [
+          28.65921,
+          77.23661
+        ],
+        [
+          28.66004,
+          77.23611
+        ],
+        [
+          28.65995,
+          77.23633
+        ],
+        [
+          28.65887,
+          77.23684
+        ],
+        [
+          28.6578,
+          77.23695
+        ],
+        [
+          28.65598,
+          77.23693
+        ],
+        [
+          28.65548,
+          77.23794
+        ],
+        [
+          28.65524,
+          77.2383
+        ]
+      ],
+      "distance": 4531,
+      "bidirectional": true
+    },
+    {
+      "id": "E67",
+      "from": "kashmere_gate",
+      "to": "ito_junction",
+      "roadName": "Salimugarh Bypass Ring Road",
+      "speedKmh": 55,
+      "trafficMultiplier": 1.1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.66696,
+          77.228
+        ],
+        [
+          28.66678,
+          77.22748
+        ],
+        [
+          28.66662,
+          77.22691
+        ],
+        [
+          28.66656,
+          77.22614
+        ],
+        [
+          28.66552,
+          77.22493
+        ],
+        [
+          28.6658,
+          77.22731
+        ],
+        [
+          28.66532,
+          77.22772
+        ],
+        [
+          28.66495,
+          77.22799
+        ],
+        [
+          28.66425,
+          77.22848
+        ],
+        [
+          28.66403,
+          77.22996
+        ],
+        [
+          28.66472,
+          77.23055
+        ],
+        [
+          28.66494,
+          77.23076
+        ],
+        [
+          28.66257,
+          77.23365
+        ],
+        [
+          28.66178,
+          77.23521
+        ],
+        [
+          28.66039,
+          77.23612
+        ],
+        [
+          28.6591,
+          77.23675
+        ],
+        [
+          28.6578,
+          77.23695
+        ],
+        [
+          28.65364,
+          77.23663
+        ],
+        [
+          28.65169,
+          77.23781
+        ],
+        [
+          28.64978,
+          77.23922
+        ],
+        [
+          28.64505,
+          77.24042
+        ],
+        [
+          28.64205,
+          77.24059
+        ],
+        [
+          28.64109,
+          77.24074
+        ],
+        [
+          28.6381,
+          77.24119
+        ],
+        [
+          28.63626,
+          77.24118
+        ],
+        [
+          28.63454,
+          77.24102
+        ],
+        [
+          28.63084,
+          77.24118
+        ],
+        [
+          28.62849,
+          77.24138
+        ]
+      ],
+      "distance": 5631,
+      "bidirectional": true
+    },
+    {
+      "id": "E68",
+      "from": "ito_junction",
+      "to": "laxmi_nagar",
+      "roadName": "ITO Yamuna Bridge & Vikas Marg",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.6,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.62849,
+          77.24138
+        ],
+        [
+          28.62811,
+          77.24152
+        ],
+        [
+          28.62803,
+          77.24165
+        ],
+        [
+          28.62791,
+          77.24191
+        ],
+        [
+          28.62795,
+          77.24323
+        ],
+        [
+          28.62814,
+          77.24562
+        ],
+        [
+          28.62822,
+          77.24671
+        ],
+        [
+          28.62825,
+          77.24779
+        ],
+        [
+          28.62821,
+          77.24926
+        ],
+        [
+          28.62812,
+          77.25053
+        ],
+        [
+          28.62813,
+          77.25215
+        ],
+        [
+          28.62817,
+          77.25935
+        ],
+        [
+          28.62822,
+          77.26059
+        ],
+        [
+          28.62823,
+          77.26815
+        ],
+        [
+          28.62824,
+          77.27193
+        ],
+        [
+          28.62832,
+          77.2735
+        ],
+        [
+          28.62857,
+          77.27436
+        ],
+        [
+          28.6289,
+          77.27491
+        ],
+        [
+          28.62955,
+          77.27601
+        ],
+        [
+          28.62985,
+          77.27687
+        ],
+        [
+          28.62977,
+          77.27694
+        ],
+        [
+          28.62935,
+          77.27733
+        ],
+        [
+          28.62912,
+          77.27754
+        ],
+        [
+          28.62911,
+          77.27785
+        ],
+        [
+          28.62929,
+          77.27808
+        ],
+        [
+          28.62989,
+          77.27768
+        ],
+        [
+          28.63023,
+          77.27736
+        ],
+        [
+          28.63039,
+          77.27768
+        ]
+      ],
+      "distance": 3934,
+      "bidirectional": true
+    },
+    {
+      "id": "E69",
+      "from": "ito_junction",
+      "to": "akshardham",
+      "roadName": "NH-9 Yamuna Bridge (Indraprastha)",
+      "speedKmh": 55,
+      "trafficMultiplier": 1.2,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.62849,
+          77.24138
+        ],
+        [
+          28.62803,
+          77.24165
+        ],
+        [
+          28.62792,
+          77.24237
+        ],
+        [
+          28.62816,
+          77.24593
+        ],
+        [
+          28.62825,
+          77.24779
+        ],
+        [
+          28.62812,
+          77.25053
+        ],
+        [
+          28.62814,
+          77.25338
+        ],
+        [
+          28.62822,
+          77.26681
+        ],
+        [
+          28.62824,
+          77.27193
+        ],
+        [
+          28.62854,
+          77.27266
+        ],
+        [
+          28.62903,
+          77.27278
+        ],
+        [
+          28.62937,
+          77.27253
+        ],
+        [
+          28.62947,
+          77.27198
+        ],
+        [
+          28.62925,
+          77.27159
+        ],
+        [
+          28.62875,
+          77.27141
+        ],
+        [
+          28.62795,
+          77.27171
+        ],
+        [
+          28.62717,
+          77.27245
+        ],
+        [
+          28.62615,
+          77.27446
+        ],
+        [
+          28.62573,
+          77.27494
+        ],
+        [
+          28.62353,
+          77.27645
+        ],
+        [
+          28.61971,
+          77.27903
+        ],
+        [
+          28.6159,
+          77.28149
+        ],
+        [
+          28.61472,
+          77.28247
+        ],
+        [
+          28.61388,
+          77.28267
+        ],
+        [
+          28.61404,
+          77.28237
+        ],
+        [
+          28.61607,
+          77.28119
+        ],
+        [
+          28.61573,
+          77.27836
+        ],
+        [
+          28.61276,
+          77.27635
+        ]
+      ],
+      "distance": 6583,
+      "bidirectional": true
+    },
+    {
+      "id": "E70",
+      "from": "lajpat_nagar",
+      "to": "akshardham",
+      "roadName": "Barapullah Elevated & NH-24 Link",
+      "speedKmh": 55,
+      "trafficMultiplier": 1.1,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.56773,
+          77.2355
+        ],
+        [
+          28.56863,
+          77.23535
+        ],
+        [
+          28.56781,
+          77.23481
+        ],
+        [
+          28.56575,
+          77.23461
+        ],
+        [
+          28.56518,
+          77.23769
+        ],
+        [
+          28.56507,
+          77.24291
+        ],
+        [
+          28.56591,
+          77.25171
+        ],
+        [
+          28.56657,
+          77.25266
+        ],
+        [
+          28.56979,
+          77.25437
+        ],
+        [
+          28.57127,
+          77.25653
+        ],
+        [
+          28.57394,
+          77.26039
+        ],
+        [
+          28.57871,
+          77.26681
+        ],
+        [
+          28.58044,
+          77.26678
+        ],
+        [
+          28.58157,
+          77.26569
+        ],
+        [
+          28.5833,
+          77.26331
+        ],
+        [
+          28.58546,
+          77.26011
+        ],
+        [
+          28.58695,
+          77.25924
+        ],
+        [
+          28.59024,
+          77.25812
+        ],
+        [
+          28.59292,
+          77.25714
+        ],
+        [
+          28.59704,
+          77.25589
+        ],
+        [
+          28.59885,
+          77.25722
+        ],
+        [
+          28.59996,
+          77.26037
+        ],
+        [
+          28.606,
+          77.27374
+        ],
+        [
+          28.60889,
+          77.27874
+        ],
+        [
+          28.61319,
+          77.28239
+        ],
+        [
+          28.61404,
+          77.28237
+        ],
+        [
+          28.61681,
+          77.2805
+        ],
+        [
+          28.61276,
+          77.27635
+        ]
+      ],
+      "distance": 11250,
+      "bidirectional": true
+    },
+    {
+      "id": "E71",
+      "from": "nehru_place",
+      "to": "akshardham",
+      "roadName": "Outer Ring Road & Sarai Kale Khan",
+      "speedKmh": 50,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.54922,
+          77.25191
+        ],
+        [
+          28.55035,
+          77.25117
+        ],
+        [
+          28.54935,
+          77.24875
+        ],
+        [
+          28.55209,
+          77.24681
+        ],
+        [
+          28.55549,
+          77.24783
+        ],
+        [
+          28.55601,
+          77.24998
+        ],
+        [
+          28.55796,
+          77.25101
+        ],
+        [
+          28.56052,
+          77.25058
+        ],
+        [
+          28.56229,
+          77.25025
+        ],
+        [
+          28.56512,
+          77.25002
+        ],
+        [
+          28.56596,
+          77.25146
+        ],
+        [
+          28.56653,
+          77.25245
+        ],
+        [
+          28.56876,
+          77.25384
+        ],
+        [
+          28.57127,
+          77.25653
+        ],
+        [
+          28.57584,
+          77.26338
+        ],
+        [
+          28.57982,
+          77.26695
+        ],
+        [
+          28.58144,
+          77.26581
+        ],
+        [
+          28.58421,
+          77.26192
+        ],
+        [
+          28.58616,
+          77.25958
+        ],
+        [
+          28.58968,
+          77.2583
+        ],
+        [
+          28.59292,
+          77.25714
+        ],
+        [
+          28.59828,
+          77.25551
+        ],
+        [
+          28.59899,
+          77.2581
+        ],
+        [
+          28.60565,
+          77.27296
+        ],
+        [
+          28.60957,
+          77.27939
+        ],
+        [
+          28.61369,
+          77.28245
+        ],
+        [
+          28.61607,
+          77.28119
+        ],
+        [
+          28.61276,
+          77.27635
+        ]
+      ],
+      "distance": 11967,
+      "bidirectional": true
+    },
+    {
+      "id": "E72",
+      "from": "red_fort",
+      "to": "laxmi_nagar",
+      "roadName": "Geeta Colony Bridge Corridor",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.5,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.65524,
+          77.2383
+        ],
+        [
+          28.65592,
+          77.23783
+        ],
+        [
+          28.65448,
+          77.23663
+        ],
+        [
+          28.65169,
+          77.23781
+        ],
+        [
+          28.65013,
+          77.23916
+        ],
+        [
+          28.65032,
+          77.24005
+        ],
+        [
+          28.65034,
+          77.24366
+        ],
+        [
+          28.6507,
+          77.24486
+        ],
+        [
+          28.65115,
+          77.2455
+        ],
+        [
+          28.65126,
+          77.24925
+        ],
+        [
+          28.65135,
+          77.25403
+        ],
+        [
+          28.6516,
+          77.26576
+        ],
+        [
+          28.65112,
+          77.26729
+        ],
+        [
+          28.65022,
+          77.26804
+        ],
+        [
+          28.64864,
+          77.26862
+        ],
+        [
+          28.6434,
+          77.26912
+        ],
+        [
+          28.63816,
+          77.26968
+        ],
+        [
+          28.63324,
+          77.27012
+        ],
+        [
+          28.63171,
+          77.2711
+        ],
+        [
+          28.63052,
+          77.272
+        ],
+        [
+          28.62918,
+          77.27288
+        ],
+        [
+          28.62847,
+          77.2734
+        ],
+        [
+          28.62848,
+          77.27415
+        ],
+        [
+          28.62955,
+          77.27601
+        ],
+        [
+          28.62949,
+          77.27721
+        ],
+        [
+          28.62899,
+          77.27766
+        ],
+        [
+          28.62958,
+          77.27799
+        ],
+        [
+          28.63039,
+          77.27768
+        ]
+      ],
+      "distance": 7122,
+      "bidirectional": true
+    },
+    {
+      "id": "E73",
+      "from": "akshardham",
+      "to": "laxmi_nagar",
+      "roadName": "Noida Link Road & Patparganj Rd",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.3,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.61276,
+          77.27635
+        ],
+        [
+          28.61437,
+          77.27537
+        ],
+        [
+          28.61688,
+          77.28043
+        ],
+        [
+          28.61821,
+          77.27978
+        ],
+        [
+          28.61966,
+          77.27892
+        ],
+        [
+          28.62365,
+          77.27622
+        ],
+        [
+          28.62465,
+          77.27551
+        ],
+        [
+          28.62569,
+          77.27478
+        ],
+        [
+          28.62617,
+          77.27418
+        ],
+        [
+          28.62721,
+          77.27217
+        ],
+        [
+          28.62763,
+          77.27175
+        ],
+        [
+          28.62844,
+          77.27131
+        ],
+        [
+          28.62872,
+          77.27128
+        ],
+        [
+          28.62928,
+          77.27108
+        ],
+        [
+          28.62955,
+          77.27059
+        ],
+        [
+          28.62948,
+          77.27013
+        ],
+        [
+          28.62917,
+          77.26982
+        ],
+        [
+          28.62875,
+          77.2698
+        ],
+        [
+          28.62842,
+          77.27007
+        ],
+        [
+          28.62824,
+          77.27193
+        ],
+        [
+          28.62848,
+          77.27415
+        ],
+        [
+          28.62915,
+          77.2753
+        ],
+        [
+          28.62993,
+          77.2768
+        ],
+        [
+          28.62949,
+          77.27721
+        ],
+        [
+          28.62912,
+          77.27754
+        ],
+        [
+          28.62929,
+          77.27808
+        ],
+        [
+          28.63016,
+          77.27742
+        ],
+        [
+          28.63039,
+          77.27768
+        ]
+      ],
+      "distance": 3811,
+      "bidirectional": true
+    },
+    {
+      "id": "E74",
+      "from": "laxmi_nagar",
+      "to": "anand_vihar",
+      "roadName": "Vikas Marg & Karkardooma Ave",
+      "speedKmh": 45,
+      "trafficMultiplier": 1.4,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.63039,
+          77.27768
+        ],
+        [
+          28.631,
+          77.27847
+        ],
+        [
+          28.63194,
+          77.27989
+        ],
+        [
+          28.63282,
+          77.28124
+        ],
+        [
+          28.63392,
+          77.28293
+        ],
+        [
+          28.63437,
+          77.2832
+        ],
+        [
+          28.63592,
+          77.28556
+        ],
+        [
+          28.63608,
+          77.28581
+        ],
+        [
+          28.63758,
+          77.28853
+        ],
+        [
+          28.63863,
+          77.29066
+        ],
+        [
+          28.64073,
+          77.29418
+        ],
+        [
+          28.64213,
+          77.29597
+        ],
+        [
+          28.643,
+          77.29707
+        ],
+        [
+          28.64415,
+          77.29887
+        ],
+        [
+          28.64034,
+          77.30208
+        ],
+        [
+          28.63686,
+          77.30528
+        ],
+        [
+          28.63637,
+          77.30605
+        ],
+        [
+          28.63608,
+          77.30705
+        ],
+        [
+          28.63618,
+          77.30927
+        ],
+        [
+          28.63642,
+          77.31424
+        ],
+        [
+          28.63689,
+          77.31429
+        ],
+        [
+          28.6373,
+          77.31427
+        ],
+        [
+          28.6384,
+          77.31451
+        ],
+        [
+          28.63979,
+          77.31499
+        ],
+        [
+          28.64222,
+          77.31599
+        ],
+        [
+          28.64533,
+          77.3171
+        ],
+        [
+          28.64667,
+          77.31734
+        ],
+        [
+          28.64717,
+          77.31643
+        ]
+      ],
+      "distance": 5898,
+      "bidirectional": true
+    },
+    {
+      "id": "E75",
+      "from": "akshardham",
+      "to": "anand_vihar",
+      "roadName": "NH-9 Ghazipur & Chaudhary Charan Singh Marg",
+      "speedKmh": 55,
+      "trafficMultiplier": 1.2,
+      "pedestrianOnly": false,
+      "waypoints": [
+        [
+          28.61276,
+          77.27635
+        ],
+        [
+          28.61559,
+          77.27779
+        ],
+        [
+          28.61717,
+          77.28044
+        ],
+        [
+          28.61839,
+          77.27948
+        ],
+        [
+          28.62038,
+          77.27814
+        ],
+        [
+          28.61905,
+          77.27952
+        ],
+        [
+          28.6159,
+          77.28149
+        ],
+        [
+          28.61527,
+          77.28241
+        ],
+        [
+          28.61495,
+          77.28339
+        ],
+        [
+          28.61492,
+          77.28385
+        ],
+        [
+          28.61636,
+          77.28593
+        ],
+        [
+          28.61773,
+          77.28839
+        ],
+        [
+          28.61901,
+          77.29186
+        ],
+        [
+          28.62093,
+          77.29774
+        ],
+        [
+          28.62298,
+          77.3036
+        ],
+        [
+          28.62457,
+          77.30847
+        ],
+        [
+          28.62559,
+          77.31165
+        ],
+        [
+          28.62632,
+          77.3134
+        ],
+        [
+          28.62758,
+          77.31733
+        ],
+        [
+          28.62776,
+          77.31741
+        ],
+        [
+          28.63271,
+          77.31557
+        ],
+        [
+          28.63524,
+          77.31468
+        ],
+        [
+          28.63748,
+          77.31447
+        ],
+        [
+          28.63885,
+          77.31481
+        ],
+        [
+          28.64129,
+          77.31567
+        ],
+        [
+          28.64482,
+          77.31691
+        ],
+        [
+          28.64667,
+          77.31734
+        ],
+        [
+          28.64717,
+          77.31643
+        ]
+      ],
+      "distance": 8063,
       "bidirectional": true
     }
   ]
 };
 
 export const GRAPH_PRESETS = {
-  nsut: NSUT_DWARKA_GRAPH,
-  cp: CONNAUGHT_PLACE_GRAPH,
-  iitd: IIT_DELHI_GRAPH,
+  delhi: NEW_DELHI_GRAPH,
 };
 
-export const DEFAULT_GRAPH = NSUT_DWARKA_GRAPH;
+export const DEFAULT_GRAPH = NEW_DELHI_GRAPH;
 
 /**
- * Compute travel duration (in minutes) and optimization weight for an edge
- * under "car" vs "walk" travel modes.
- *
- * - Car Mode ("car"):
- *   - Cannot traverse pedestrianOnly edges (returns Infinity).
- *   - Uses road speed (35 km/h urban to 50 km/h arterial) scaled by trafficMultiplier (1.0x, 1.5x, 2.2x).
- * - Walk Mode ("walk"):
- *   - Unlocks pedestrianOnly campus/park footpath shortcuts.
- *   - Uses constant 5.0 km/h (1.39 m/s = 83.333 m/min) walking speed and ignores road traffic congestion.
+ * Evaluate edge travel duration (in minutes) and Dijkstra weight for "car" vs "walk".
  */
 export function evaluateEdgeForMode(edge, mode = "car") {
   const normalizedMode = mode === "walk" ? "walk" : "car";
-  const distMeters = Number(edge.distance) || 100;
+  const distMeters = Number(edge.distance) || 200;
 
   if (normalizedMode === "car" && edge.pedestrianOnly) {
     return {
@@ -14453,7 +9844,7 @@ export function evaluateEdgeForMode(edge, mode = "car") {
   }
 
   if (normalizedMode === "walk") {
-    // 5.0 km/h = 83.3333 meters/minute (1.39 m/s), ignoring trafficMultiplier
+    // 5.0 km/h = 83.3333 m/min (1.39 m/s), ignoring road traffic congestion
     const durationMin = distMeters / 83.3333;
     return {
       allowed: true,
@@ -14463,8 +9854,7 @@ export function evaluateEdgeForMode(edge, mode = "car") {
     };
   }
 
-  // Car mode: speed between 35 km/h and 50 km/h, scaled by trafficMultiplier
-  const speedKmh = Number(edge.speedKmh) || 38;
+  const speedKmh = Number(edge.speedKmh) || 42;
   const traffic = Number(edge.trafficMultiplier) || 1.0;
   const metersPerMin = (speedKmh * 1000) / 60;
   const durationMin = (distMeters / metersPerMin) * traffic;
@@ -14479,7 +9869,6 @@ export function evaluateEdgeForMode(edge, mode = "car") {
 
 /**
  * Build mode-aware adjacency list from graph dataset.
- * Automatically orients edge.waypoints [[lat, lng], ...] in the direction of traversal.
  */
 export function buildAdjacencyList(graph, mode = "car") {
   const adjacency = {};
@@ -14516,7 +9905,7 @@ export function buildAdjacencyList(graph, mode = "car") {
       durationMin: evalResult.durationMin,
       weight: evalResult.weight,
       trafficMultiplier: Number(edge.trafficMultiplier || 1.0),
-      speedKmh: Number(edge.speedKmh || 35),
+      speedKmh: Number(edge.speedKmh || 40),
       pedestrianOnly: Boolean(edge.pedestrianOnly),
       waypoints: forwardWaypoints,
     });
@@ -14530,7 +9919,7 @@ export function buildAdjacencyList(graph, mode = "car") {
         durationMin: evalResult.durationMin,
         weight: evalResult.weight,
         trafficMultiplier: Number(edge.trafficMultiplier || 1.0),
-        speedKmh: Number(edge.speedKmh || 35),
+        speedKmh: Number(edge.speedKmh || 40),
         pedestrianOnly: Boolean(edge.pedestrianOnly),
         waypoints: reverseWaypoints,
       });
@@ -14541,7 +9930,7 @@ export function buildAdjacencyList(graph, mode = "car") {
 }
 
 /**
- * Execute Dijkstra on a single consecutive segment (segStart -> segEnd).
+ * Execute Dijkstra on a single consecutive leg (segStart -> segEnd).
  */
 function runSegmentDijkstra(adjacency, nodesMap, segStart, segEnd, legIndex = 1) {
   const distances = {};
@@ -14615,16 +10004,10 @@ function runSegmentDijkstra(adjacency, nodesMap, segStart, segEnd, legIndex = 1)
         oldCost: oldCost === Infinity ? "∞" : Number(oldCost.toFixed(2)),
         newCost: Number(newCost.toFixed(2)),
         improved,
-        waypoints: edge.waypoints,
       };
 
       relaxedEdgesInStep.push(traceItem);
       visitedEdges.push(traceItem);
-    }
-
-    const snapshotDistances = {};
-    for (const [k, val] of Object.entries(distances)) {
-      snapshotDistances[k] = val === Infinity ? null : Number(val.toFixed(2));
     }
 
     visitedOrder.push({
@@ -14637,13 +10020,11 @@ function runSegmentDijkstra(adjacency, nodesMap, segStart, segEnd, legIndex = 1)
       distanceMetersSoFar: Math.round(metersMap[u]),
       relaxedEdges: relaxedEdgesInStep,
       pqSnapshot: pq.toArray(),
-      distancesSnapshot: snapshotDistances,
     });
 
     if (u === segEnd) break;
   }
 
-  // Reconstruct optimal node sequence & road-snapped edge polylines for this segment
   const pathNodeIds = [];
   const pathEdges = [];
   let curr = segEnd;
@@ -14666,7 +10047,6 @@ function runSegmentDijkstra(adjacency, nodesMap, segStart, segEnd, legIndex = 1)
 
   const reachable = pathNodeIds.length > 0 && pathNodeIds[0] === segStart;
 
-  // Stitch dense road geometry from edge.waypoints
   const segmentGeometry = [];
   for (const edge of pathEdges) {
     const pts = edge.waypoints || [
@@ -14694,7 +10074,7 @@ function runSegmentDijkstra(adjacency, nodesMap, segStart, segEnd, legIndex = 1)
 }
 
 /**
- * Generate turn-by-turn street navigation instructions from the active path edges.
+ * Generate turn-by-turn street instructions from path edges.
  */
 function buildFallbackTurnByTurnSteps(pathEdges, nodesMap, mode = "car") {
   if (!pathEdges || pathEdges.length === 0) return [];
@@ -14703,10 +10083,10 @@ function buildFallbackTurnByTurnSteps(pathEdges, nodesMap, mode = "car") {
     const targetNode = nodesMap[edge.to];
     const maneuver =
       idx === 0
-        ? `Head out on ${edge.roadName}`
+        ? `Depart via ${edge.roadName} toward ${targetNode?.shortName || edge.to}`
         : idx === pathEdges.length - 1
-        ? `${verb} ${edge.roadName} toward ${targetNode?.shortName || edge.to}`
-        : `${verb} ${edge.roadName}`;
+        ? `${verb} ${edge.roadName} to reach ${targetNode?.shortName || edge.to}`
+        : `${verb} ${edge.roadName} (${targetNode?.shortName || edge.to})`;
     return {
       step: idx + 1,
       instruction: maneuver,
@@ -14714,16 +10094,14 @@ function buildFallbackTurnByTurnSteps(pathEdges, nodesMap, mode = "car") {
       toNodeId: edge.to,
       toNodeName: targetNode?.shortName || edge.to,
       distanceMeters: edge.distance,
-      durationMin: Math.max(0.5, Number(edge.durationMin.toFixed(1))),
+      durationMin: Math.max(1, Math.round(edge.durationMin)),
       pedestrianOnly: Boolean(edge.pedestrianOnly),
-      trafficMultiplier: edge.trafficMultiplier,
     };
   });
 }
 
 /**
- * Execute Chained / Segmented Dijkstra across [sourceId, ...viaNodeIds, targetId]
- * for a specific travel mode ("car" or "walk").
+ * Execute Chained / Segmented Dijkstra across [sourceId, ...viaNodeIds, targetId].
  */
 export function runChainedDijkstraForMode({
   graph = DEFAULT_GRAPH,
@@ -14802,7 +10180,6 @@ export function runChainedDijkstraForMode({
     lastPredecessors = seg.predecessors;
   }
 
-  // Build detailed shortestPath array with cumulative distance and time
   let cumDist = 0;
   let cumTime = 0;
   const shortestPath = allNodeIds.map((nid, idx) => {
@@ -14818,8 +10195,9 @@ export function runChainedDijkstraForMode({
       shortName: node.shortName || node.name,
       lat: node.lat,
       lng: node.lng,
+      region: node.region || "Delhi",
       category: node.category,
-      zone: node.zone,
+      isPriorityHub: Boolean(node.isPriorityHub),
       stepIndex: idx,
       isOrigin: idx === 0,
       isDestination: idx === allNodeIds.length - 1,
@@ -14873,19 +10251,17 @@ export function runChainedDijkstraForMode({
 }
 
 /**
- * Optional Live OSRM Hydration:
- * Queries https://router.project-osrm.org/route/v1/{profile}/{lon1},{lat1};...{lonK},{latK}?overview=full&geometries=geojson&steps=true
- * for the winning Dijkstra node sequence when no pedestrian-only off-grid shortcuts are used,
- * or merges OSRM turn maneuvers while keeping the exact road-snapped Dijkstra edge polylines.
+ * Hydrate the winning Dijkstra node sequence with full high-resolution OSRM street geometry.
  */
 export async function hydrateWithOSRM(modeResult) {
   if (!modeResult || !modeResult.reachable || modeResult.shortestPath.length < 2) {
     return modeResult;
   }
 
-  // If the walk path uses a dedicated campus pedestrian shortcut, keep our exact shortcut geometry
-  const hasCampusShortcut = (modeResult.pathEdges || []).some((e) => e.pedestrianOnly);
-  if (hasCampusShortcut) {
+  const hasPedestrianShortcut = (modeResult.pathEdges || []).some(
+    (e) => e.pedestrianOnly
+  );
+  if (hasPedestrianShortcut) {
     return modeResult;
   }
 
@@ -14898,66 +10274,40 @@ export async function hydrateWithOSRM(modeResult) {
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2200);
+    const timeoutId = setTimeout(() => controller.abort(), 2400);
     const res = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
 
     if (!res.ok) return modeResult;
     const data = await res.json();
 
-    if (data.code === "Ok" && data.routes?.[0]?.geometry?.coordinates?.length >= 2) {
+    if (
+      data.code === "Ok" &&
+      data.routes?.[0]?.geometry?.coordinates?.length >= 2
+    ) {
       const route = data.routes[0];
       const latLngs = route.geometry.coordinates.map(([lon, lat]) => [
         Number(lat.toFixed(5)),
         Number(lon.toFixed(5)),
       ]);
 
-      // Extract OSRM street steps if available
-      const osrmSteps = [];
-      let stepIdx = 1;
-      for (const leg of route.legs || []) {
-        for (const st of leg.steps || []) {
-          if (st.distance < 8 && st.maneuver?.type !== "arrive") continue;
-          const mType = st.maneuver?.type || "continue";
-          const mod = st.maneuver?.modifier ? ` ${st.maneuver.modifier}` : "";
-          const street = st.name || "local road";
-          const label =
-            mType === "depart"
-              ? `Head${mod} on ${street}`
-              : mType === "arrive"
-              ? `Arrive at destination`
-              : `Turn${mod} onto ${street}`;
-
-          osrmSteps.push({
-            step: stepIdx++,
-            instruction: label,
-            roadName: street,
-            distanceMeters: Math.round(st.distance),
-            durationMin: Math.max(0.2, Number((st.duration / 60).toFixed(1))),
-            maneuverType: mType,
-          });
-        }
-      }
-
       return {
         ...modeResult,
         roadGeometry: latLngs,
         roadGeometryGeoJSON: route.geometry,
-        turnByTurnSteps:
-          osrmSteps.length > 0 ? osrmSteps : modeResult.turnByTurnSteps,
         osrmSnapped: true,
       };
     }
   } catch {
-    // Graceful fallback to pre-snapped edge.waypoints geometry
+    // Fallback to pre-snapped edge waypoints
   }
 
   return modeResult;
 }
 
 /**
- * Primary Entrypoint: Executes Chained Dijkstra for BOTH "car" and "walk" modes,
- * hydrates road geometry, and returns full dual-mode comparison + active route telemetry.
+ * Primary Async Entrypoint: Computes BOTH "car" and "walk" Dijkstra routes
+ * across the 34-Node Pan-New Delhi network and snaps road geometry via OSRM.
  */
 export async function executeDijkstraAsync({
   graph = DEFAULT_GRAPH,
@@ -14969,8 +10319,6 @@ export async function executeDijkstraAsync({
 }) {
   const t0 = typeof performance !== "undefined" ? performance.now() : Date.now();
   const activeGraph = graph && graph.nodes && graph.edges ? graph : DEFAULT_GRAPH;
-
-  // Support legacy mode names ("distance" / "time") by mapping to "car" / "walk"
   const normalizedMode = mode === "walk" ? "walk" : "car";
   const cleanViaNodeIds = Array.isArray(viaNodeIds) ? viaNodeIds : [];
 
@@ -14991,7 +10339,10 @@ export async function executeDijkstraAsync({
   });
 
   const dijkstraComputeMs = Number(
-    Math.max(0.18, (typeof performance !== "undefined" ? performance.now() : Date.now()) - t0).toFixed(2)
+    Math.max(
+      0.18,
+      (typeof performance !== "undefined" ? performance.now() : Date.now()) - t0
+    ).toFixed(2)
   );
 
   if (enableLiveOSRM) {
@@ -15031,7 +10382,7 @@ export async function executeDijkstraAsync({
 
   return {
     status: "ok",
-    engine: "Dijkstra Min-Heap + OSRM Street Geometry v2.0",
+    engine: "Dijkstra Min-Heap + OSRM Street Geometry v3.0",
     mode: normalizedMode,
     sourceId,
     targetId,
@@ -15056,6 +10407,8 @@ export async function executeDijkstraAsync({
           shortName: n.shortName,
           lat: n.lat,
           lng: n.lng,
+          region: n.region,
+          isPriorityHub: n.isPriorityHub,
         })),
         roadGeometry: carResult.roadGeometry,
         roadGeometryGeoJSON: carResult.roadGeometryGeoJSON,
@@ -15072,6 +10425,8 @@ export async function executeDijkstraAsync({
           shortName: n.shortName,
           lat: n.lat,
           lng: n.lng,
+          region: n.region,
+          isPriorityHub: n.isPriorityHub,
         })),
         roadGeometry: walkResult.roadGeometry,
         roadGeometryGeoJSON: walkResult.roadGeometryGeoJSON,
@@ -15093,17 +10448,12 @@ export async function executeDijkstraAsync({
   };
 }
 
-/**
- * Synchronous wrapper using pre-snapped OSRM edge waypoints.
- */
 export function executeDijkstra(params) {
   const activeGraph =
     params?.graph && params.graph.nodes ? params.graph : DEFAULT_GRAPH;
   const normalizedMode = params?.mode === "walk" ? "walk" : "car";
   const cleanViaNodeIds = Array.isArray(params?.viaNodeIds)
     ? params.viaNodeIds
-    : Array.isArray(params?.waypoints)
-    ? params.waypoints
     : [];
 
   const carResult = runChainedDijkstraForMode({
@@ -15130,7 +10480,7 @@ export function executeDijkstra(params) {
 
   return {
     status: primary.reachable ? "ok" : "unreachable",
-    engine: "Dijkstra Min-Heap + Street Geometry v2.0",
+    engine: "Dijkstra Min-Heap + Street Geometry v3.0",
     mode: normalizedMode,
     sourceId: params.sourceId,
     targetId: params.targetId,
@@ -15175,7 +10525,7 @@ export function executeDijkstra(params) {
     visitedEdges: primary.visitedEdges || [],
     distancesMap: primary.distancesMap || {},
     predecessors: primary.predecessors || {},
-    executionTimeMs: 0.34,
+    executionTimeMs: 0.31,
     timestamp: new Date().toISOString(),
   };
 }

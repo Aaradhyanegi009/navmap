@@ -1,6 +1,5 @@
 import {
   DEFAULT_GRAPH,
-  GRAPH_PRESETS,
   executeDijkstraAsync,
 } from '../src/lib/dijkstra.js';
 
@@ -8,13 +7,14 @@ import {
  * Vercel Serverless Function: POST /api/navigate
  * Deliverables:
  *   - Project 14: Standalone Backend REST API for Dijkstra Shortest-Path Routing
- *   - Project 15: Chained Intermediate Waypoints ("Via" Stops), Car vs. Walk
- *     Dual-Mode Comparison, and Real OSRM Street Geometry Hydration
+ *   - Project 15: Pan-New Delhi + NSUT Dwarka Priority Hub, Chained "Via" Stops,
+ *     Car vs. Walk Dual-Mode Comparison, and Real OSRM Street Snapping
  */
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -24,11 +24,10 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     const viaRaw = req.query?.viaNodeIds || '';
     payload = {
-      sourceId: req.query?.sourceId || 'N2',
-      targetId: req.query?.targetId || 'N14',
+      sourceId: req.query?.sourceId || 'nsut_main',
+      targetId: req.query?.targetId || 'connaught_place',
       viaNodeIds: viaRaw ? viaRaw.split(',').filter(Boolean) : [],
       mode: req.query?.mode || 'car',
-      preset: req.query?.preset || 'nsut',
     };
   } else if (req.method === 'POST') {
     payload =
@@ -44,9 +43,7 @@ export default async function handler(req, res) {
     sourceId,
     targetId,
     viaNodeIds = [],
-    waypoints = [],
     mode = 'car',
-    preset = 'nsut',
     customGraph = null,
   } = payload;
 
@@ -55,9 +52,9 @@ export default async function handler(req, res) {
       status: 'error',
       message: 'Both "sourceId" and "targetId" are required.',
       examplePayload: {
-        sourceId: 'N2',
-        targetId: 'N14',
-        viaNodeIds: ['N3'],
+        sourceId: 'nsut_main',
+        targetId: 'connaught_place',
+        viaNodeIds: ['dhaula_kuan'],
         mode: 'car',
       },
     });
@@ -65,19 +62,16 @@ export default async function handler(req, res) {
 
   try {
     const startHr = process.hrtime.bigint();
-    const baseGraph = customGraph || GRAPH_PRESETS[preset] || DEFAULT_GRAPH;
-    const normalizedVia =
-      Array.isArray(viaNodeIds) && viaNodeIds.length > 0
-        ? viaNodeIds
-        : Array.isArray(waypoints)
-        ? waypoints
-        : [];
+    const baseGraph =
+      customGraph && customGraph.version === 'navmap_v3_graph'
+        ? customGraph
+        : DEFAULT_GRAPH;
 
     const result = await executeDijkstraAsync({
       graph: baseGraph,
       sourceId,
       targetId,
-      viaNodeIds: normalizedVia,
+      viaNodeIds: Array.isArray(viaNodeIds) ? viaNodeIds : [],
       mode: mode === 'walk' ? 'walk' : 'car',
       enableLiveOSRM: true,
     });
@@ -86,7 +80,8 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       ...result,
-      deliverable: 'Experiments 14 & 15 — Hybrid Dijkstra + OSRM Routing API',
+      version: 'navmap_v3_graph',
+      deliverable: 'Experiments 14 & 15 — Pan-Delhi Hybrid Dijkstra + OSRM API',
       serverExecutionTimeMs: Number(elapsedMs.toFixed(2)),
       serverHandled: true,
     });
